@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, List
 from jose import jwt
 from core.config import settings
@@ -11,15 +11,15 @@ def create_access_token(
     Create JWT access token
     """
     if expires_delta:
-        expire = datetime.now(datetime.timezone.utc) + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(datetime.timezone.utc) + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     to_encode = {
         "sub": str(subject),
         "exp": expire,
-        "iat": datetime.now(datetime.timezone.utc),
+        "iat": datetime.now(timezone.utc),
         "roles": roles,
     }
     encoded_jwt = jwt.encode(
@@ -32,13 +32,13 @@ def create_refresh_token(subject: str) -> str:
     """
     Create JWT refresh token
     """
-    expire = datetime.now(datetime.timezone.utc) + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
     to_encode = {
         "sub": str(subject),
         "exp": expire,
-        "iat": datetime.now(datetime.timezone.utc),
+        "iat": datetime.now(timezone.utc),
         "token_type": "refresh",
     }
     encoded_jwt = jwt.encode(

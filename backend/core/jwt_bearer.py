@@ -1,18 +1,19 @@
 from datetime import datetime
+from typing import Callable, List, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
-from pydantic import ValidationError
-from typing import Optional, List
 from models.token import TokenPayload
+from pydantic import ValidationError
+
 from core.config import settings
 from core.jwt_handler import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> str | None:
     """
     Validates token and returns the username
     """
@@ -20,7 +21,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
         payload = decode_token(token)
         token_data = TokenPayload(**payload)
         # Check token expiration
-        if datetime.fromtimestamp(token_data.exp) < datetime.now():
+        if (
+            not token_data.exp
+            or datetime.fromtimestamp(token_data.exp) < datetime.now()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token expired",
@@ -35,19 +39,24 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
         )
 
 
-def get_current_user_with_roles(required_roles: Optional[List[str]] = None) -> callable:
+def get_current_user_with_roles(
+    required_roles: Optional[List[str]] = None,
+) -> Callable[[str], str | None]:
     """
     Creates a dependency that checks if the current user has the required roles
     """
     if required_roles is None:
         required_roles = []
 
-    def _inner(token: str = Depends(oauth2_scheme)) -> str:
+    def _inner(token: str = Depends(oauth2_scheme)) -> str | None:
         try:
             payload = decode_token(token)
             token_data = TokenPayload(**payload)
             # Check token expiration
-            if datetime.fromtimestamp(token_data.exp) < datetime.now():
+            if (
+                not token_data.exp
+                or datetime.fromtimestamp(token_data.exp) < datetime.now()
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Token expired",

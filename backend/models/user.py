@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 
 
@@ -18,8 +18,7 @@ class UserInDB(UserBase):
     full_name: Optional[str] = None
     roles: List[str] = ["user"]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class User(UserBase):
@@ -27,5 +26,4 @@ class User(UserBase):
     full_name: Optional[str] = None
     roles: List[str] = ["user"]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

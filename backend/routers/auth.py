@@ -5,11 +5,13 @@ from pydantic import ValidationError
 
 from core.config import settings
 from core.jwt_handler import create_access_token, create_refresh_token, decode_token
-from core.utils import verify_password
+from core.database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from jose import JWTError
 from models.token import Token
+from repositories.user_repository import UserRepository
 
 router = APIRouter(prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
@@ -17,26 +19,29 @@ router = APIRouter(prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
 ) -> Any:
     """
     OAuth2 compatible token login, returns an access token
     """
-    user = fake_users_db.get(form_data.username)
-    if not user or not verify_password(form_data.password, user["hashed_password"]):
+    user = UserRepository.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not user["is_active"]:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Default to user role if not specified
+    roles = ["user"]
     access_token = create_access_token(
-        subject=user["email"], roles=user["roles"], expires_delta=access_token_expires
+        subject=user.email, roles=roles, expires_delta=access_token_expires
     )
-    refresh_token = create_refresh_token(subject=user["email"])
+    refresh_token = create_refresh_token(subject=user.email)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -45,7 +50,10 @@ async def login_for_access_token(
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str = Body(...)) -> Any:
+async def refresh_token(
+    refresh_token: str = Body(...),
+    db: Session = Depends(get_db),
+) -> Any:
     """
     Refresh token endpoint
     """
@@ -65,19 +73,21 @@ async def refresh_token(refresh_token: str = Body(...)) -> Any:
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        user = fake_users_db.get(email)
+        user = UserRepository.get_user_by_email(db, email)
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
             )
-        if not user["is_active"]:
+        if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
             )
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        # Default to user role if not specified
+        roles = ["user"]
         access_token = create_access_token(
-            subject=email, roles=user["roles"], expires_delta=access_token_expires
+            subject=email, roles=roles, expires_delta=access_token_expires
         )
         new_refresh_token = create_refresh_token(subject=email)
         return {

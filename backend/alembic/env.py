@@ -16,7 +16,8 @@ from core.database import Base
 from core.config import settings
 
 # Import all models to register them with the Base metadata
-from models.database_models import UserModel  # noqa: F401
+from models.room_model import RoomModel  # noqa: F401
+from models.user_model import UserModel  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

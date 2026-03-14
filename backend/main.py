@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 from core.database import engine, Base
-from models.database_models import UserModel  # Import models to register them
-from routers import auth, users
+from models.room_model import RoomModel  # noqa: F401
+from models.user_model import UserModel  # noqa: F401
+from routers import auth, users, rooms
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -24,6 +25,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router, prefix=settings.API_V1_STR)
+app.include_router(rooms.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

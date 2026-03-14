@@ -4,7 +4,7 @@ from typing import Callable, List, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
-from models.token import TokenPayload
+from schemas.token import TokenPayload
 from pydantic import ValidationError
 
 from core.config import settings

@@ -4,8 +4,8 @@ This follows the repository pattern for clean data access.
 """
 
 from sqlalchemy.orm import Session
-from models.database_models import UserModel
-from models.user import UserCreate
+from models.user_model import UserModel
+from schemas.user import UserCreate
 from core.utils import verify_password
 
 
@@ -15,12 +15,11 @@ class UserRepository:
     @staticmethod
     def create_user(db: Session, user: UserCreate, hashed_password: str) -> UserModel:
         """Create a new user in the database."""
-        db_user = UserModel(
-            email=user.email,
-            full_name=user.full_name,
-            hashed_password=hashed_password,
-            is_active=user.is_active,
-        )
+        db_user = UserModel()
+        db_user.email = user.email
+        db_user.full_name = user.full_name
+        db_user.hashed_password = hashed_password
+        db_user.is_active = user.is_active
         db.add(db_user)
         db.commit()
         db.refresh(db_user)

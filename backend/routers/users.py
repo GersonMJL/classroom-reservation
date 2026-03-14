@@ -5,7 +5,7 @@ from core.database import get_db
 from core.utils import get_password_hash
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.user import User, UserCreate, UserBase
+from schemas.user import User, UserCreate, UserBase
 from repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/users", tags=["users"])

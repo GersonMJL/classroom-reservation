@@ -20,7 +20,8 @@ class RoomRepository:
         db_room.location = room.location
         db_room.capacity = room.capacity
         db_room.accessibility = room.accessibility
-        db_room.allowed_purposes = room.allowed_purposes
+        db_room.criticality = room.criticality
+        db_room.supervisor_user_id = room.supervisor_user_id
         db_room.is_active = True
         db.add(db_room)
         db.commit()
@@ -55,8 +56,11 @@ class RoomRepository:
         db_room = db.query(RoomModel).filter(RoomModel.id == room_id).first()
         if db_room:
             update_data = room_data.model_dump(exclude_unset=True)
+            excluded_fields = {"allowed_purposes", "fixed_resources", "optional_resources"}
             for key, value in update_data.items():
-                if value is not None:
+                if key in excluded_fields:
+                    continue
+                if value is not None and hasattr(db_room, key):
                     setattr(db_room, key, value)
             db.commit()
             db.refresh(db_room)

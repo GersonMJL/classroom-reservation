@@ -31,11 +31,11 @@ export default function Login() {
 
   const validateForm = (): boolean => {
     if (!formData.username.trim()) {
-      setError("Email is required");
+      setError("E-mail é obrigatório");
       return false;
     }
     if (!formData.password.trim()) {
-      setError("Password is required");
+      setError("Senha é obrigatória");
       return false;
     }
     return true;
@@ -65,7 +65,7 @@ export default function Login() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.detail || "Login failed");
+        setError(data.detail || "Falha no login");
         return;
       }
 
@@ -76,7 +76,7 @@ export default function Login() {
       setFormData({ username: "", password: "" });
       navigate("/");
     } catch (err) {
-      setError("An error occurred during login. Please try again.");
+      setError("Ocorreu um erro durante o login. Tente novamente.");
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export default function Login() {
         }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Login
+          Entrar
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -104,23 +104,23 @@ export default function Login() {
         <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%", gap: 2, display: "flex", flexDirection: "column" }}>
           <TextField
             fullWidth
-            label="Email"
+            label="E-mail"
             name="username"
             type="email"
             value={formData.username}
             onChange={handleChange}
-            placeholder="example@email.com"
+            placeholder="exemplo@email.com"
             variant="outlined"
           />
 
           <TextField
             fullWidth
-            label="Password"
+            label="Senha"
             name="password"
             type="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Your password"
+            placeholder="Sua senha"
             variant="outlined"
           />
 
@@ -131,12 +131,12 @@ export default function Login() {
             sx={{ py: 1.5, fontSize: "1rem" }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : "Login"}
+            {loading ? <CircularProgress size={24} /> : "Entrar"}
           </Button>
         </Box>
 
         <Typography variant="body2">
-          Don't have an account?{" "}
+          Não tem uma conta?{" "}
           <Link
             href="/register"
             sx={{
@@ -146,7 +146,7 @@ export default function Login() {
               "&:hover": { textDecoration: "underline" },
             }}
           >
-            Register here
+            Cadastre-se aqui
           </Link>
         </Typography>
       </Box>

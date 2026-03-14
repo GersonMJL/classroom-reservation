@@ -27,3 +27,7 @@ class User(UserBase):
     roles: List[str] = ["user"]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserRolesUpdate(BaseModel):
+    roles: List[str]

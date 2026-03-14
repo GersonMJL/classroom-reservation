@@ -24,6 +24,7 @@ services:
     volumes:
       - ./backend:/app
       - venv:/app/.venv
+    user: "${UID:-1000}:${GID:-1000}"
     depends_on:
       db:
         condition: service_healthy

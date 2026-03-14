@@ -27,14 +27,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str | None:
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token expired",
+                detail="Token expirado",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return token_data.sub
     except (JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
+            detail="Não foi possível validar as credenciais",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -59,7 +59,7 @@ def get_current_user_with_roles(
             ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token expired",
+                    detail="Token expirado",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             # If no specific roles required, just authentication is enough
@@ -73,14 +73,14 @@ def get_current_user_with_roles(
             ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient permissions",
+                    detail="Permissões insuficientes",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             return token_data.sub
         except (JWTError, ValidationError):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Could not validate credentials",
+                detail="Não foi possível validar as credenciais",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 

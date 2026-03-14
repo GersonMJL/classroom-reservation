@@ -17,6 +17,10 @@ from core.config import settings
 
 # Import all models to register them with the Base metadata
 from models.room_model import RoomModel  # noqa: F401
+from models.purpose_model import PurposeModel  # noqa: F401
+from models.room_purpose_model import RoomPurposeModel  # noqa: F401
+from models.resource_model import ResourceModel  # noqa: F401
+from models.room_resource_model import RoomResourceModel  # noqa: F401
 from models.user_model import UserModel  # noqa: F401
 
 # this is the Alembic Config object, which provides

@@ -33,23 +33,23 @@ export default function Register() {
 
   const validateForm = (): boolean => {
     if (!formData.email.trim()) {
-      setError("Email is required");
+      setError("E-mail é obrigatório");
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError("Please enter a valid email address");
+      setError("Informe um endereço de e-mail válido");
       return false;
     }
     if (!formData.password.trim()) {
-      setError("Password is required");
+      setError("Senha é obrigatória");
       return false;
     }
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+      setError("A senha deve ter pelo menos 6 caracteres");
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return false;
     }
     return true;
@@ -80,14 +80,14 @@ export default function Register() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.detail || "Registration failed");
+        setError(data.detail || "Falha no cadastro");
         return;
       }
 
       setFormData({ email: "", password: "", confirmPassword: "", fullName: "" });
       navigate("/login");
     } catch (err) {
-      setError("An error occurred during registration. Please try again.");
+      setError("Ocorreu um erro durante o cadastro. Tente novamente.");
       console.error("Registration error:", err);
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function Register() {
         }}
       >
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Create Account
+          Criar Conta
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -115,44 +115,44 @@ export default function Register() {
         <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%", gap: 2, display: "flex", flexDirection: "column" }}>
           <TextField
             fullWidth
-            label="Full Name"
+            label="Nome Completo"
             name="fullName"
             value={formData.fullName}
             onChange={handleChange}
-            placeholder="John Doe"
+            placeholder="João da Silva"
             variant="outlined"
           />
 
           <TextField
             fullWidth
-            label="Email"
+            label="E-mail"
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="example@email.com"
+            placeholder="exemplo@email.com"
             variant="outlined"
           />
 
           <TextField
             fullWidth
-            label="Password"
+            label="Senha"
             name="password"
             type="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="At least 6 characters"
+            placeholder="Pelo menos 6 caracteres"
             variant="outlined"
           />
 
           <TextField
             fullWidth
-            label="Confirm Password"
+            label="Confirmar Senha"
             name="confirmPassword"
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
-            placeholder="Confirm your password"
+            placeholder="Confirme sua senha"
             variant="outlined"
           />
 
@@ -163,12 +163,12 @@ export default function Register() {
             sx={{ py: 1.5, fontSize: "1rem" }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : "Register"}
+            {loading ? <CircularProgress size={24} /> : "Cadastrar"}
           </Button>
         </Box>
 
         <Typography variant="body2">
-          Already have an account?{" "}
+          Já tem uma conta?{" "}
           <Link
             href="/login"
             sx={{
@@ -178,7 +178,7 @@ export default function Register() {
               "&:hover": { textDecoration: "underline" },
             }}
           >
-            Login here
+            Entre aqui
           </Link>
         </Typography>
       </Box>

@@ -1,29 +1,34 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Container, Typography, Stack } from "@mui/material";
 import { useNavigate } from "react-router";
-import DomainIcon from "@mui/icons-material/Domain";
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import LogoutIcon from "@mui/icons-material/Logout";
+import GroupIcon from "@mui/icons-material/Group";
+import { getTokenRoles } from "../services/api";
 
 export const meta = () => {
   return [
-    { title: "Classroom Reservation" },
-    { name: "description", content: "Welcome to Classroom Reservation System!" },
+    { title: "Reserva de Salas" },
+    { name: "description", content: "Bem-vindo ao Sistema de Reserva de Salas!" },
   ];
 };
 
 export default function Home() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     setIsAuthenticated(!!token);
+    setIsAdmin(getTokenRoles().includes("admin"));
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setIsAuthenticated(false);
+    setIsAdmin(false);
     navigate("/");
   };
 
@@ -41,10 +46,10 @@ export default function Home() {
         }}
       >
         <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
-          Classroom Reservation System
+          Sistema de Reserva de Salas
         </Typography>
         <Typography variant="h6" sx={{ color: "text.secondary", mb: 2 }}>
-          Manage your classroom reservations efficiently and securely
+          Gerencie as reservas de salas com eficiência e segurança
         </Typography>
 
         {isAuthenticated ? (
@@ -53,18 +58,29 @@ export default function Home() {
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<DomainIcon />}
+                startIcon={<MeetingRoomIcon />}
                 onClick={() => navigate("/rooms")}
               >
-                Manage Environments
+                Gerenciar Ambientes
               </Button>
+              {isAdmin && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  size="large"
+                  startIcon={<GroupIcon />}
+                  onClick={() => navigate("/users")}
+                >
+                  Gerenciar Usuários
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 size="large"
                 startIcon={<LogoutIcon />}
                 onClick={handleLogout}
               >
-                Logout
+                Sair
               </Button>
             </Stack>
           </Stack>
@@ -75,14 +91,14 @@ export default function Home() {
               size="large"
               onClick={() => navigate("/login")}
             >
-              Login
+              Entrar
             </Button>
             <Button
               variant="outlined"
               size="large"
               onClick={() => navigate("/register")}
             >
-              Register
+              Cadastrar
             </Button>
           </Stack>
         )}

@@ -5,7 +5,7 @@ from core.database import get_db
 from core.utils import get_password_hash
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from schemas.user import User, UserCreate, UserBase
+from schemas.user import User, UserCreate, UserBase, UserRolesUpdate
 from repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -23,7 +23,7 @@ async def register_user(
     existing_user = UserRepository.get_user_by_email(db, user_in.email)
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
         )
 
     # Hash password and create user
@@ -44,7 +44,7 @@ async def read_users_me(
     user = UserRepository.get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
     return user
 
@@ -75,7 +75,7 @@ async def read_user(
     user = UserRepository.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
     return user
 
@@ -94,14 +94,14 @@ async def update_user(
     current_user_obj = UserRepository.get_user_by_email(db, current_user)
     if not current_user_obj:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Current user not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário atual não encontrado"
         )
 
     # Check authorization - user can only update their own profile
     if current_user_obj.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to update this user",
+            detail="Sem autorização para atualizar este usuário",
         )
 
     # Prepare update data
@@ -111,7 +111,7 @@ async def update_user(
     updated_user = UserRepository.update_user(db, user_id, update_data)
     if not updated_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
 
     return updated_user
@@ -129,6 +129,24 @@ async def delete_user(
     success = UserRepository.delete_user(db, user_id)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
     return None
+
+
+@router.put("/{user_id}/roles", response_model=User)
+async def update_user_roles(
+    user_id: int,
+    roles_update: UserRolesUpdate,
+    current_user: str = Depends(get_current_user_with_roles(required_roles=["admin"])),
+    db: Session = Depends(get_db),
+):
+    user = UserRepository.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado",
+        )
+
+    updated_user = UserRepository.update_user(db, user_id, {"roles": roles_update.roles})
+    return updated_user

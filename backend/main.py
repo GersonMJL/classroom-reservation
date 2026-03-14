@@ -1,13 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
-from core.database import engine, Base
-from models.room_model import RoomModel  # noqa: F401
-from models.user_model import UserModel  # noqa: F401
-from routers import auth, users, rooms
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
+from routers import auth, users, rooms, resources, purposes
 
 app = FastAPI(
     title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json"
@@ -26,11 +20,13 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router, prefix=settings.API_V1_STR)
 app.include_router(rooms.router, prefix=settings.API_V1_STR)
+app.include_router(resources.router, prefix=settings.API_V1_STR)
+app.include_router(purposes.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to FastAPI JWT Auth Example"}
+    return {"message": "Bem-vindo ao exemplo FastAPI com autenticação JWT"}
 
 
 if __name__ == "__main__":

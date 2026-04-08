@@ -6,6 +6,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 ENV UV_LINK_MODE=copy
 ENV UV_CACHE_DIR=/app/.cache
+ENV PYTHONPATH=/app
 RUN pip install uv --break-system-packages
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen
@@ -20,4 +21,4 @@ RUN chmod +x /entrypoint.sh
 # The user will be set via docker-compose.yml
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

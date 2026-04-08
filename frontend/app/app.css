@@ -1,12 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Sora", "Space Grotesk", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 html,
 body {
-  @apply bg-white;
+  min-height: 100%;
+  @apply bg-[#f3f5ef];
   color-scheme: light;
+}
+
+#app-root {
+  min-height: 100dvh;
+}
+
+.page-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  width: min(100%, 480px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    transition: opacity 160ms ease;
+    transform: none;
+  }
 }

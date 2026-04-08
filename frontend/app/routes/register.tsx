@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
+  Avatar,
   Box,
   Button,
-  Container,
+  CircularProgress,
+  Link,
+  Paper,
+  Stack,
   TextField,
   Typography,
-  Link,
   Alert,
-  CircularProgress,
 } from "@mui/material";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -95,20 +99,21 @@ export default function Register() {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          gap: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Criar Conta
-        </Typography>
+    <Box className="auth-shell">
+      <Paper className="auth-card page-enter" sx={{ p: { xs: 2.5, md: 3.5 } }}>
+        <Stack direction="column" spacing={2} sx={{ mb: 2.5 }}>
+          <Avatar sx={{ bgcolor: "secondary.main", width: 44, height: 44 }}>
+            <VerifiedUserIcon />
+          </Avatar>
+          <Box>
+            <Typography variant="h4" component="h1">
+              Criar conta
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Cadastre-se para acessar o painel de gerenciamento de ambientes.
+            </Typography>
+          </Box>
+        </Stack>
 
         {error && <Alert severity="error">{error}</Alert>}
 
@@ -160,14 +165,15 @@ export default function Register() {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ py: 1.5, fontSize: "1rem" }}
+            startIcon={loading ? undefined : <PersonAddAlt1Icon />}
+            sx={{ py: 1.4, fontSize: "0.98rem" }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : "Cadastrar"}
           </Button>
         </Box>
 
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
           Já tem uma conta?{" "}
           <Link
             href="/login"
@@ -181,7 +187,7 @@ export default function Register() {
             Entre aqui
           </Link>
         </Typography>
-      </Box>
-    </Container>
+      </Paper>
+    </Box>
   );
 }

@@ -15,39 +15,42 @@ export interface RoomResourceItem {
   quantity: number;
 }
 
-export type RoomCriticality = "common" | "controlled" | "restricted";
+export type EnvironmentType =
+  | "CLASSROOM"
+  | "LABORATORY"
+  | "AUDITORIUM"
+  | "MEETING_ROOM"
+  | "STUDIO"
+  | "MULTIPURPOSE";
 
-export interface Room {
+export type EnvironmentCriticality = "COMMON" | "CONTROLLED" | "RESTRICTED";
+
+export interface Environment {
   id: number;
-  room_id: string;
-  room_type: string;
-  location: string;
+  name: string;
+  type: EnvironmentType;
+  criticality: EnvironmentCriticality;
   capacity: number;
-  accessibility: boolean;
-  allowed_purposes: string[];
-  criticality: RoomCriticality;
-  supervisor_user_id: number | null;
-  type_attributes: Record<string, unknown>;
-  fixed_resources: RoomResourceItem[];
-  optional_resources: RoomResourceItem[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  location_id: number;
+  operating_hours: string;
+  requires_approval: boolean;
 }
 
-export interface RoomCreate {
-  room_id: string;
-  room_type: string;
-  location: string;
+export interface EnvironmentCreate {
+  name: string;
+  type: EnvironmentType;
+  criticality: EnvironmentCriticality;
   capacity: number;
-  accessibility: boolean;
-  allowed_purposes: string[];
-  criticality: RoomCriticality;
-  supervisor_user_id?: number | null;
-  type_attributes: Record<string, unknown>;
-  fixed_resources: RoomResourceAssignment[];
-  optional_resources: RoomResourceAssignment[];
+  location_id: number;
+  operating_hours: string;
+  requires_approval: boolean;
 }
+
+export type EnvironmentUpdate = Partial<EnvironmentCreate>;
+
+export type Room = Environment;
+export type RoomCreate = EnvironmentCreate;
+export type RoomCriticality = EnvironmentCriticality;
 
 export interface Resource {
   id: number;
@@ -112,6 +115,15 @@ export interface ApiError {
   detail: string;
 }
 
+const parseErrorDetail = async (response: Response, fallbackMessage: string) => {
+  try {
+    const error = (await response.json()) as ApiError;
+    return error.detail || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+};
+
 const isBrowser = typeof window !== "undefined";
 
 const getAuthHeaders = () => {
@@ -123,106 +135,79 @@ const getAuthHeaders = () => {
 };
 
 // Room API endpoints
-export const roomApi = {
-  // Get all rooms
-  async getAllRooms(skip = 0, limit = 100, activeOnly = true) {
+export const environmentApi = {
+  async getAllRooms(skip = 0, limit = 100) {
     const response = await fetch(
-      `${API_BASE_URL}/rooms?skip=${skip}&limit=${limit}&active_only=${activeOnly}`,
+      `${API_BASE_URL}/environments?skip=${skip}&limit=${limit}`,
       {
         method: "GET",
         headers: getAuthHeaders(),
       }
     );
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao buscar ambientes");
+      const detail = await parseErrorDetail(response, "Falha ao buscar ambientes");
+      throw new Error(detail);
     }
     return response.json() as Promise<Room[]>;
   },
 
-  // Get room by ID
   async getRoomById(roomId: number) {
-    const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+    const response = await fetch(`${API_BASE_URL}/environments/${roomId}`, {
       method: "GET",
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao buscar ambiente");
+      const detail = await parseErrorDetail(response, "Falha ao buscar ambiente");
+      throw new Error(detail);
     }
     return response.json() as Promise<Room>;
   },
 
-  // Create new room
   async createRoom(room: RoomCreate) {
-    const response = await fetch(`${API_BASE_URL}/rooms`, {
+    const response = await fetch(`${API_BASE_URL}/environments`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(room),
     });
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao criar ambiente");
+      const detail = await parseErrorDetail(response, "Falha ao criar ambiente");
+      throw new Error(detail);
     }
     return response.json() as Promise<Room>;
   },
 
-  // Update room
   async updateRoom(roomId: number, data: Partial<RoomCreate>) {
-    const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+    const response = await fetch(`${API_BASE_URL}/environments/${roomId}`, {
       method: "PUT",
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao atualizar ambiente");
+      const detail = await parseErrorDetail(response, "Falha ao atualizar ambiente");
+      throw new Error(detail);
     }
     return response.json() as Promise<Room>;
   },
 
-  // Delete room
   async deleteRoom(roomId: number) {
-    const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+    const response = await fetch(`${API_BASE_URL}/environments/${roomId}`, {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao excluir ambiente");
+      const detail = await parseErrorDetail(response, "Falha ao excluir ambiente");
+      throw new Error(detail);
     }
   },
 
-  // Search by capacity
   async searchByCapacity(minCapacity: number, skip = 0, limit = 100) {
-    const response = await fetch(
-      `${API_BASE_URL}/rooms/search/capacity?min_capacity=${minCapacity}&skip=${skip}&limit=${limit}`,
-      {
-        method: "GET",
-        headers: getAuthHeaders(),
-      }
-    );
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao pesquisar ambientes por capacidade");
-    }
-    return response.json() as Promise<Room[]>;
+    const environments = await this.getAllRooms(skip, limit);
+    return environments.filter((environment) => environment.capacity >= minCapacity);
   },
 
-  // Search by location
-  async searchByLocation(location: string, skip = 0, limit = 100) {
-    const response = await fetch(
-      `${API_BASE_URL}/rooms/search/location?location=${encodeURIComponent(location)}&skip=${skip}&limit=${limit}`,
-      {
-        method: "GET",
-        headers: getAuthHeaders(),
-      }
-    );
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.detail || "Falha ao pesquisar ambientes por localização");
-    }
-    return response.json() as Promise<Room[]>;
+  async searchByLocation(locationId: number, skip = 0, limit = 100) {
+    const environments = await this.getAllRooms(skip, limit);
+    return environments.filter((environment) => environment.location_id === locationId);
   },
 };
 

@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Container, Typography, Stack } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Container,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import LogoutIcon from "@mui/icons-material/Logout";
 import GroupIcon from "@mui/icons-material/Group";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import DevicesIcon from "@mui/icons-material/Devices";
+import ChecklistRtlIcon from "@mui/icons-material/ChecklistRtl";
 import { getTokenRoles } from "../services/api";
 
 export const meta = () => {
@@ -33,33 +44,51 @@ export default function Home() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          gap: 4,
-          textAlign: "center",
+          minHeight: "calc(100vh - 96px)",
+          gap: 3,
         }}
       >
-        <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
-          Sistema de Reserva de Salas
-        </Typography>
-        <Typography variant="h6" sx={{ color: "text.secondary", mb: 2 }}>
-          Gerencie as reservas de salas com eficiência e segurança
+        <Chip
+          label="Painel de Gestão"
+          color="secondary"
+          sx={{ width: "fit-content", fontWeight: 700 }}
+        />
+
+        <Typography
+          variant="h2"
+          component="h1"
+          sx={{ fontSize: { xs: "2rem", md: "3.2rem" }, maxWidth: 780, lineHeight: 1.05 }}
+        >
+          Reserva de ambientes com clareza, controle e fluxo rápido
         </Typography>
 
+        <Typography variant="h6" sx={{ color: "text.secondary", maxWidth: 720 }}>
+          Organize espaços, recursos e permissões em uma interface única, pensada para operações do dia a dia sem atrito.
+        </Typography>
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
+          <Chip icon={<ApartmentIcon />} label="Ambientes" variant="outlined" />
+          <Chip icon={<DevicesIcon />} label="Recursos" variant="outlined" />
+          <Chip icon={<ChecklistRtlIcon />} label="Finalidades" variant="outlined" />
+        </Stack>
+
         {isAuthenticated ? (
-          <Stack direction="column" spacing={2}>
-            <Stack direction="row" spacing={2}>
+          <Paper sx={{ p: { xs: 2, md: 3 }, mt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Ações rápidas
+            </Typography>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
               <Button
                 variant="contained"
                 size="large"
                 startIcon={<MeetingRoomIcon />}
-                onClick={() => navigate("/rooms")}
+                onClick={() => navigate("/environments")}
               >
                 Gerenciar Ambientes
               </Button>
@@ -83,20 +112,20 @@ export default function Home() {
                 Sair
               </Button>
             </Stack>
-          </Stack>
+          </Paper>
         ) : (
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 1 }}>
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate("/login")}
+              href="/login"
             >
               Entrar
             </Button>
             <Button
               variant="outlined"
               size="large"
-              onClick={() => navigate("/register")}
+              href="/register"
             >
               Cadastrar
             </Button>

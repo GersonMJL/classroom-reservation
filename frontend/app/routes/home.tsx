@@ -15,7 +15,12 @@ import GroupIcon from "@mui/icons-material/Group";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import DevicesIcon from "@mui/icons-material/Devices";
 import ChecklistRtlIcon from "@mui/icons-material/ChecklistRtl";
-import { getTokenRoles } from "../services/api";
+import {
+  AUTH_LOGOUT_EVENT,
+  clearAuthTokens,
+  getTokenRoles,
+  hasValidAccessToken,
+} from "../services/api";
 
 export const meta = () => {
   return [
@@ -30,14 +35,29 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    setIsAuthenticated(!!token);
-    setIsAdmin(getTokenRoles().includes("admin"));
+    const syncAuthState = () => {
+      const authenticated = hasValidAccessToken();
+      setIsAuthenticated(authenticated);
+      setIsAdmin(authenticated && getTokenRoles().includes("admin"));
+    };
+
+    syncAuthState();
+
+    const intervalId = window.setInterval(syncAuthState, 30000);
+    window.addEventListener("focus", syncAuthState);
+    window.addEventListener("storage", syncAuthState);
+    window.addEventListener(AUTH_LOGOUT_EVENT, syncAuthState as EventListener);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncAuthState);
+      window.removeEventListener("storage", syncAuthState);
+      window.removeEventListener(AUTH_LOGOUT_EVENT, syncAuthState as EventListener);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    clearAuthTokens();
     setIsAuthenticated(false);
     setIsAdmin(false);
     navigate("/");

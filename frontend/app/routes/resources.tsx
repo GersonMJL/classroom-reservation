@@ -26,7 +26,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { getTokenRoles, resourceApi } from "../services/api";
+import {
+  clearAuthTokens,
+  getTokenRoles,
+  hasValidAccessToken,
+  resourceApi,
+} from "../services/api";
 import type { Resource, ResourceCreate } from "../services/api";
 
 const emptyForm: ResourceCreate = {
@@ -64,8 +69,7 @@ export default function ResourcesManagement() {
         || message.includes("Não foi possível validar as credenciais")
         || message.includes("Token expirado")
       ) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        clearAuthTokens();
         navigate("/login");
         return;
       }
@@ -76,8 +80,7 @@ export default function ResourcesManagement() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
+    if (!hasValidAccessToken()) {
       navigate("/login");
       return;
     }
@@ -286,7 +289,7 @@ export default function ResourcesManagement() {
                   </TableCell>
                   {isAdmin && (
                     <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
+                      <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                         <Button
                           size="small"
                           startIcon={<EditIcon />}

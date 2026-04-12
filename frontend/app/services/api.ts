@@ -48,6 +48,13 @@ export interface EnvironmentCreate {
 
 export type EnvironmentUpdate = Partial<EnvironmentCreate>;
 
+export interface Location {
+  id: number;
+  campus: string;
+  building: string;
+  floor: string;
+}
+
 export type Room = Environment;
 export type RoomCreate = EnvironmentCreate;
 export type RoomCriticality = EnvironmentCriticality;
@@ -90,14 +97,16 @@ export interface PurposeUpdate {
 export interface User {
   id: number;
   email: string;
-  full_name: string | null;
+  name: string;
   is_active: boolean;
   roles: string[];
 }
 
 export interface UserUpdate {
-  email: string;
-  is_active: boolean;
+  name?: string;
+  email?: string;
+  is_active?: boolean;
+  roles?: string[];
 }
 
 export interface UserRolesUpdate {
@@ -105,17 +114,59 @@ export interface UserRolesUpdate {
 }
 
 export interface UserCreateInput {
+  name: string;
   email: string;
   password: string;
-  full_name?: string;
   is_active?: boolean;
+  roles?: string[];
 }
 
 export interface ApiError {
   detail: string;
 }
 
+type TokenPayload = {
+  exp?: unknown;
+  roles?: unknown;
+};
+
+export const AUTH_LOGOUT_EVENT = "auth:logout";
+
+const parseTokenPayload = (token: string): TokenPayload | null => {
+  if (typeof atob === "undefined") {
+    return null;
+  }
+
+  try {
+    const payloadSegment = token.split(".")[1];
+    if (!payloadSegment) {
+      return null;
+    }
+
+    const normalized = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const decoded = atob(padded);
+    return JSON.parse(decoded) as TokenPayload;
+  } catch {
+    return null;
+  }
+};
+
+const isAccessTokenExpired = (token: string): boolean => {
+  const payload = parseTokenPayload(token);
+  if (!payload || typeof payload.exp !== "number") {
+    return true;
+  }
+
+  return Date.now() >= payload.exp * 1000;
+};
+
 const parseErrorDetail = async (response: Response, fallbackMessage: string) => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+
   try {
     const error = (await response.json()) as ApiError;
     return error.detail || fallbackMessage;
@@ -126,12 +177,63 @@ const parseErrorDetail = async (response: Response, fallbackMessage: string) => 
 
 const isBrowser = typeof window !== "undefined";
 
+export const clearAuthTokens = () => {
+  if (!isBrowser) {
+    return;
+  }
+
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+};
+
+export const hasValidAccessToken = (): boolean => {
+  if (!isBrowser) {
+    return false;
+  }
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) {
+    return false;
+  }
+
+  if (isAccessTokenExpired(token)) {
+    clearAuthTokens();
+    return false;
+  }
+
+  return true;
+};
+
+const getAccessToken = (): string | null => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) {
+    return null;
+  }
+
+  if (isAccessTokenExpired(token)) {
+    clearAuthTokens();
+    return null;
+  }
+
+  return token;
+};
+
 const getAuthHeaders = () => {
-  const token = isBrowser ? localStorage.getItem("accessToken") : null;
-  return {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`,
   };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
 };
 
 // Room API endpoints
@@ -208,6 +310,23 @@ export const environmentApi = {
   async searchByLocation(locationId: number, skip = 0, limit = 100) {
     const environments = await this.getAllRooms(skip, limit);
     return environments.filter((environment) => environment.location_id === locationId);
+  },
+};
+
+export const locationApi = {
+  async getAllLocations(skip = 0, limit = 100) {
+    const response = await fetch(
+      `${API_BASE_URL}/locations?skip=${skip}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+      }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar localizações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Location[]>;
   },
 };
 
@@ -401,7 +520,7 @@ export const userApi = {
   },
 
   async updateUserRoles(userId: number, data: UserRolesUpdate) {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/roles`, {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PUT",
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -426,30 +545,21 @@ export const userApi = {
 };
 
 export const getTokenRoles = (): string[] => {
-  if (!isBrowser || typeof atob === "undefined") {
+  if (!isBrowser) {
     return [];
   }
 
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   if (!token) {
     return [];
   }
 
-  try {
-    const payloadSegment = token.split(".")[1];
-    if (!payloadSegment) {
-      return [];
-    }
-
-    const normalized = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    const decoded = atob(padded);
-    const payload = JSON.parse(decoded) as { roles?: unknown };
-
-    return Array.isArray(payload.roles)
-      ? payload.roles.filter((role): role is string => typeof role === "string")
-      : [];
-  } catch {
+  const payload = parseTokenPayload(token);
+  if (!payload) {
     return [];
   }
+
+  return Array.isArray(payload.roles)
+    ? payload.roles.filter((role): role is string => typeof role === "string")
+    : [];
 };

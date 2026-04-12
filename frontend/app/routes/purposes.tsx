@@ -26,7 +26,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { getTokenRoles, purposeApi } from "../services/api";
+import {
+  clearAuthTokens,
+  getTokenRoles,
+  hasValidAccessToken,
+  purposeApi,
+} from "../services/api";
 import type { Purpose } from "../services/api";
 
 export default function PurposesManagement() {
@@ -57,8 +62,7 @@ export default function PurposesManagement() {
         || message.includes("Não foi possível validar as credenciais")
         || message.includes("Token expirado")
       ) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        clearAuthTokens();
         navigate("/login");
         return;
       }
@@ -69,8 +73,7 @@ export default function PurposesManagement() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
+    if (!hasValidAccessToken()) {
       navigate("/login");
       return;
     }
@@ -246,7 +249,7 @@ export default function PurposesManagement() {
                   </TableCell>
                   {isAdmin && (
                     <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
+                      <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                         <Button
                           size="small"
                           startIcon={<EditIcon />}

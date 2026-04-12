@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.modules.organizational_units.models import OrganizationalUnit
 
 
 class User(Base):
@@ -18,7 +23,7 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    organizational_unit = relationship("OrganizationalUnit", back_populates="users")
+    organizational_unit: Mapped["OrganizationalUnit"] = relationship("OrganizationalUnit", back_populates="users")
     requested_reservations = relationship(
         "Reservation",
         foreign_keys="Reservation.requester_id",

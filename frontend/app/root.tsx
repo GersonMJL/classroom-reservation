@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -17,7 +18,12 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
 import type { Route } from "./+types/root";
-import { getTokenRoles } from "./services/api";
+import {
+  AUTH_LOGOUT_EVENT,
+  clearAuthTokens,
+  getTokenRoles,
+  hasValidAccessToken,
+} from "./services/api";
 import "./app.css";
 
 const isBrowser = typeof window !== "undefined";
@@ -160,18 +166,51 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [, setAuthRefreshKey] = useState(0);
   const isHomeRoute = location.pathname === "/";
-  const isAuthenticated = isBrowser
-    ? Boolean(localStorage.getItem("accessToken"))
-    : false;
-  const isAdmin = isBrowser ? getTokenRoles().includes("admin") : false;
+  const isAuthenticated = isBrowser ? hasValidAccessToken() : false;
+  const isAdmin = isAuthenticated && isBrowser ? getTokenRoles().includes("admin") : false;
+
+  useEffect(() => {
+    if (!isBrowser) {
+      return;
+    }
+
+    const refreshAuthState = () => {
+      setAuthRefreshKey((value) => value + 1);
+    };
+
+    const intervalId = window.setInterval(refreshAuthState, 30000);
+    window.addEventListener("focus", refreshAuthState);
+    window.addEventListener("storage", refreshAuthState);
+    window.addEventListener(AUTH_LOGOUT_EVENT, refreshAuthState as EventListener);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshAuthState);
+      window.removeEventListener("storage", refreshAuthState);
+      window.removeEventListener(AUTH_LOGOUT_EVENT, refreshAuthState as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isBrowser) {
+      return;
+    }
+
+    const isPublicRoute =
+      location.pathname === "/" || location.pathname === "/login" || location.pathname === "/register";
+
+    if (!isAuthenticated && !isPublicRoute) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
 
   const handleLogout = () => {
     if (!isBrowser) {
       return;
     }
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    clearAuthTokens();
     navigate("/");
   };
 

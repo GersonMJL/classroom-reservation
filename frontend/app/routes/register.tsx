@@ -21,7 +21,7 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
-    fullName: "",
+    name: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +36,10 @@ export default function Register() {
   };
 
   const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError("Nome é obrigatório");
+      return false;
+    }
     if (!formData.email.trim()) {
       setError("E-mail é obrigatório");
       return false;
@@ -75,10 +79,11 @@ export default function Register() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name: formData.name,
           email: formData.email,
           password: formData.password,
-          full_name: formData.fullName || undefined,
           is_active: true,
+          roles: ["user"],
         }),
       });
 
@@ -88,7 +93,7 @@ export default function Register() {
         return;
       }
 
-      setFormData({ email: "", password: "", confirmPassword: "", fullName: "" });
+      setFormData({ email: "", password: "", confirmPassword: "", name: "" });
       navigate("/login");
     } catch (err) {
       setError("Ocorreu um erro durante o cadastro. Tente novamente.");
@@ -121,11 +126,12 @@ export default function Register() {
           <TextField
             fullWidth
             label="Nome Completo"
-            name="fullName"
-            value={formData.fullName}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
             placeholder="João da Silva"
             variant="outlined"
+            required
           />
 
           <TextField

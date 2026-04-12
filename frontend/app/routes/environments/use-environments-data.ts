@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { roomApi as environmentApi } from "../../services/api";
+import { environmentApi, hasValidAccessToken } from "../../services/api";
 import type { Environment } from "../../services/api";
 import type { EnvironmentSearchType } from "./types";
 
@@ -19,8 +19,7 @@ export function useEnvironmentsData() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
+        if (!hasValidAccessToken()) {
           navigate("/login");
           return;
         }

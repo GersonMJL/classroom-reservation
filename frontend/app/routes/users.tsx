@@ -30,7 +30,12 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
-import { getTokenRoles, userApi } from "../services/api";
+import {
+  clearAuthTokens,
+  getTokenRoles,
+  hasValidAccessToken,
+  userApi,
+} from "../services/api";
 import type { User } from "../services/api";
 
 const AVAILABLE_ROLES = ["user", "admin"];
@@ -57,7 +62,7 @@ export default function UsersManagement() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    fullName: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -88,8 +93,7 @@ export default function UsersManagement() {
         || message.includes("Não foi possível validar as credenciais")
         || message.includes("Token expirado")
       ) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        clearAuthTokens();
         navigate("/login");
         return;
       }
@@ -109,8 +113,7 @@ export default function UsersManagement() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
+    if (!hasValidAccessToken()) {
       navigate("/login");
       return;
     }
@@ -130,11 +133,11 @@ export default function UsersManagement() {
     }
 
     return users.filter((user) => {
-      const fullName = user.full_name?.toLowerCase() || "";
+      const name = user.name.toLowerCase();
       const email = user.email.toLowerCase();
       const roleText = user.roles.join(" ").toLowerCase();
       return (
-        fullName.includes(normalizedSearch)
+        name.includes(normalizedSearch)
         || email.includes(normalizedSearch)
         || roleText.includes(normalizedSearch)
       );
@@ -155,7 +158,7 @@ export default function UsersManagement() {
 
   const openCreateDialog = () => {
     setCreateForm({
-      fullName: "",
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -170,7 +173,12 @@ export default function UsersManagement() {
 
   const handleCreateUser = async () => {
     const email = createForm.email.trim();
-    const fullName = createForm.fullName.trim();
+    const name = createForm.name.trim();
+
+    if (!name) {
+      setError("Nome é obrigatório");
+      return;
+    }
 
     if (!email) {
       setError("E-mail é obrigatório");
@@ -208,24 +216,15 @@ export default function UsersManagement() {
     setSuccessMessage("");
     try {
       const created = await userApi.createUser({
+        name,
         email,
         password: createForm.password,
-        full_name: fullName || undefined,
         is_active: true,
+        roles: normalizedRoles,
       });
 
-      let finalUser = created;
-      if (
-        normalizedRoles.length !== 1
-        || normalizedRoles[0] !== "user"
-      ) {
-        finalUser = await userApi.updateUserRoles(created.id, {
-          roles: normalizedRoles,
-        });
-      }
-
-      setUsers((prev) => [...prev, finalUser].sort((a, b) => a.id - b.id));
-      setSuccessMessage(`Usuário ${finalUser.email} criado`);
+      setUsers((prev) => [...prev, created].sort((a, b) => a.id - b.id));
+      setSuccessMessage(`Usuário ${created.email} criado`);
       closeCreateDialog();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao criar usuário");
@@ -365,7 +364,7 @@ export default function UsersManagement() {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.full_name || "-"}</TableCell>
+                  <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Chip
@@ -387,7 +386,7 @@ export default function UsersManagement() {
                     </Stack>
                   </TableCell>
                   <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                       <Button
                         size="small"
                         startIcon={<EditIcon />}
@@ -463,12 +462,12 @@ export default function UsersManagement() {
         <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             label="Nome Completo"
-            value={createForm.fullName}
+            value={createForm.name}
             onChange={(event) =>
-              setCreateForm((prev) => ({ ...prev, fullName: event.target.value }))
+              setCreateForm((prev) => ({ ...prev, name: event.target.value }))
             }
             fullWidth
-            placeholder="Opcional"
+            required
           />
           <TextField
             label="E-mail"

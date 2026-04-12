@@ -6,6 +6,7 @@ import {
   Button,
   TextField,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -13,12 +14,14 @@ import {
   Switch,
 } from "@mui/material";
 import type { Dispatch, SetStateAction } from "react";
-import type { EnvironmentCreate } from "../../services/api";
+import type { EnvironmentCreate, Location } from "../../services/api";
 
 type EnvironmentFormDialogProps = {
   open: boolean;
   isEditMode: boolean;
   formData: EnvironmentCreate;
+  locations: Location[];
+  loadingLocations: boolean;
   setFormData: Dispatch<SetStateAction<EnvironmentCreate>>;
   onClose: () => void;
   onSave: () => void;
@@ -28,6 +31,8 @@ export function EnvironmentFormDialog({
   open,
   isEditMode,
   formData,
+  locations,
+  loadingLocations,
   setFormData,
   onClose,
   onSave,
@@ -62,19 +67,30 @@ export function EnvironmentFormDialog({
           </Select>
         </FormControl>
 
-        <TextField
-          label="ID da localizacao"
-          type="number"
-          value={formData.location_id}
-          onChange={(event) =>
-            setFormData({
-              ...formData,
-              location_id: parseInt(event.target.value, 10) || 0,
-            })
-          }
-          fullWidth
-          inputProps={{ min: 1 }}
-        />
+        <FormControl fullWidth>
+          <InputLabel>Localização</InputLabel>
+          <Select
+            value={formData.location_id > 0 ? formData.location_id : ""}
+            label="Localização"
+            disabled={loadingLocations || locations.length === 0}
+            onChange={(event) => {
+              const value = Number(event.target.value) || 0;
+              setFormData({ ...formData, location_id: value });
+            }}
+          >
+            {locations.length === 0 && (
+              <MenuItem disabled value="">
+                Nenhuma localização cadastrada
+              </MenuItem>
+            )}
+            {locations.map((location) => (
+              <MenuItem key={location.id} value={location.id}>
+                {`${location.campus} - ${location.building} - ${location.floor}`}
+              </MenuItem>
+            ))}
+          </Select>
+          {loadingLocations && <FormHelperText>Carregando localizações...</FormHelperText>}
+        </FormControl>
 
         <TextField
           label="Capacidade"
@@ -87,7 +103,7 @@ export function EnvironmentFormDialog({
             })
           }
           fullWidth
-          inputProps={{ min: 1 }}
+          slotProps={{ htmlInput: { min: 1 } }}
         />
 
         <FormControl fullWidth>

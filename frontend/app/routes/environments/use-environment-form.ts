@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { environmentApi } from "../../services/api";
-import type { Environment, EnvironmentCreate } from "../../services/api";
+import { useEffect, useState } from "react";
+import { environmentApi, locationApi } from "../../services/api";
+import type { Environment, EnvironmentCreate, Location } from "../../services/api";
 
 const initialFormData: EnvironmentCreate = {
   name: "",
   type: "CLASSROOM",
   criticality: "COMMON",
   capacity: 1,
-  location_id: 1,
+  location_id: 0,
   operating_hours: "08:00-18:00",
   requires_approval: false,
 };
@@ -23,6 +23,29 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEnvironmentId, setEditingEnvironmentId] = useState<number | null>(null);
   const [formData, setFormData] = useState<EnvironmentCreate>(initialFormData);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+
+  const loadLocations = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await locationApi.getAllLocations(0, 500);
+      setLocations(data);
+      if (data.length > 0) {
+        setFormData((prev) => (
+          prev.location_id > 0 ? prev : { ...prev, location_id: data[0].id }
+        ));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao carregar localizações");
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadLocations();
+  }, []);
 
   const resetForm = () => {
     setFormData(initialFormData);
@@ -31,11 +54,18 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
   };
 
   const openCreateDialog = () => {
-    resetForm();
+    void loadLocations();
+    setFormData({
+      ...initialFormData,
+      location_id: locations[0]?.id ?? 0,
+    });
+    setIsEditMode(false);
+    setEditingEnvironmentId(null);
     setOpenEnvironmentDialog(true);
   };
 
   const openEditDialog = (environment: Environment) => {
+    void loadLocations();
     setIsEditMode(true);
     setEditingEnvironmentId(environment.id);
     setFormData({
@@ -65,7 +95,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       return;
     }
     if (formData.location_id <= 0) {
-      setError("Informe um local valido");
+      setError("Selecione uma localização válida");
       return;
     }
     if (formData.capacity <= 0) {
@@ -103,6 +133,8 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     openEnvironmentDialog,
     isEditMode,
     formData,
+    locations,
+    loadingLocations,
     setFormData,
     openCreateDialog,
     openEditDialog,

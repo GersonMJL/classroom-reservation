@@ -22,6 +22,8 @@ export function useEnvironmentsManagement() {
     isAdmin: data.isAdmin,
     isEditMode: form.isEditMode,
     formData: form.formData,
+    locations: form.locations,
+    loadingLocations: form.loadingLocations,
     setError: data.setError,
     setSearchType: data.setSearchType,
     setSearchValue: data.setSearchValue,

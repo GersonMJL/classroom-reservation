@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.users.models import Role, User, UserRole
+from app.modules.users.models import Papel, Usuario, UsuarioPapel
 from app.modules.users.schemas import UserCreate, UserUpdate
 
 
@@ -9,70 +9,71 @@ class UserRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self, *, skip: int = 0, limit: int = 100) -> list[User]:
-        query = select(User)
+    def list(self, *, skip: int = 0, limit: int = 100) -> list[Usuario]:
+        query = select(Usuario)
         return list(self.db.execute(query.offset(skip).limit(limit)).scalars().all())
 
-    def _sync_roles(self, user: User, role_names: list[str]) -> None:
-        normalized = sorted({name.strip() for name in role_names if name.strip()})
-        if not normalized:
-            user.user_roles = []
+    def _sync_papeis(self, usuario: Usuario, nomes: list[str]) -> None:
+        normalizados = sorted({n.strip() for n in nomes if n.strip()})
+        if not normalizados:
+            usuario.usuario_papeis = []
             return
 
-        existing_roles = list(
-            self.db.execute(select(Role).where(Role.name.in_(normalized)))
+        papeis_existentes = list(
+            self.db.execute(select(Papel).where(Papel.nome.in_(normalizados)))
             .scalars()
             .all()
         )
-        existing_by_name = {role.name: role for role in existing_roles}
+        por_nome = {p.nome: p for p in papeis_existentes}
 
-        missing_names = [name for name in normalized if name not in existing_by_name]
-        for name in missing_names:
-            role = Role(role_id=name.lower().replace(" ", "_"), name=name)
-            self.db.add(role)
-            existing_roles.append(role)
+        for nome in normalizados:
+            if nome not in por_nome:
+                papel = Papel(codigo=nome.lower().replace(" ", "_"), nome=nome)
+                self.db.add(papel)
+                papeis_existentes.append(papel)
 
         self.db.flush()
-        role_by_name = {role.name: role for role in existing_roles}
-        user.user_roles = [
-            UserRole(user=user, role=role_by_name[name]) for name in normalized
+        por_nome = {p.nome: p for p in papeis_existentes}
+        usuario.usuario_papeis = [
+            UsuarioPapel(usuario=usuario, papel=por_nome[nome])
+            for nome in normalizados
         ]
 
-    def get_by_id(self, user_id: int) -> User | None:
-        return self.db.get(User, user_id)
+    def get_by_id(self, user_id: int) -> Usuario | None:
+        return self.db.get(Usuario, user_id)
 
-    def get_by_email(self, email: str) -> User | None:
-        query = select(User).where(User.email == email)
+    def get_by_email(self, email: str) -> Usuario | None:
+        query = select(Usuario).where(Usuario.email == email)
         return self.db.execute(query).scalar_one_or_none()
 
-    def create(self, payload: UserCreate) -> User:
-        user = User(
-            name=payload.name,
+    def create(self, payload: UserCreate) -> Usuario:
+        usuario = Usuario(
+            nome=payload.nome,
             email=str(payload.email),
-            password_hash=payload.password,
-            is_active=payload.is_active,
+            senha_hash=payload.senha,
+            ativo=payload.ativo,
         )
-        self.db.add(user)
+        self.db.add(usuario)
         self.db.flush()
-        self._sync_roles(user, payload.roles)
+        self._sync_papeis(usuario, payload.papeis)
         self.db.commit()
-        self.db.refresh(user)
-        return user
+        self.db.refresh(usuario)
+        return usuario
 
-    def update(self, user: User, payload: UserUpdate) -> User:
-        if payload.name is not None:
-            user.name = payload.name
+    def update(self, usuario: Usuario, payload: UserUpdate) -> Usuario:
+        if payload.nome is not None:
+            usuario.nome = payload.nome
         if payload.email is not None:
-            user.email = str(payload.email)
-        if payload.is_active is not None:
-            user.is_active = payload.is_active
-        if payload.roles is not None:
-            self._sync_roles(user, payload.roles)
-        self.db.add(user)
+            usuario.email = str(payload.email)
+        if payload.ativo is not None:
+            usuario.ativo = payload.ativo
+        if payload.papeis is not None:
+            self._sync_papeis(usuario, payload.papeis)
+        self.db.add(usuario)
         self.db.commit()
-        self.db.refresh(user)
-        return user
+        self.db.refresh(usuario)
+        return usuario
 
-    def delete(self, user: User) -> None:
-        self.db.delete(user)
+    def delete(self, usuario: Usuario) -> None:
+        self.db.delete(usuario)
         self.db.commit()

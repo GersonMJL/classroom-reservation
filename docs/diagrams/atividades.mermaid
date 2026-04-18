@@ -1,0 +1,65 @@
+flowchart TD
+
+Start([Início])
+
+%% Solicitação
+A[Informar dados da reserva]
+B[Consultar disponibilidade]
+C{Disponível?}
+
+%% Seleção
+D[Selecionar ambiente e recursos]
+E[Informar responsável e finalidade]
+F[Confirmar solicitação]
+
+%% Sistema valida
+G[Validar conflitos automaticamente]
+H{Conflito?}
+
+%% Registro
+I[Registrar reserva]
+J[Processar aprovação]
+
+%% Aprovação
+K{Requer aprovação manual?}
+L[Notificar administrador]
+M{Aprovado?}
+
+%% Resultado
+N[Reserva confirmada]
+O[Reserva rejeitada]
+
+%% Uso
+P[Realizar check-in]
+Q{Check-in no prazo?}
+
+R[Iniciar uso]
+S[Cancelar por no-show]
+X[Aplicar penalidade]
+
+%% Encerramento
+T[Realizar check-out]
+U[Gerar buffer]
+V[Bloquear agenda temporariamente]
+W[Liberar ambiente]
+
+%% Fluxo
+
+Start --> A --> B --> C
+
+C -- Não --> End([Fim])
+C -- Sim --> D --> E --> F --> G --> H
+
+H -- Sim --> End
+H -- Não --> I --> J --> K
+
+K -- Não --> N
+K -- Sim --> L --> M
+
+M -- Sim --> N
+M -- Não --> O --> End
+
+N --> P --> Q
+
+Q -- Não --> S --> X --> W --> End
+Q -- Sim --> R --> T --> U --> V --> W --> End

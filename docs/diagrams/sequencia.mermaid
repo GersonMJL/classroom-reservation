@@ -1,0 +1,191 @@
+sequenceDiagram
+    participant Solicitante
+    participant Sistema
+    participant Administrador
+    participant Tecnico as "Técnico de Suporte"
+    participant Reserva
+    participant Penalidade
+    participant Auditoria
+
+    %% =======================
+    %% SOLICITAÇÃO INICIAL
+    %% =======================
+    Solicitante->>Sistema: Informar dados da reserva<br/>(data, hora, localidade, tipo)
+
+    %% Lead Time (Janela Permitida)
+    Sistema->>Sistema: Validar janela permitida<br/>(lead time)
+    alt Fora da janela permitida
+        Sistema-->>Solicitante: Erro: Reserva fora do prazo mínimo/máximo
+    else Dentro da janela
+        Sistema->>Sistema: Consultar disponibilidade<br/>(considerando buffers)
+
+        alt Indisponível
+            Sistema-->>Solicitante: Exibir indisponibilidade e sugerir alternativas
+        else Disponível
+            Sistema-->>Solicitante: Exibir opções disponíveis
+
+            %% Escolha do tipo de reserva
+            Solicitante->>Sistema: Selecionar tipo de reserva
+            alt Reserva Simples
+                Solicitante->>Sistema: Selecionar ambiente e recursos
+            else Reserva Recorrente
+                Solicitante->>Sistema: Definir regra de recorrência<br/>(semanal, dias específicos)
+                Sistema->>Sistema: Validar disponibilidade de TODOS os slots da série
+                alt Conflito em algum slot
+                    Sistema-->>Solicitante: Informar conflito na recorrência
+                end
+            else Reserva Composta (Mestra)
+                loop Para cada item dependente
+                    Solicitante->>Sistema: Adicionar ambiente/recurso adicional
+                    Sistema->>Sistema: Validar dependências e buffers
+                end
+                Sistema->>Sistema: Gerar identificador mestre único
+                Note over Sistema: Itens podem ser marcados como "Críticos"
+            end
+
+            Solicitante->>Sistema: Informar responsável e finalidade
+            Solicitante->>Sistema: Confirmar solicitação
+
+            %% Validação de Conflitos e Suporte
+            Sistema->>Sistema: Validar conflitos de horário/recursos
+            Sistema->>Sistema: Verificar necessidade de suporte técnico
+
+            alt Necessita suporte técnico
+                Sistema->>Sistema: Consultar escala de técnicos
+                alt Sem técnico disponível
+                    Sistema->>Reserva: Criar reserva com status "Pendente de Suporte"
+                    Sistema-->>Tecnico: Notificar pendência de suporte
+                    Note over Tecnico: Técnico pode assumir ou rejeitar
+                else Com técnico disponível
+                    Sistema->>Reserva: Criar reserva (status Pendente)
+                end
+            else Não necessita suporte
+                Sistema->>Reserva: Criar reserva (status Pendente)
+            end
+
+            alt Conflito detectado
+                Sistema-->>Solicitante: Informar conflito e sugerir alternativas
+            else Sem conflito
+                %% Auditoria da criação
+                Sistema->>Auditoria: Registrar criação da reserva
+
+                %% =======================
+                %% PROCESSO DE APROVAÇÃO
+                %% =======================
+                Sistema->>Sistema: Verificar criticidade do ambiente
+
+                alt Ambiente Comum
+                    Sistema->>Reserva: Confirmar automaticamente
+                    Sistema-->>Solicitante: Reserva confirmada (Aprovação Automática)
+                    Sistema->>Auditoria: Registrar aprovação automática
+
+                else Ambiente Controlado / Restrito
+                    Sistema->>Reserva: Atualizar status para "Em Análise"
+                    Sistema-->>Administrador: Notificar solicitação pendente
+                    Administrador->>Administrador: Analisar qualificações do solicitante
+
+                    alt Aprovado pelo Administrador
+                        Administrador->>Sistema: Aprovar reserva
+                        Sistema->>Reserva: Confirmar reserva
+                        Sistema-->>Solicitante: Reserva confirmada (Aprovação Manual)
+                        Sistema->>Auditoria: Registrar aprovação manual
+                    else Rejeitado pelo Administrador
+                        Administrador->>Sistema: Rejeitar reserva (com motivo)
+                        Sistema->>Reserva: Atualizar status para "Rejeitada"
+                        Sistema-->>Solicitante: Reserva rejeitada (motivo)
+                        Sistema->>Auditoria: Registrar rejeição
+                    end
+                end
+
+                %% Cancelamento Voluntário (antes do check-in)
+                opt Cancelamento pelo Solicitante
+                    Solicitante->>Sistema: Solicitar cancelamento
+                    Sistema->>Reserva: Cancelar reserva
+                    Sistema->>Sistema: Liberar agenda e buffers
+                    Sistema-->>Solicitante: Cancelamento confirmado
+                    Sistema->>Auditoria: Registrar cancelamento voluntário
+                end
+
+                %% =======================
+                %% USO DO ESPAÇO (CHECK-IN)
+                %% =======================
+                Solicitante->>Sistema: Realizar check-in
+
+                alt Check-in dentro da tolerância
+                    Sistema->>Reserva: Atualizar status para "Em Uso"
+                    Sistema->>Reserva: Registrar timestamp de check-in
+                    Sistema->>Auditoria: Registrar início de uso
+
+                    %% Sensor de Ocupação (E2 do UC05)
+                    opt Sensor de presença não detecta atividade
+                        Sistema->>Sistema: Alerta de ausência após Y minutos
+                        Sistema-->>Tecnico: Notificar para verificar sala
+                    end
+
+                    %% Uso normal
+                    Solicitante->>Sistema: Realizar check-out
+                    Sistema->>Reserva: Atualizar status para "Concluída"
+                    Sistema->>Reserva: Registrar timestamp de check-out
+                    Sistema->>Auditoria: Registrar término de uso
+
+                    %% =======================
+                    %% BUFFERS PÓS-USO
+                    %% =======================
+                    Sistema->>Sistema: Ativar buffer de limpeza/setup
+                    Sistema->>Sistema: Bloquear agenda (período de buffer)
+                    Note over Sistema: Ambiente status "Em Limpeza/Setup"
+
+                    opt Liberação antecipada pelo Técnico
+                        Tecnico->>Sistema: Informar conclusão antecipada da limpeza
+                        Sistema->>Sistema: Reduzir buffer e antecipar disponibilidade
+                        Sistema->>Auditoria: Registrar liberação antecipada
+                    end
+
+                    Sistema->>Sistema: Liberar ambiente após término do buffer
+                    Note over Sistema: Ambiente status "Livre"
+
+                else No-show (sem check-in no prazo)
+                    Sistema->>Reserva: Cancelar automaticamente (No-Show)
+                    Sistema->>Sistema: Liberar agenda imediatamente
+                    Sistema->>Auditoria: Registrar no-show
+
+                    %% Penalidade Automática
+                    Sistema->>Penalidade: Registrar penalidade por No-Show
+                    Sistema->>Sistema: Atualizar perfil do usuário (pontos/suspensão)
+                    Sistema-->>Solicitante: Notificar no-show e penalidade aplicada
+
+                    opt Atingiu limite de infrações
+                        Sistema->>Sistema: Bloquear novas solicitações por 30 dias
+                        Sistema-->>Solicitante: Notificar bloqueio temporário
+                    end
+
+                    opt Recurso Administrativo
+                        Solicitante->>Sistema: Submeter justificativa para atraso
+                        Sistema-->>Administrador: Notificar recurso
+                        Administrador->>Sistema: Analisar e aprovar recurso
+                        Sistema->>Penalidade: Remover penalidade
+                        Sistema->>Auditoria: Registrar perdão administrativo
+                    end
+                end
+
+                %% =======================
+                %% PENALIDADE MANUAL (DANOS)
+                %% =======================
+                opt Registro de Danos pelo Administrador
+                    Administrador->>Sistema: Registrar incidente de danos
+                    Sistema->>Penalidade: Aplicar penalidade ao Responsável Técnico
+                    Sistema->>Auditoria: Registrar penalidade por danos
+                    Sistema-->>Responsavel: Notificar penalidade
+                end
+
+                %% =======================
+                %% MANUTENÇÃO DE RECURSOS
+                %% =======================
+                opt Técnico marca recurso em manutenção
+                    Tecnico->>Sistema: Atualizar status do recurso para "Em Manutenção"
+                    Sistema->>Sistema: Bloquear reservas futuras para o período
+                    Sistema->>Auditoria: Registrar manutenção de recurso
+                end
+            end
+        end
+    end

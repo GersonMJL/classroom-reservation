@@ -1,0 +1,97 @@
+flowchart TB
+
+%% =======================
+%% USUÁRIOS
+%% =======================
+Solicitante([Solicitante])
+Administrador([Administrador])
+Tecnico([Técnico de Suporte])
+
+%% =======================
+%% FRONTEND
+%% =======================
+subgraph Frontend["Camada de Apresentação"]
+    UI[Web / App]
+end
+
+%% =======================
+%% BACKEND API
+%% =======================
+subgraph API["Camada de API"]
+    Gateway[API / Controllers]
+end
+
+%% =======================
+%% APLICAÇÃO (SERVIÇOS)
+%% =======================
+subgraph Aplicacao["Camada de Aplicação"]
+    ReservaService[Serviço de Reservas]
+    AprovacaoService[Serviço de Aprovação]
+    DisponibilidadeService[Serviço de Disponibilidade]
+    CheckinService[Serviço de Check-in/Check-out]
+    PenalidadeService[Serviço de Penalidades]
+end
+
+%% =======================
+%% DOMÍNIO
+%% =======================
+subgraph Dominio["Camada de Domínio"]
+    Entidades[Entidades de Domínio]
+    Regras[Regras de Negócio]
+end
+
+%% =======================
+%% INFRAESTRUTURA
+%% =======================
+subgraph Infra["Infraestrutura"]
+    DB[(Banco de Dados)]
+    Notificacao[Serviço de Notificações]
+    Auditoria[Logs/Auditoria]
+end
+
+%% =======================
+%% FLUXO PRINCIPAL
+%% =======================
+
+Solicitante --> UI
+Administrador --> UI
+Tecnico --> UI
+
+UI --> Gateway
+
+Gateway --> ReservaService
+Gateway --> DisponibilidadeService
+Gateway --> CheckinService
+
+%% =======================
+%% ORQUESTRAÇÃO ENTRE SERVIÇOS
+%% =======================
+
+ReservaService --> DisponibilidadeService
+ReservaService --> AprovacaoService
+
+CheckinService --> PenalidadeService
+
+%% =======================
+%% APLICAÇÃO -> DOMÍNIO
+%% =======================
+
+ReservaService --> Entidades
+AprovacaoService --> Regras
+DisponibilidadeService --> Entidades
+CheckinService --> Entidades
+PenalidadeService --> Regras
+
+%% =======================
+%% INFRA (DEPENDÊNCIAS CORRETAS)
+%% =======================
+
+DB --> Entidades
+DB --> Regras
+
+Notificacao --> AprovacaoService
+Notificacao --> PenalidadeService
+
+Auditoria --> ReservaService
+Auditoria --> AprovacaoService
+Auditoria --> CheckinService

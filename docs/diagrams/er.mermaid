@@ -1,0 +1,240 @@
+erDiagram
+    %% =======================
+    %% USUÁRIOS E PAPÉIS (RBAC)
+    %% =======================
+    USUARIO {
+        int id PK
+        string nome
+        string email
+        boolean ativo
+    }
+
+    ROLE {
+        int id PK
+        string nome
+    }
+
+    USUARIO_ROLE {
+        int usuario_id PK,FK
+        int role_id PK,FK
+    }
+
+    USUARIO ||--o{ USUARIO_ROLE : possui
+    ROLE ||--o{ USUARIO_ROLE : atribuido
+
+    %% =======================
+    %% AMBIENTE E POLITICAS
+    %% =======================
+    AMBIENTE {
+        int id PK
+        string nome
+        string tipo
+        int capacidade
+        string criticidade
+        int buffer_antes_min
+        int buffer_depois_min
+        boolean ativo
+    }
+
+    POLITICA_RESERVA {
+        int id PK
+        int ambiente_id FK
+        int role_id FK
+        int antecedencia_min_horas
+        int antecedencia_max_dias
+    }
+
+    MANUTENCAO_AMBIENTE {
+        int id PK
+        int ambiente_id FK
+        datetime data_inicio
+        datetime data_fim
+        string motivo
+    }
+
+    AMBIENTE ||--o{ POLITICA_RESERVA : define
+    ROLE ||--o{ POLITICA_RESERVA : aplica_se
+    AMBIENTE ||--o{ MANUTENCAO_AMBIENTE : sofre
+
+    %% =======================
+    %% RECURSOS
+    %% =======================
+    RECURSO {
+        int id PK
+        string nome
+        string tipo
+        string categoria
+        string tipo_vinculo
+        int ambiente_id FK
+        boolean ativo
+    }
+
+    DISPONIBILIDADE_RECURSO {
+        int id PK
+        int recurso_id FK
+        datetime inicio
+        datetime fim
+        boolean disponivel
+        string motivo
+    }
+
+    ESCALA_TECNICO {
+        int id PK
+        int tecnico_id FK
+        int recurso_id FK
+        datetime data_inicio
+        datetime data_fim
+    }
+
+    MANUTENCAO_RECURSO {
+        int id PK
+        int recurso_id FK
+        datetime data_inicio
+        datetime data_fim
+        string motivo
+    }
+
+    AMBIENTE ||--o{ RECURSO : contem
+    RECURSO ||--o{ DISPONIBILIDADE_RECURSO : tem
+    RECURSO ||--o{ ESCALA_TECNICO : requer
+    USUARIO ||--o{ ESCALA_TECNICO : atende_como_tecnico
+    RECURSO ||--o{ MANUTENCAO_RECURSO : sofre
+
+    %% =======================
+    %% RESERVA (CORE)
+    %% =======================
+    STATUS_RESERVA {
+        int id PK
+        string nome
+    }
+
+    RESERVA {
+        int id PK
+        int ambiente_id FK
+        int solicitante_id FK
+        int responsavel_id FK
+        int status_id FK
+        int reserva_mestre_id FK
+        string finalidade
+        int qtd_participantes
+        datetime data_inicio
+        datetime data_fim
+        datetime checkin_at
+        datetime checkout_at
+        string regra_recorrencia
+    }
+
+    HISTORICO_STATUS_RESERVA {
+        int id PK
+        int reserva_id FK
+        int status_anterior_id FK
+        int status_novo_id FK
+        datetime data_mudanca
+        string motivo
+        int usuario_id FK
+    }
+
+    RESERVA_RECURSO {
+        int reserva_id PK,FK
+        int recurso_id PK,FK
+    }
+
+    BUFFER_EXECUCAO {
+        int id PK
+        int reserva_id FK
+        int ambiente_id FK
+        string tipo
+        datetime hora_prevista_fim
+        datetime hora_real_fim
+        int liberado_por FK
+        string observacao
+    }
+
+    AMBIENTE ||--o{ RESERVA : agendado_para
+    USUARIO ||--o{ RESERVA : solicitada_por
+    USUARIO ||--o{ RESERVA : responsavel_tecnico
+    STATUS_RESERVA ||--o{ RESERVA : classificada_como
+
+    RESERVA ||--o{ RESERVA : recorrencia_de
+
+    RESERVA ||--o{ HISTORICO_STATUS_RESERVA : registra_mudanca
+    STATUS_RESERVA ||--o{ HISTORICO_STATUS_RESERVA : era
+    STATUS_RESERVA ||--o{ HISTORICO_STATUS_RESERVA : tornou_se
+    USUARIO ||--o{ HISTORICO_STATUS_RESERVA : executou
+
+    RESERVA ||--o{ RESERVA_RECURSO : aloca
+    RECURSO ||--o{ RESERVA_RECURSO : alocado_em
+
+    RESERVA ||--o{ BUFFER_EXECUCAO : gera_buffer
+    AMBIENTE ||--o{ BUFFER_EXECUCAO : aplicado_a
+    USUARIO ||--o{ BUFFER_EXECUCAO : liberado_por
+
+    %% =======================
+    %% APROVAÇÃO
+    %% =======================
+    APROVACAO {
+        int id PK
+        int reserva_id FK
+        int aprovador_id FK
+        string status
+        datetime data
+        string tipo
+        string observacao
+    }
+
+    RESERVA ||--o{ APROVACAO : possui
+    USUARIO ||--o{ APROVACAO : analisada_por
+
+    %% =======================
+    %% RESERVA COMPOSTA
+    %% =======================
+    RESERVA_COMPOSTA {
+        int id PK
+        string nome
+        string descricao
+    }
+
+    RESERVA_COMPOSTA_ITEM {
+        int reserva_composta_id PK,FK
+        int reserva_id PK,FK
+        boolean critico
+        int ordem
+    }
+
+    RESERVA_COMPOSTA ||--o{ RESERVA_COMPOSTA_ITEM : agrupa
+    RESERVA ||--o{ RESERVA_COMPOSTA_ITEM : compoe
+
+    %% =======================
+    %% PENALIDADES
+    %% =======================
+    PENALIDADE {
+        int id PK
+        int usuario_id FK
+        int reserva_id FK
+        string tipo
+        string descricao
+        int duracao_dias
+        datetime data_inicio
+        datetime data_fim
+        int aplicada_por FK
+    }
+
+    USUARIO ||--o{ PENALIDADE : penalizado
+    RESERVA ||--o| PENALIDADE : origem_da_penalidade
+    USUARIO ||--o{ PENALIDADE : aplicada_por
+
+    %% =======================
+    %% AUDITORIA / LOGS
+    %% =======================
+    AUDITORIA {
+        int id PK
+        int usuario_id FK
+        string entidade
+        int entidade_id
+        string acao
+        datetime timestamp
+        text valores_anteriores
+        text valores_novos
+    }
+
+    USUARIO ||--o{ AUDITORIA : gera_log

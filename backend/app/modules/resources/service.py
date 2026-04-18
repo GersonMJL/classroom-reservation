@@ -1,4 +1,4 @@
-from app.modules.resources.models import Resource
+from app.modules.resources.models import Recurso
 from app.modules.resources.repository import ResourceRepository
 from app.modules.resources.schemas import ResourceCreate, ResourceUpdate
 
@@ -9,17 +9,17 @@ class ResourceService:
 
     def list_resources(
         self, *, skip: int = 0, limit: int = 100, active_only: bool = True
-    ) -> list[Resource]:
+    ) -> list[Recurso]:
         return self.repository.list(skip=skip, limit=limit, active_only=active_only)
 
-    def get_resource(self, resource_id: int) -> Resource | None:
+    def get_resource(self, resource_id: int) -> Recurso | None:
         return self.repository.get_by_id(resource_id)
 
-    def create_resource(self, payload: ResourceCreate) -> Resource:
+    def create_resource(self, payload: ResourceCreate) -> Recurso:
         return self.repository.create(payload)
 
-    def update_resource(self, resource: Resource, payload: ResourceUpdate) -> Resource:
-        return self.repository.update(resource, payload)
+    def update_resource(self, recurso: Recurso, payload: ResourceUpdate) -> Recurso:
+        return self.repository.update(recurso, payload)
 
-    def delete_resource(self, resource: Resource) -> None:
-        self.repository.delete(resource)
+    def delete_resource(self, recurso: Recurso) -> None:
+        self.repository.delete(recurso)

@@ -8,7 +8,7 @@ from app.db.session import get_db
 from app.modules.locations.repository import LocationRepository
 from app.modules.locations.schemas import LocationRead
 from app.modules.locations.service import LocationService
-from app.modules.users.models import User
+from app.modules.users.models import Usuario
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ def list_locations(
     skip: int = 0,
     limit: int = 100,
     service: LocationService = Depends(get_location_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> list[Any]:
     return service.list_locations(skip=skip, limit=limit)
 
@@ -31,11 +31,11 @@ def list_locations(
 def get_location(
     location_id: int,
     service: LocationService = Depends(get_location_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> Any:
-    location = service.get_location(location_id)
-    if location is None:
+    loc = service.get_location(location_id)
+    if loc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
         )
-    return location
+    return loc

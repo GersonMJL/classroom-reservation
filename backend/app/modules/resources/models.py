@@ -6,35 +6,70 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Resource(Base):
-    __tablename__ = "resources"
+class Recurso(Base):
+    __tablename__ = "recursos"
 
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[str] = mapped_column(String(64), nullable=False)
-    is_mobile: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    current_location_id: Mapped[int | None] = mapped_column(
-        ForeignKey("locations.id"), nullable=True
+    nome: Mapped[str] = mapped_column(String(255), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
+    categoria: Mapped[str] = mapped_column(
+        String(64), nullable=False, server_default="GERAL"
+    )
+    tipo_vinculo: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default="MOVEL"
+    )
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    localizacao_atual_id: Mapped[int | None] = mapped_column(
+        ForeignKey("localizacoes.id"), nullable=True
+    )
+    ambiente_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ambientes.id"), nullable=True
     )
 
-    current_location = relationship("Location", back_populates="resources")
-    environment_links = relationship("EnvironmentResource", back_populates="resource")
-    reservation_resources = relationship(
-        "ReservationResource", back_populates="resource"
+    localizacao_atual = relationship("Localizacao", back_populates="recursos")
+    ambiente = relationship("Ambiente", back_populates="recursos")
+    recursos_reserva = relationship("RecursoReserva", back_populates="recurso")
+    disponibilidades = relationship(
+        "DisponibilidadeRecurso",
+        back_populates="recurso",
+        cascade="all, delete-orphan",
     )
-    calendar_entries = relationship(
-        "ResourceCalendar", back_populates="resource", cascade="all, delete-orphan"
-    )
-    resource_checkouts = relationship("ResourceCheckout", back_populates="resource")
+    emprestimos = relationship("EmprestimoRecurso", back_populates="recurso")
 
 
-class ResourceCalendar(Base):
-    __tablename__ = "resource_calendar"
+class DisponibilidadeRecurso(Base):
+    __tablename__ = "disponibilidade_recurso"
 
-    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
-    start_time: Mapped[datetime] = mapped_column(
+    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
+    inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    disponivel: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    motivo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    recurso = relationship("Recurso", back_populates="disponibilidades")
+
+
+class EscalaTecnico(Base):
+    __tablename__ = "escala_tecnico"
+
+    tecnico_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
+    data_inicio: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    data_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    resource = relationship("Resource", back_populates="calendar_entries")
+    tecnico = relationship("Usuario")
+    recurso = relationship("Recurso")
+
+
+class ManutencaoRecurso(Base):
+    __tablename__ = "manutencao_recurso"
+
+    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
+    data_inicio: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    data_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    recurso = relationship("Recurso")

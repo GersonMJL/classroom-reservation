@@ -1,5 +1,5 @@
 from app.core.security import hash_password
-from app.modules.users.models import User
+from app.modules.users.models import Usuario
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserUpdate
 
@@ -8,63 +8,38 @@ class UserService:
     def __init__(self, repository: UserRepository) -> None:
         self.repository = repository
 
-    def list_users(self, *, skip: int = 0, limit: int = 100) -> list[User]:
-        users = self.repository.list(skip=skip, limit=limit)
-        for user in users:
-            setattr(
-                user,
-                "roles",
-                [
-                    user_role.role.name
-                    for user_role in user.user_roles
-                    if user_role.role is not None
-                ],
-            )
-        return users
+    def _set_papeis(self, usuario: Usuario) -> None:
+        setattr(
+            usuario,
+            "papeis",
+            [up.papel.nome for up in usuario.usuario_papeis if up.papel is not None],
+        )
 
-    def get_user(self, user_id: int) -> User | None:
-        user = self.repository.get_by_id(user_id)
-        if user is None:
+    def list_users(self, *, skip: int = 0, limit: int = 100) -> list[Usuario]:
+        usuarios = self.repository.list(skip=skip, limit=limit)
+        for u in usuarios:
+            self._set_papeis(u)
+        return usuarios
+
+    def get_user(self, user_id: int) -> Usuario | None:
+        usuario = self.repository.get_by_id(user_id)
+        if usuario is None:
             return None
-        setattr(
-            user,
-            "roles",
-            [
-                user_role.role.name
-                for user_role in user.user_roles
-                if user_role.role is not None
-            ],
-        )
-        return user
+        self._set_papeis(usuario)
+        return usuario
 
-    def create_user(self, payload: UserCreate) -> User:
-        payload_with_hashed_password = payload.model_copy(
-            update={"password": hash_password(payload.password)}
+    def create_user(self, payload: UserCreate) -> Usuario:
+        payload_hashed = payload.model_copy(
+            update={"senha": hash_password(payload.senha)}
         )
-        user = self.repository.create(payload_with_hashed_password)
-        setattr(
-            user,
-            "roles",
-            [
-                user_role.role.name
-                for user_role in user.user_roles
-                if user_role.role is not None
-            ],
-        )
-        return user
+        usuario = self.repository.create(payload_hashed)
+        self._set_papeis(usuario)
+        return usuario
 
-    def update_user(self, user: User, payload: UserUpdate) -> User:
-        updated = self.repository.update(user, payload)
-        setattr(
-            updated,
-            "roles",
-            [
-                user_role.role.name
-                for user_role in updated.user_roles
-                if user_role.role is not None
-            ],
-        )
+    def update_user(self, usuario: Usuario, payload: UserUpdate) -> Usuario:
+        updated = self.repository.update(usuario, payload)
+        self._set_papeis(updated)
         return updated
 
-    def delete_user(self, user: User) -> None:
-        self.repository.delete(user)
+    def delete_user(self, usuario: Usuario) -> None:
+        self.repository.delete(usuario)

@@ -6,72 +6,73 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.modules.organizational_units.models import OrganizationalUnit
+    from app.modules.organizational_units.models import UnidadeOrganizacional
 
 
-class User(Base):
-    __tablename__ = "users"
+class Usuario(Base):
+    __tablename__ = "usuarios"
 
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    nome: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(
         String(255), unique=True, index=True, nullable=False
     )
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    organizational_unit_id: Mapped[int | None] = mapped_column(
-        ForeignKey("organizational_units.id"),
-        nullable=True,
+    senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    unidade_organizacional_id: Mapped[int | None] = mapped_column(
+        ForeignKey("unidades_organizacionais.id"), nullable=True
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    organizational_unit: Mapped["OrganizationalUnit"] = relationship("OrganizationalUnit", back_populates="users")
-    requested_reservations = relationship(
-        "Reservation",
-        foreign_keys="Reservation.requester_id",
-        back_populates="requester",
+    unidade_organizacional: Mapped["UnidadeOrganizacional"] = relationship(
+        "UnidadeOrganizacional", back_populates="usuarios"
     )
-    responsible_reservations = relationship(
-        "Reservation",
-        foreign_keys="Reservation.responsible_id",
-        back_populates="responsible",
+    reservas_solicitadas = relationship(
+        "Reserva", foreign_keys="Reserva.solicitante_id", back_populates="solicitante"
     )
-    qualifications = relationship(
-        "UserQualification", back_populates="user", cascade="all, delete-orphan"
+    reservas_responsavel = relationship(
+        "Reserva", foreign_keys="Reserva.responsavel_id", back_populates="responsavel"
     )
-    penalties = relationship("Penalty", back_populates="user")
-    approvals = relationship("Approval", back_populates="approver")
-    assigned_supports = relationship(
-        "ReservationSupport", back_populates="assigned_staff"
+    qualificacoes = relationship(
+        "QualificacaoUsuario", back_populates="usuario", cascade="all, delete-orphan"
     )
-    reservation_versions = relationship(
-        "ReservationVersion", back_populates="changed_by_user"
+    penalidades = relationship(
+        "Penalidade", foreign_keys="Penalidade.usuario_id", back_populates="usuario"
     )
-    audit_logs = relationship("AuditLog", back_populates="performed_by_user")
-    user_roles = relationship(
-        "UserRole", back_populates="user", cascade="all, delete-orphan"
+    aprovacoes = relationship("Aprovacao", back_populates="aprovador")
+    suportes_atribuidos = relationship(
+        "SuporteReserva", back_populates="funcionario_responsavel"
+    )
+    versoes_reserva = relationship("VersaoReserva", back_populates="alterado_por_usuario")
+    registros_auditoria = relationship(
+        "RegistroAuditoria", back_populates="realizado_por_usuario"
+    )
+    usuario_papeis = relationship(
+        "UsuarioPapel", back_populates="usuario", cascade="all, delete-orphan"
     )
 
 
-class Role(Base):
-    __tablename__ = "roles"
+class Papel(Base):
+    __tablename__ = "papeis"
 
-    role_id: Mapped[str] = mapped_column(
+    codigo: Mapped[str] = mapped_column(
         String(64), unique=True, index=True, nullable=False
     )
-    name: Mapped[str] = mapped_column(
+    nome: Mapped[str] = mapped_column(
         String(64), unique=True, index=True, nullable=False
     )
 
-    user_roles = relationship(
-        "UserRole", back_populates="role", cascade="all, delete-orphan"
+    papeis_usuario = relationship(
+        "UsuarioPapel", back_populates="papel", cascade="all, delete-orphan"
     )
 
 
-class UserRole(Base):
-    __tablename__ = "user_roles"
-    __table_args__ = (UniqueConstraint("user_id", "role_id", name="uq_user_role"),)
+class UsuarioPapel(Base):
+    __tablename__ = "usuario_papeis"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "papel_id", name="uq_usuario_papel"),
+    )
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    papel_id: Mapped[int] = mapped_column(ForeignKey("papeis.id"), nullable=False)
 
-    user = relationship("User", back_populates="user_roles")
-    role = relationship("Role", back_populates="user_roles")
+    usuario = relationship("Usuario", back_populates="usuario_papeis")
+    papel = relationship("Papel", back_populates="papeis_usuario")

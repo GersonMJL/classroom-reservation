@@ -6,65 +6,33 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Checkin(Base):
-    __tablename__ = "checkins"
+class Incidente(Base):
+    __tablename__ = "incidentes"
 
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    checkin_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    method: Mapped[str] = mapped_column(String(64), nullable=False)
-
-    reservation = relationship("Reservation", back_populates="checkins")
-
-
-class Checkout(Base):
-    __tablename__ = "checkouts"
-
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    checkout_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    checklist_completed: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
-    )
-
-    reservation = relationship("Reservation", back_populates="checkouts")
-
-
-class Incident(Base):
-    __tablename__ = "incidents"
-
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    description: Mapped[str] = mapped_column(String(1000), nullable=False)
-    severity: Mapped[str] = mapped_column(String(64), nullable=False)
-    reported_at: Mapped[datetime] = mapped_column(
+    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
+    descricao: Mapped[str] = mapped_column(String(1000), nullable=False)
+    severidade: Mapped[str] = mapped_column(String(64), nullable=False)
+    reportado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
 
-    reservation = relationship("Reservation", back_populates="incidents")
+    reserva = relationship("Reserva", back_populates="incidentes")
 
 
-class ResourceCheckout(Base):
-    __tablename__ = "resource_checkouts"
+class EmprestimoRecurso(Base):
+    __tablename__ = "emprestimos_recurso"
 
-    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    checkout_time: Mapped[datetime] = mapped_column(
+    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
+    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
+    hora_retirada: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    due_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    return_time: Mapped[datetime | None] = mapped_column(
+    hora_devolucao_prevista: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    hora_devolucao: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
-    resource = relationship("Resource", back_populates="resource_checkouts")
-    reservation = relationship("Reservation", back_populates="resource_checkouts")
+    recurso = relationship("Recurso", back_populates="emprestimos")
+    reserva = relationship("Reserva", back_populates="emprestimos_recurso")

@@ -1,0 +1,57 @@
+flowchart TB
+
+%% =======================
+%% CAMADAS
+%% =======================
+
+subgraph Apresentacao
+    UI[Interface do Usuário]
+end
+
+subgraph Aplicacao
+    ReservaApp[Reservas]
+    AprovacaoApp[Aprovação]
+    DisponibilidadeApp[Disponibilidade]
+    CheckinApp[Check-in]
+    PenalidadesApp[Penalidades]
+end
+
+subgraph Dominio
+    UsuarioDom[Usuários]
+    ReservaDom[Reservas]
+    AmbienteDom[Ambientes]
+    RecursoDom[Recursos]
+end
+
+subgraph Infraestrutura
+    Persistencia[Persistência]
+    Notificacao[Notificações]
+    Auditoria[Auditoria]
+end
+
+%% =======================
+%% DEPENDÊNCIAS ENTRE PACOTES
+%% =======================
+
+Apresentacao --> Aplicacao
+
+Aplicacao --> Dominio
+
+Infraestrutura --> Dominio
+Infraestrutura --> Aplicacao
+
+%% =======================
+%% DEPENDÊNCIAS INTERNAS (APLICAÇÃO)
+%% =======================
+
+ReservaApp --> DisponibilidadeApp
+
+%% (evitar excesso de acoplamento lateral)
+
+%% =======================
+%% DOMÍNIO (ASSOCIAÇÕES CONCEITUAIS)
+%% =======================
+
+ReservaDom --> UsuarioDom
+ReservaDom --> AmbienteDom
+ReservaDom --> RecursoDom

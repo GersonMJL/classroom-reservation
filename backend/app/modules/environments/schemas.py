@@ -4,13 +4,16 @@ from app.shared.enums import EnvironmentCriticality, EnvironmentType
 
 
 class EnvironmentBase(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    type: EnvironmentType
-    criticality: EnvironmentCriticality
-    capacity: int = Field(gt=0)
-    location_id: int = Field(gt=0)
-    operating_hours: str = Field(min_length=1, max_length=255)
-    requires_approval: bool = False
+    nome: str = Field(min_length=1, max_length=255)
+    tipo: EnvironmentType
+    criticidade: EnvironmentCriticality
+    capacidade: int = Field(gt=0)
+    localizacao_id: int = Field(gt=0)
+    horario_funcionamento: str = Field(min_length=1, max_length=255)
+    requer_aprovacao: bool = False
+    buffer_antes_min: int = Field(default=0, ge=0)
+    buffer_depois_min: int = Field(default=0, ge=0)
+    ativo: bool = True
 
 
 class EnvironmentCreate(EnvironmentBase):
@@ -18,16 +21,36 @@ class EnvironmentCreate(EnvironmentBase):
 
 
 class EnvironmentUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    type: EnvironmentType | None = None
-    criticality: EnvironmentCriticality | None = None
-    capacity: int | None = Field(default=None, gt=0)
-    location_id: int | None = Field(default=None, gt=0)
-    operating_hours: str | None = Field(default=None, min_length=1, max_length=255)
-    requires_approval: bool | None = None
+    nome: str | None = Field(default=None, min_length=1, max_length=255)
+    tipo: EnvironmentType | None = None
+    criticidade: EnvironmentCriticality | None = None
+    capacidade: int | None = Field(default=None, gt=0)
+    localizacao_id: int | None = Field(default=None, gt=0)
+    horario_funcionamento: str | None = Field(default=None, min_length=1, max_length=255)
+    requer_aprovacao: bool | None = None
+    buffer_antes_min: int | None = Field(default=None, ge=0)
+    buffer_depois_min: int | None = Field(default=None, ge=0)
+    ativo: bool | None = None
 
 
 class EnvironmentRead(EnvironmentBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class PoliticaReservaBase(BaseModel):
+    ambiente_id: int = Field(gt=0)
+    papel_id: int = Field(gt=0)
+    antecedencia_min_horas: int = Field(ge=0)
+    antecedencia_max_dias: int = Field(ge=1)
+
+
+class PoliticaReservaCreate(PoliticaReservaBase):
+    pass
+
+
+class PoliticaReservaRead(PoliticaReservaBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

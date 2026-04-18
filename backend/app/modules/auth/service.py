@@ -10,23 +10,23 @@ class AuthService:
         self.user_repository = user_repository
 
     def login(self, username: str, password: str) -> TokenResponse:
-        user = self.user_repository.get_by_email(username)
-        if user is None or not user.is_active:
+        usuario = self.user_repository.get_by_email(username)
+        if usuario is None or not usuario.ativo:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas"
             )
 
-        if not verify_password(password, user.password_hash):
+        if not verify_password(password, usuario.senha_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas"
             )
 
-        roles = [
-            user_role.role.name
-            for user_role in user.user_roles
-            if user_role.role is not None
+        papeis = [
+            up.papel.nome
+            for up in usuario.usuario_papeis
+            if up.papel is not None
         ]
-        access_token = create_access_token(subject=str(user.id), roles=roles)
-        refresh_token = create_refresh_token(subject=str(user.id), roles=roles)
+        access_token = create_access_token(subject=str(usuario.id), roles=papeis)
+        refresh_token = create_refresh_token(subject=str(usuario.id), roles=papeis)
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)

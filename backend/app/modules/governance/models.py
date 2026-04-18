@@ -1,32 +1,47 @@
-from sqlalchemy import ForeignKey, String
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
-class Penalty(Base):
-    __tablename__ = "penalties"
+class Penalidade(Base):
+    __tablename__ = "penalidades"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    type: Mapped[str] = mapped_column(String(64), nullable=False)
-    description: Mapped[str] = mapped_column(String(1000), nullable=False)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
+    descricao: Mapped[str] = mapped_column(String(1000), nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
+    duracao_dias: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    data_inicio: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    data_fim: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    aplicada_por: Mapped[int | None] = mapped_column(
+        ForeignKey("usuarios.id"), nullable=True
+    )
 
-    user = relationship("User", back_populates="penalties")
-    reservation = relationship("Reservation", back_populates="penalties")
-    appeals = relationship(
-        "Appeal", back_populates="penalty", cascade="all, delete-orphan"
+    usuario = relationship(
+        "Usuario", foreign_keys=[usuario_id], back_populates="penalidades"
+    )
+    reserva = relationship("Reserva", back_populates="penalidades")
+    aplicada_por_usuario = relationship("Usuario", foreign_keys=[aplicada_por])
+    apelos = relationship(
+        "Apelo", back_populates="penalidade", cascade="all, delete-orphan"
     )
 
 
-class Appeal(Base):
-    __tablename__ = "appeals"
+class Apelo(Base):
+    __tablename__ = "apelos"
 
-    penalty_id: Mapped[int] = mapped_column(ForeignKey("penalties.id"), nullable=False)
+    penalidade_id: Mapped[int] = mapped_column(
+        ForeignKey("penalidades.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(64), nullable=False)
-    resolution_notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    notas_resolucao: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
-    penalty = relationship("Penalty", back_populates="appeals")
+    penalidade = relationship("Penalidade", back_populates="apelos")

@@ -1,0 +1,86 @@
+flowchart LR
+
+%% ATORES
+Solicitante([Solicitante])
+Administrador([Administrador])
+Tecnico([Técnico de Suporte])
+
+%% APRESENTAÇÃO
+subgraph Apresentacao
+    UI[Interface Web/App]
+end
+
+%% API
+subgraph API
+    Controller[API / Controllers]
+end
+
+%% APLICAÇÃO
+subgraph Aplicacao
+    ReservaApp[Serviço de Reservas]
+    AprovacaoApp[Serviço de Aprovação]
+    DisponibilidadeApp[Serviço de Disponibilidade]
+    CheckinApp[Serviço de Check-in]
+    PenalidadesApp[Serviço de Penalidades]
+end
+
+%% DOMÍNIO
+subgraph Dominio
+    ReservaDom[Entidade Reserva]
+    ConflitoDom[Validador de Conflitos]
+    BufferDom[Gestão de Buffers]
+
+    RepoInterface[(Interfaces de Repositório)]
+    NotificacaoInterface[(Interface de Notificação)]
+end
+
+%% INFRA
+subgraph Infraestrutura
+    Repo[(Banco de Dados)]
+    Notificacao[Serviço de Notificação]
+    Auditoria[Logs/Auditoria]
+end
+
+%% RELAÇÕES
+
+%% Atores
+Solicitante --> UI
+Administrador --> UI
+Tecnico --> UI
+
+%% UI -> API
+UI --> Controller
+
+%% API -> Aplicação
+Controller --> ReservaApp
+Controller --> DisponibilidadeApp
+Controller --> CheckinApp
+
+%% Aplicação -> Domínio
+ReservaApp --> ReservaDom
+ReservaApp --> ConflitoDom
+ReservaApp --> BufferDom
+
+AprovacaoApp --> ReservaDom
+CheckinApp --> ReservaDom
+PenalidadesApp --> ReservaDom
+
+%% Domínio -> Interfaces
+ReservaDom --> RepoInterface
+
+%% Infra implementa interfaces
+Repo --> RepoInterface
+Notificacao --> NotificacaoInterface
+
+%% Aplicação usa interfaces
+AprovacaoApp --> NotificacaoInterface
+PenalidadesApp --> NotificacaoInterface
+
+%% Auditoria
+ReservaApp --> Auditoria
+AprovacaoApp --> Auditoria
+CheckinApp --> Auditoria
+
+%% Dependências internas
+CheckinApp --> PenalidadesApp
+AprovacaoApp --> ReservaApp

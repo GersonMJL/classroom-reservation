@@ -1,0 +1,185 @@
+classDiagram
+    %% =======================
+    %% USUÁRIOS E PAPÉIS
+    %% =======================
+    class Usuario {
+        +String nome
+        +String email
+        +boolean ativo
+    }
+
+    class Role {
+        +String nome
+    }
+
+    Usuario "*" -- "*" Role : possui
+
+    %% =======================
+    %% AMBIENTE
+    %% =======================
+    class Ambiente {
+        +String nome
+        +String tipo
+        +int capacidade
+        +String criticidade
+        +int bufferAntesMinutos
+        +int bufferDepoisMinutos
+        +boolean ativo
+    }
+
+    class PoliticaReserva {
+        +int antecedenciaMinimaHoras
+        +int antecedenciaMaximaDias
+    }
+
+    Ambiente "1" -- "*" PoliticaReserva
+    Role "1" -- "*" PoliticaReserva
+
+    class ManutencaoAmbiente {
+        +DateTime dataInicio
+        +DateTime dataFim
+        +String motivo
+    }
+
+    Ambiente "1" -- "*" ManutencaoAmbiente
+
+    %% =======================
+    %% RECURSOS
+    %% =======================
+    class Recurso {
+        +String nome
+        +String tipo
+        +String categoria
+        +String tipoVinculo
+        +boolean ativo
+    }
+
+    Ambiente "1" -- "*" Recurso : possui
+
+    class DisponibilidadeRecurso {
+        +DateTime inicio
+        +DateTime fim
+        +boolean disponivel
+        +String motivoIndisponibilidade
+    }
+
+    Recurso "1" -- "*" DisponibilidadeRecurso
+
+    class EscalaTecnico {
+        +DateTime dataInicio
+        +DateTime dataFim
+    }
+
+    Usuario "1" -- "*" EscalaTecnico : tecnico
+    Recurso "1" -- "*" EscalaTecnico
+
+    class ManutencaoRecurso {
+        +DateTime dataInicio
+        +DateTime dataFim
+        +String motivo
+    }
+
+    Recurso "1" -- "*" ManutencaoRecurso
+
+    %% =======================
+    %% RESERVA
+    %% =======================
+    class Reserva {
+        +String finalidade
+        +int quantidadeParticipantes
+        +DateTime dataInicio
+        +DateTime dataFim
+        +DateTime checkinAt
+        +DateTime checkoutAt
+        +String regraRecorrencia
+    }
+
+    Ambiente "1" -- "*" Reserva
+    Usuario "1" -- "*" Reserva : solicitante
+    Usuario "1" -- "*" Reserva : responsavel
+    Reserva "*" -- "*" Recurso : utiliza
+
+    class StatusReserva {
+        +String nome
+    }
+
+    StatusReserva "1" -- "*" Reserva
+
+    class HistoricoStatusReserva {
+        +DateTime dataMudanca
+        +String motivo
+    }
+
+    Reserva "1" -- "*" HistoricoStatusReserva
+    StatusReserva "1" -- "*" HistoricoStatusReserva : anterior
+    StatusReserva "1" -- "*" HistoricoStatusReserva : novo
+    Usuario "1" -- "*" HistoricoStatusReserva : alteradoPor
+
+    %% Auto-relacionamento para recorrência
+    Reserva "1" -- "*" Reserva : ocorrencias
+
+    %% =======================
+    %% EXECUÇÃO E APROVAÇÃO
+    %% =======================
+    class BufferExecucao {
+        +String tipo
+        +DateTime horaPrevistaFim
+        +DateTime horaRealFim
+        +String observacao
+    }
+
+    Reserva "1" -- "*" BufferExecucao
+    Ambiente "1" -- "*" BufferExecucao
+    Usuario "1" -- "*" BufferExecucao : liberadoPor
+
+    class Aprovacao {
+        +String status
+        +DateTime data
+        +String tipo
+        +String observacao
+    }
+
+    Reserva "1" -- "*" Aprovacao
+    Usuario "1" -- "*" Aprovacao : aprovador
+
+    %% =======================
+    %% RESERVA COMPOSTA
+    %% =======================
+    class ReservaComposta {
+        +String nome
+        +String descricao
+    }
+
+    class ItemComposicao {
+        +boolean critico
+        +int ordem
+    }
+
+    ReservaComposta "1" -- "*" ItemComposicao
+    Reserva "1" -- "*" ItemComposicao
+
+    %% =======================
+    %% PENALIDADES E AUDITORIA
+    %% =======================
+    class Penalidade {
+        +String tipo
+        +String descricao
+        +int duracaoDias
+        +DateTime dataInicio
+        +DateTime dataFim
+    }
+
+    Usuario "1" -- "*" Penalidade : penalizado
+    Reserva "0..1" -- "1" Penalidade : motivo
+    Usuario "1" -- "*" Penalidade : aplicadaPor
+
+    class Auditoria {
+        +String entidade
+        +int entidadeId
+        +String acao
+        +DateTime timestamp
+        +JSON valoresAnteriores
+        +JSON valoresNovos
+    }
+
+    Usuario "1" -- "*" Auditoria

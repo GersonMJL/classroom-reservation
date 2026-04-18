@@ -8,7 +8,7 @@ from app.db.session import get_db
 from app.modules.resources.repository import ResourceRepository
 from app.modules.resources.schemas import ResourceCreate, ResourceRead, ResourceUpdate
 from app.modules.resources.service import ResourceService
-from app.modules.users.models import User
+from app.modules.users.models import Usuario
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ def list_resources(
     limit: int = 100,
     active_only: bool = True,
     service: ResourceService = Depends(get_resource_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> list[Any]:
     return service.list_resources(skip=skip, limit=limit, active_only=active_only)
 
@@ -32,21 +32,21 @@ def list_resources(
 def get_resource(
     resource_id: int,
     service: ResourceService = Depends(get_resource_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> Any:
-    resource = service.get_resource(resource_id)
-    if resource is None:
+    recurso = service.get_resource(resource_id)
+    if recurso is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
         )
-    return resource
+    return recurso
 
 
 @router.post("", response_model=ResourceRead, status_code=status.HTTP_201_CREATED)
 def create_resource(
     payload: ResourceCreate,
     service: ResourceService = Depends(get_resource_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> Any:
     return service.create_resource(payload)
 
@@ -56,25 +56,25 @@ def update_resource(
     resource_id: int,
     payload: ResourceUpdate,
     service: ResourceService = Depends(get_resource_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> Any:
-    resource = service.get_resource(resource_id)
-    if resource is None:
+    recurso = service.get_resource(resource_id)
+    if recurso is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
         )
-    return service.update_resource(resource, payload)
+    return service.update_resource(recurso, payload)
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_resource(
     resource_id: int,
     service: ResourceService = Depends(get_resource_service),
-    _: User = Depends(get_current_user),
+    _: Usuario = Depends(get_current_user),
 ) -> None:
-    resource = service.get_resource(resource_id)
-    if resource is None:
+    recurso = service.get_resource(resource_id)
+    if recurso is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
         )
-    service.delete_resource(resource)
+    service.delete_resource(recurso)

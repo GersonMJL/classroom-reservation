@@ -1,15 +1,12 @@
-from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict
-
-from app.shared.enums import ResourceType
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResourceBase(BaseModel):
-    resource_code: str
-    name: str
-    resource_type: ResourceType
-    availability_notes: str | None = None
+    nome: str = Field(min_length=1, max_length=255)
+    tipo: str = Field(min_length=1, max_length=64)
+    categoria: str = Field(min_length=1, max_length=64)
+    tipo_vinculo: str = Field(pattern="^(FIXO|MOVEL)$")
+    ambiente_id: int | None = Field(default=None, gt=0)
 
 
 class ResourceCreate(ResourceBase):
@@ -17,17 +14,16 @@ class ResourceCreate(ResourceBase):
 
 
 class ResourceUpdate(BaseModel):
-    resource_code: str | None = None
-    name: str | None = None
-    resource_type: ResourceType | None = None
-    availability_notes: str | None = None
-    is_active: bool | None = None
+    nome: str | None = Field(default=None, min_length=1, max_length=255)
+    tipo: str | None = Field(default=None, min_length=1, max_length=64)
+    categoria: str | None = Field(default=None, min_length=1, max_length=64)
+    tipo_vinculo: str | None = Field(default=None, pattern="^(FIXO|MOVEL)$")
+    ambiente_id: int | None = Field(default=None, gt=0)
+    ativo: bool | None = None
 
 
 class ResourceRead(ResourceBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    ativo: bool

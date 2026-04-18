@@ -6,33 +6,37 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class ReservationVersion(Base):
-    __tablename__ = "reservation_versions"
+class VersaoReserva(Base):
+    __tablename__ = "versoes_reserva"
 
-    reservation_id: Mapped[int] = mapped_column(
-        ForeignKey("reservations.id"), nullable=False
-    )
-    changed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    changed_at: Mapped[datetime] = mapped_column(
+    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
+    alterado_por: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    alterado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    change_summary: Mapped[str] = mapped_column(String(1000), nullable=False)
+    resumo_alteracao: Mapped[str] = mapped_column(String(1000), nullable=False)
 
-    reservation = relationship("Reservation", back_populates="versions")
-    changed_by_user = relationship("User", back_populates="reservation_versions")
+    reserva = relationship("Reserva", back_populates="versoes")
+    alterado_por_usuario = relationship(
+        "Usuario", back_populates="versoes_reserva"
+    )
 
 
-class AuditLog(Base):
-    __tablename__ = "audit_logs"
+class RegistroAuditoria(Base):
+    __tablename__ = "registros_auditoria"
 
-    entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    target_id: Mapped[int] = mapped_column(nullable=False)
-    action: Mapped[str] = mapped_column(String(64), nullable=False)
-    performed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    performed_at: Mapped[datetime] = mapped_column(
+    tipo_entidade: Mapped[str] = mapped_column(String(128), nullable=False)
+    id_alvo: Mapped[int] = mapped_column(nullable=False)
+    acao: Mapped[str] = mapped_column(String(64), nullable=False)
+    realizado_por: Mapped[int] = mapped_column(
+        ForeignKey("usuarios.id"), nullable=False
+    )
+    realizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    before_state: Mapped[str | None] = mapped_column(String(4000), nullable=True)
-    after_state: Mapped[str | None] = mapped_column(String(4000), nullable=True)
+    estado_anterior: Mapped[str | None] = mapped_column(String(4000), nullable=True)
+    estado_posterior: Mapped[str | None] = mapped_column(String(4000), nullable=True)
 
-    performed_by_user = relationship("User", back_populates="audit_logs")
+    realizado_por_usuario = relationship(
+        "Usuario", back_populates="registros_auditoria"
+    )

@@ -1,122 +1,122 @@
-# Detailed System Description
+# Descrição Detalhada do Sistema
 
-## Room and Laboratory Reservation System
+## Sistema de Reserva de Salas e Laboratórios
 
-The room and laboratory reservation system aims to centrally manage the use of physical spaces (classrooms, auditoriums, meeting rooms, laboratories, studios, multipurpose rooms) and their associated resources (projectors, computers, kits, furniture, air conditioning, keys, supplies, licensed software). It organizes the complete cycle of availability, request, approval, use, and closure of reservations, with administrative traceability and rules to prevent scheduling conflicts and improper use.
+O sistema de reserva de salas e laboratórios tem como objetivo gerenciar centralmente o uso de espaços físicos (salas de aula, auditórios, salas de reunião, laboratórios, estúdios, salas multiuso) e seus recursos associados (projetores, computadores, kits, mobiliário, ar-condicionado, chaves, insumos, softwares licenciados). Ele organiza o ciclo completo de disponibilidade, solicitação, aprovação, uso e encerramento das reservas, com rastreabilidade administrativa e regras para prevenir conflitos de agendamento e uso indevido.
 
-Each space is treated as an organizational asset with operational attributes: location (campus, building, floor), capacity, accessibility, permitted purpose, operating hours, preparation and closure rules, support needs (IT, audiovisual, lab technician), security requirements, and — in the case of laboratories — requester qualification requirements. The system also links spaces to a set of restrictions and policies, such as recurring blocks (fixed classes, maintenance), minimum advance notice windows, delay tolerance, setup and cleaning time (buffer), and reservation limits per person/unit.
+Cada espaço é tratado como um ativo organizacional com atributos operacionais: localização (campus, prédio, andar), capacidade, acessibilidade, finalidade permitida, horário de funcionamento, regras de preparação e encerramento, necessidades de suporte (TI, audiovisual, técnico de laboratório), requisitos de segurança e — no caso de laboratórios — requisitos de qualificação do solicitante. O sistema também vincula os espaços a um conjunto de restrições e políticas, como bloqueios recorrentes (aulas fixas, manutenção), janelas mínimas de antecedência, tolerância a atraso, tempo de preparação e limpeza (buffer) e limites de reserva por pessoa/unidade.
 
-The reservation logic must support simple requests (one room for 2 hours) and more complex scenarios, such as recurring reservations (weekly), chained reservations (room + laboratory + auditorium on the same day), unit-based preferential allocation, and mandatory approval for controlled spaces. Beyond managing the calendar, the system must establish an accountability mechanism for usage, recording the requester, the person responsible for the event/activity, expected participants, required resources, accepted terms of responsibility, and — where applicable — check-in/check-out and incident logs (damage, delays, incidents).
+A lógica de reserva deve suportar solicitações simples (uma sala por 2 horas) e cenários mais complexos, como reservas recorrentes (semanais), reservas encadeadas (sala + laboratório + auditório no mesmo dia), alocação preferencial por unidade e aprovação obrigatória para espaços controlados. Além de gerenciar o calendário, o sistema deve estabelecer um mecanismo de responsabilização pelo uso, registrando o solicitante, o responsável pelo evento/atividade, participantes esperados, recursos necessários, termos de responsabilidade aceitos e — quando aplicável — check-in/check-out e registros de incidentes (danos, atrasos, ocorrências).
 
-# Business Rules
+# Regras de Negócio
 
-## **1) Environment and Resource Registration and Classification**
+## **1) Cadastro e Classificação de Ambientes e Recursos**
 
-1.1. Every environment must have a unique identifier, type, location, and capacity.
-1.2. Environments must be classified by criticality, such as common, controlled, or restricted, which impacts approval, modification, and usage rules.
-1.3. Environments may require mandatory attributes depending on type, including technical supervisor, safety rules, and operational constraints.
-1.4. Resources linked to environments may be fixed or mobile.
-1.5. Mobile or pooled resources must maintain an independent availability calendar.
-1.6. Resource logistics must be considered, including transfer time between locations when applicable.
-
----
-
-## **2) Availability, Calendar, Buffers, and Conflicts**
-
-2.1. Reservations must not conflict with others, considering setup, cleaning, and logistics buffers.
-2.2. Buffers are system generated blocks and cannot be modified by regular users.
-2.3. Only administrative or technical roles may adjust buffers after operational validation.
-2.4. Late cancellations for critical environments must not remove required safety buffers.
-2.5. Administrative blocks take priority over all reservations.
-2.6. A reservation is only valid if the environment, required resources, and support are all available simultaneously.
-2.7. Institutional closures invalidate reservations unless explicitly authorized.
+1.1. Todo ambiente deve ter identificador único, tipo, localização e capacidade.
+1.2. Os ambientes devem ser classificados por criticidade, como comum, controlado ou restrito, o que impacta regras de aprovação, modificação e uso.
+1.3. Os ambientes podem exigir atributos obrigatórios conforme o tipo, incluindo responsável técnico, regras de segurança e restrições operacionais.
+1.4. Os recursos vinculados aos ambientes podem ser fixos ou móveis.
+1.5. Recursos móveis ou compartilhados devem manter calendário independente de disponibilidade.
+1.6. A logística de recursos deve ser considerada, incluindo tempo de transferência entre locais quando aplicável.
 
 ---
 
-## **3) Reservation Structure and Complex Scenarios**
+## **2) Disponibilidade, Calendário, Buffers e Conflitos**
 
-3.1. The system must support simple, recurring, and composite reservations.
-3.2. Composite reservations must follow a parent child structure with a master identifier and multiple child reservations.
-3.3. Dependencies between reservations must be enforced automatically.
-3.4. Cancellation of a prerequisite reservation must trigger review of dependent reservations.
-3.5. Partial cancellation requires the requester to confirm continuation or rebook remaining segments.
-
----
-
-## **4) Reservation States and Lifecycle**
-
-4.1. Reservations must follow defined lifecycle states.
-4.2. Only approved reservations block the calendar, except when temporary pre blocking is configured.
-4.3. Any significant modification to an approved reservation must revert its status to pending.
-4.4. Controlled environments always require manual reapproval after changes.
-4.5. Cancellations must record reason and responsible party.
-4.6. The system must maintain a full version history of reservations.
+2.1. As reservas não devem conflitar entre si, considerando buffers de preparação, limpeza e logística.
+2.2. Buffers são bloqueios gerados pelo sistema e não podem ser modificados por usuários comuns.
+2.3. Apenas perfis administrativos ou técnicos podem ajustar buffers após validação operacional.
+2.4. Cancelamentos tardios em ambientes críticos não devem remover buffers de segurança obrigatórios.
+2.5. Bloqueios administrativos têm prioridade sobre todas as reservas.
+2.6. Uma reserva só é válida se ambiente, recursos necessários e suporte estiverem todos disponíveis simultaneamente.
+2.7. Fechamentos institucionais invalidam reservas, salvo autorização explícita.
 
 ---
 
-## **5) Request Rules, Lead Time, and Modifications**
+## **3) Estrutura de Reserva e Cenários Complexos**
 
-5.1. Reservations must respect minimum and maximum lead time constraints.
-5.2. Priority windows may exist for specific organizational units.
-5.3. Requests outside operating hours require explicit authorization.
-5.4. Long duration reservations require justification and may require additional approval.
-5.5. All modifications must preserve the previous state for audit purposes.
-5.6. Changes in common environments without conflicts may be auto approved.
-
----
-
-## **6) Eligibility, Authorization, and Accountability**
-
-6.1. Controlled or restricted environments require qualified users.
-6.2. Laboratories may require certifications, training, or project affiliation.
-6.3. Every reservation must include both a requester and a responsible party.
-6.4. High risk activities require formal acceptance of responsibility and a technical supervisor.
+3.1. O sistema deve suportar reservas simples, recorrentes e compostas.
+3.2. Reservas compostas devem seguir estrutura pai-filho com um identificador mestre e múltiplas reservas filhas.
+3.3. Dependências entre reservas devem ser aplicadas automaticamente.
+3.4. O cancelamento de uma reserva pré-requisito deve acionar revisão das reservas dependentes.
+3.5. Cancelamento parcial exige que o solicitante confirme a continuidade ou reagende os segmentos restantes.
 
 ---
 
-## **7) Resources, Support, and Operational Capacity**
+## **4) Estados e Ciclo de Vida da Reserva**
 
-7.1. Mobile resources must have independent availability validation.
-7.2. Reservations requiring support are only valid if support staff is available.
-7.3. The system must enforce limits based on available support personnel.
-7.4. If support is unavailable, the reservation must remain pending.
-7.5. Resources requiring physical checkout must track responsibility and return deadlines.
-
----
-
-## **8) Capacity, Purpose, and Compliance**
-
-8.1. The number of participants must not exceed environment capacity.
-8.2. The purpose of the reservation must align with the environment type.
-8.3. Unauthorized transfer of reservation ownership or usage is prohibited.
+4.1. As reservas devem seguir estados de ciclo de vida definidos.
+4.2. Apenas reservas aprovadas bloqueiam o calendário, exceto quando houver pré-bloqueio temporário configurado.
+4.3. Qualquer modificação significativa em reserva aprovada deve reverter seu status para pendente.
+4.4. Ambientes controlados sempre exigem reaprovação manual após alterações.
+4.5. Cancelamentos devem registrar motivo e responsável.
+4.6. O sistema deve manter histórico completo de versões das reservas.
 
 ---
 
-## **9) Usage, Check In, Sensors, and Closure**
+## **5) Regras de Solicitação, Antecedência e Modificações**
 
-9.1. The in use status must be triggered by the earliest valid event.
-9.2. Valid events include digital check in, key pickup, or electronic access activation.
-9.3. Sensor integration may automatically mark a reservation as no show if no activity is detected within tolerance.
-9.4. Late arrival may result in no show status.
-9.5. Extensions are only allowed if no conflicts exist and rules are respected.
-9.6. Closure may require a mandatory checklist.
-9.7. Missing check out must trigger operational verification before releasing the environment.
-
----
-
-## **10) Penalties, Liability, and Recurrence**
-
-10.1. Operational penalties apply to the requester.
-10.2. Safety and damage penalties apply to the responsible party.
-10.3. Repeated violations may result in temporary restrictions for individuals or organizational units.
-10.4. Penalties must be configurable and allow administrative appeal.
-10.5. Critical environments may require deposits or additional guarantees.
+5.1. As reservas devem respeitar restrições de antecedência mínima e máxima.
+5.2. Podem existir janelas de prioridade para unidades organizacionais específicas.
+5.3. Solicitações fora do horário de funcionamento exigem autorização explícita.
+5.4. Reservas de longa duração exigem justificativa e podem requerer aprovação adicional.
+5.5. Toda modificação deve preservar o estado anterior para fins de auditoria.
+5.6. Alterações em ambientes comuns sem conflitos podem ser aprovadas automaticamente.
 
 ---
 
-## **11) Audit, Traceability, and Governance**
+## **6) Elegibilidade, Autorização e Responsabilização**
 
-11.1. All relevant administrative actions must be auditable.
-11.2. The system must maintain before and after records for all changes.
-11.3. Reports must reflect consolidated operational and managerial data.
-11.4. The system must support analysis of utilization, demand, incidents, and performance.
+6.1. Ambientes controlados ou restritos exigem usuários qualificados.
+6.2. Laboratórios podem exigir certificações, treinamentos ou vínculo com projeto.
+6.3. Toda reserva deve incluir tanto um solicitante quanto um responsável.
+6.4. Atividades de alto risco exigem aceite formal de responsabilidade e um supervisor técnico.
+
+---
+
+## **7) Recursos, Suporte e Capacidade Operacional**
+
+7.1. Recursos móveis devem ter validação independente de disponibilidade.
+7.2. Reservas que exigem suporte só são válidas se a equipe de suporte estiver disponível.
+7.3. O sistema deve aplicar limites com base na equipe de suporte disponível.
+7.4. Se o suporte estiver indisponível, a reserva deve permanecer pendente.
+7.5. Recursos que exigem retirada física devem rastrear responsabilidade e prazos de devolução.
+
+---
+
+## **8) Capacidade, Finalidade e Conformidade**
+
+8.1. O número de participantes não deve exceder a capacidade do ambiente.
+8.2. A finalidade da reserva deve estar alinhada ao tipo de ambiente.
+8.3. É proibida a transferência não autorizada da titularidade ou do uso da reserva.
+
+---
+
+## **9) Uso, Check-in, Sensores e Encerramento**
+
+9.1. O status de em uso deve ser acionado pelo primeiro evento válido.
+9.2. Eventos válidos incluem check-in digital, retirada de chave ou ativação de acesso eletrônico.
+9.3. Integração com sensores pode marcar automaticamente uma reserva como no-show se nenhuma atividade for detectada dentro da tolerância.
+9.4. Atraso na chegada pode resultar em status de no-show.
+9.5. Prorrogações só são permitidas se não houver conflitos e as regras forem respeitadas.
+9.6. O encerramento pode exigir checklist obrigatório.
+9.7. Ausência de check-out deve acionar verificação operacional antes da liberação do ambiente.
+
+---
+
+## **10) Penalidades, Responsabilidade e Recorrência**
+
+10.1. Penalidades operacionais se aplicam ao solicitante.
+10.2. Penalidades de segurança e danos se aplicam ao responsável.
+10.3. Violações recorrentes podem resultar em restrições temporárias para indivíduos ou unidades organizacionais.
+10.4. Penalidades devem ser configuráveis e permitir recurso administrativo.
+10.5. Ambientes críticos podem exigir cauções ou garantias adicionais.
+
+---
+
+## **11) Auditoria, Rastreabilidade e Governança**
+
+11.1. Todas as ações administrativas relevantes devem ser auditáveis.
+11.2. O sistema deve manter registros de antes e depois para todas as alterações.
+11.3. Relatórios devem refletir dados operacionais e gerenciais consolidados.
+11.4. O sistema deve suportar análise de utilização, demanda, incidentes e desempenho.

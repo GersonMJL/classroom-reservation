@@ -116,15 +116,9 @@ sequenceDiagram
                     Sistema->>Reserva: Registrar timestamp de check-in
                     Sistema->>Auditoria: Registrar início de uso
 
-                    %% Sensor de Ocupação (E2 do UC05)
-                    opt Sensor de presença não detecta atividade
-                        Sistema->>Sistema: Alerta de ausência após Y minutos
-                        Sistema-->>Tecnico: Notificar para verificar sala
-                    end
-
                     %% Uso normal
                     Solicitante->>Sistema: Realizar check-out
-                    Sistema->>Reserva: Atualizar status para "Concluída"
+                    Sistema->>Reserva: Atualizar status para "AGUARDANDO_CHECKOUT"
                     Sistema->>Reserva: Registrar timestamp de check-out
                     Sistema->>Auditoria: Registrar término de uso
 
@@ -133,7 +127,7 @@ sequenceDiagram
                     %% =======================
                     Sistema->>Sistema: Ativar buffer de limpeza/setup
                     Sistema->>Sistema: Bloquear agenda (período de buffer)
-                    Note over Sistema: Ambiente status "Em Limpeza/Setup"
+                    Note over Sistema: Ambiente em limpeza/setup
 
                     opt Liberação antecipada pelo Técnico
                         Tecnico->>Sistema: Informar conclusão antecipada da limpeza
@@ -141,6 +135,7 @@ sequenceDiagram
                         Sistema->>Auditoria: Registrar liberação antecipada
                     end
 
+                    Sistema->>Reserva: Atualizar status para "CONCLUIDA"
                     Sistema->>Sistema: Liberar ambiente após término do buffer
                     Note over Sistema: Ambiente status "Livre"
 

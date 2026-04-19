@@ -39,8 +39,10 @@ X[Aplicar penalidade]
 
 %% Encerramento
 T[Realizar check-out]
-U[Gerar buffer]
+T2[Status: AGUARDANDO_CHECKOUT]
+U[Gerar buffer de limpeza/setup]
 V[Bloquear agenda temporariamente]
+T3[Status: CONCLUIDA]
 W[Liberar ambiente]
 
 %% Fluxo
@@ -62,4 +64,4 @@ M -- Não --> O --> End
 N --> P --> Q
 
 Q -- Não --> S --> X --> W --> End
-Q -- Sim --> R --> T --> U --> V --> W --> End
+Q -- Sim --> R --> T --> T2 --> U --> V --> T3 --> W --> End

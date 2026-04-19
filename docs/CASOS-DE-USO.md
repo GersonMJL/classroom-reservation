@@ -131,8 +131,7 @@ Esta etapa transforma o "o quê" (requisitos) no "como" (processo), garantindo q
 
 ### **Fluxos de Exceção**
 
-* **E1: No-Show Automático:** Se o check-in não ocorrer até X minutos após o início previsto, o **Sistema** cancela a reserva automaticamente, libera o ambiente e aplica penalidade ao Solicitante.  
-* **E2: Sensor de Ocupação:** Se o check-in for feito, mas o sensor de presença não detectar atividade após Y minutos, o sistema dispara um alerta para a equipe técnica verificar a sala.
+* **E1: No-Show Automático:** Se o check-in não ocorrer até X minutos após o início previsto, o **Sistema** cancela a reserva automaticamente, libera o ambiente e aplica penalidade ao Solicitante.
 
 ---
 

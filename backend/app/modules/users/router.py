@@ -10,7 +10,7 @@ from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
 from app.modules.users.service import UserService
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/usuarios", tags=["usuarios"])
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:

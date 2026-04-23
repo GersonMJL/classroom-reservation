@@ -7,7 +7,7 @@ from app.modules.auth.schemas import TokenResponse
 from app.modules.auth.service import AuthService
 from app.modules.users.repository import UserRepository
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:

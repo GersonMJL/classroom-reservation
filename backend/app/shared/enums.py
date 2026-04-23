@@ -1,34 +1,111 @@
 from enum import StrEnum
 
 
-class EnvironmentType(StrEnum):
-    CLASSROOM = "CLASSROOM"
-    LABORATORY = "LABORATORY"
-    AUDITORIUM = "AUDITORIUM"
-    MEETING_ROOM = "MEETING_ROOM"
-    STUDIO = "STUDIO"
-    MULTIPURPOSE = "MULTIPURPOSE"
+class TipoAmbiente(StrEnum):
+    SALA_AULA = "SALA_AULA"
+    LABORATORIO = "LABORATORIO"
+    AUDITORIO = "AUDITORIO"
+    SALA_REUNIAO = "SALA_REUNIAO"
+    ESTUDIO = "ESTUDIO"
+    MULTIPROPOSITO = "MULTIPROPOSITO"
 
 
-class EnvironmentCriticality(StrEnum):
-    COMMON = "COMMON"
-    CONTROLLED = "CONTROLLED"
-    RESTRICTED = "RESTRICTED"
+class CriticidadeAmbiente(StrEnum):
+    COMUM = "COMUM"
+    CONTROLADO = "CONTROLADO"
+    RESTRITO = "RESTRITO"
 
 
-class ResourceType(StrEnum):
-    EQUIPMENT = "EQUIPMENT"
-    FURNITURE = "FURNITURE"
-    SOFTWARE_LICENSE = "SOFTWARE_LICENSE"
-    KEY = "KEY"
-    SUPPLY = "SUPPLY"
+class TipoRecurso(StrEnum):
+    EQUIPAMENTO = "EQUIPAMENTO"
+    MOBILIARIO = "MOBILIARIO"
+    LICENCA_SOFTWARE = "LICENCA_SOFTWARE"
+    CHAVE = "CHAVE"
+    SUPRIMENTO = "SUPRIMENTO"
     KIT = "KIT"
 
 
-class ReservationPurpose(StrEnum):
-    CLASS = "CLASS"
-    MEETING = "MEETING"
-    RESEARCH = "RESEARCH"
-    EVENT = "EVENT"
-    MAINTENANCE = "MAINTENANCE"
-    TRAINING = "TRAINING"
+class FinalidadeReserva(StrEnum):
+    AULA = "AULA"
+    REUNIAO = "REUNIAO"
+    PESQUISA = "PESQUISA"
+    EVENTO = "EVENTO"
+    MANUTENCAO = "MANUTENCAO"
+    TREINAMENTO = "TREINAMENTO"
+
+
+class StatusReserva(StrEnum):
+    RASCUNHO = "RASCUNHO"
+    AGUARDANDO_APROVACAO = "AGUARDANDO_APROVACAO"
+    APROVADA = "APROVADA"
+    REJEITADA = "REJEITADA"
+    AGUARDANDO_CHECKIN = "AGUARDANDO_CHECKIN"
+    EM_USO = "EM_USO"
+    AGUARDANDO_CHECKOUT = "AGUARDANDO_CHECKOUT"
+    CONCLUIDA = "CONCLUIDA"
+    CANCELADA = "CANCELADA"
+    NAO_COMPARECEU = "NAO_COMPARECEU"
+
+
+class TipoReserva(StrEnum):
+    SIMPLES = "SIMPLES"
+    RECORRENTE = "RECORRENTE"
+    COMPOSTA = "COMPOSTA"
+
+
+class StatusAprovacao(StrEnum):
+    PENDENTE = "PENDENTE"
+    APROVADO = "APROVADO"
+    REJEITADO = "REJEITADO"
+
+
+class TipoBloqueioCalendario(StrEnum):
+    MANUTENCAO = "MANUTENCAO"
+    FERIADO = "FERIADO"
+    EVENTO = "EVENTO"
+    RESERVA_ADMIN = "RESERVA_ADMIN"
+
+
+class TipoPenalidade(StrEnum):
+    ADVERTENCIA = "ADVERTENCIA"
+    SUSPENSAO = "SUSPENSAO"
+    BLOQUEIO = "BLOQUEIO"
+
+
+class AcaoAuditoria(StrEnum):
+    CRIACAO = "CRIACAO"
+    ATUALIZACAO = "ATUALIZACAO"
+    EXCLUSAO = "EXCLUSAO"
+    MUDANCA_STATUS = "MUDANCA_STATUS"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+
+
+class TipoBuffer(StrEnum):
+    PRE = "PRE"
+    POS = "POS"
+
+
+class TipoSuporte(StrEnum):
+    TECNICO = "TECNICO"
+    LIMPEZA = "LIMPEZA"
+    SEGURANCA = "SEGURANCA"
+
+
+class PapelUsuario(StrEnum):
+    ADMIN = "ADMIN"
+    GERENTE = "GERENTE"
+    TECNICO = "TECNICO"
+    SOLICITANTE = "SOLICITANTE"
+
+
+class TipoVinculo(StrEnum):
+    ALUNO = "ALUNO"
+    PROFESSOR = "PROFESSOR"
+    FUNCIONARIO = "FUNCIONARIO"
+    EXTERNO = "EXTERNO"
+
+
+class VinculoRecurso(StrEnum):
+    FIXO = "FIXO"
+    MOVEL = "MOVEL"

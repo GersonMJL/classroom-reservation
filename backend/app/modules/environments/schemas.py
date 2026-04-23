@@ -1,12 +1,12 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.shared.enums import EnvironmentCriticality, EnvironmentType
+from app.shared.enums import CriticidadeAmbiente, TipoAmbiente
 
 
 class EnvironmentBase(BaseModel):
     nome: str = Field(min_length=1, max_length=255)
-    tipo: EnvironmentType
-    criticidade: EnvironmentCriticality
+    tipo: TipoAmbiente
+    criticidade: CriticidadeAmbiente
     capacidade: int = Field(gt=0)
     localizacao_id: int = Field(gt=0)
     horario_funcionamento: str = Field(min_length=1, max_length=255)
@@ -22,8 +22,8 @@ class EnvironmentCreate(EnvironmentBase):
 
 class EnvironmentUpdate(BaseModel):
     nome: str | None = Field(default=None, min_length=1, max_length=255)
-    tipo: EnvironmentType | None = None
-    criticidade: EnvironmentCriticality | None = None
+    tipo: TipoAmbiente | None = None
+    criticidade: CriticidadeAmbiente | None = None
     capacidade: int | None = Field(default=None, gt=0)
     localizacao_id: int | None = Field(default=None, gt=0)
     horario_funcionamento: str | None = Field(default=None, min_length=1, max_length=255)

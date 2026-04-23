@@ -10,7 +10,7 @@ from app.modules.locations.schemas import LocationRead
 from app.modules.locations.service import LocationService
 from app.modules.users.models import Usuario
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/localizacoes", tags=["localizacoes"])
 
 
 def get_location_service(db: Session = Depends(get_db)) -> LocationService:

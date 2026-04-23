@@ -10,7 +10,7 @@ from app.modules.resources.schemas import ResourceCreate, ResourceRead, Resource
 from app.modules.resources.service import ResourceService
 from app.modules.users.models import Usuario
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/recursos", tags=["recursos"])
 
 
 def get_resource_service(db: Session = Depends(get_db)) -> ResourceService:

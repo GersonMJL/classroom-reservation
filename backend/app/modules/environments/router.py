@@ -14,7 +14,7 @@ from app.modules.environments.schemas import (
 from app.modules.environments.service import EnvironmentService
 from app.modules.users.models import Usuario
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/ambientes", tags=["ambientes"])
 
 
 def get_environment_service(db: Session = Depends(get_db)) -> EnvironmentService:

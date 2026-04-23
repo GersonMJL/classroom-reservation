@@ -1,15 +1,25 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum as SAEnum,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-
-
-class StatusReserva(Base):
-    __tablename__ = "status_reserva"
-
-    nome: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+from app.shared.enums import (
+    StatusAprovacao,
+    StatusReserva,
+    TipoBloqueioCalendario,
+    TipoBuffer,
+    TipoReserva,
+    TipoSuporte,
+)
 
 
 class Reserva(Base):
@@ -29,8 +39,11 @@ class Reserva(Base):
         DateTime(timezone=True), nullable=False
     )
     hora_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    status_id: Mapped[int | None] = mapped_column(
-        ForeignKey("status_reserva.id"), nullable=True
+    status: Mapped[str] = mapped_column(
+        SAEnum(StatusReserva, name="status_reserva"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(
+        SAEnum(TipoReserva, name="tipo_reserva"), nullable=False
     )
     num_participantes: Mapped[int] = mapped_column(Integer, nullable=False)
     proposito: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -46,7 +59,6 @@ class Reserva(Base):
         "Reserva", remote_side="Reserva.id", back_populates="filhos"
     )
     filhos = relationship("Reserva", back_populates="reserva_mae")
-    status = relationship("StatusReserva")
 
     ambiente = relationship("Ambiente", back_populates="reservas")
     solicitante = relationship(
@@ -130,7 +142,9 @@ class SuporteReserva(Base):
     __tablename__ = "suporte_reserva"
 
     reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    tipo_suporte: Mapped[str] = mapped_column(String(64), nullable=False)
+    tipo_suporte: Mapped[str] = mapped_column(
+        SAEnum(TipoSuporte, name="tipo_suporte"), nullable=False
+    )
     funcionario_responsavel_id: Mapped[int | None] = mapped_column(
         ForeignKey("usuarios.id"), nullable=True
     )
@@ -146,7 +160,9 @@ class Aprovacao(Base):
 
     reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
     aprovador_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
-    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(
+        SAEnum(StatusAprovacao, name="status_aprovacao"), nullable=False
+    )
     tipo: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="INITIAL"
     )
@@ -167,7 +183,9 @@ class BloqueioCalendario(Base):
         DateTime(timezone=True), nullable=False
     )
     hora_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
+    tipo: Mapped[str] = mapped_column(
+        SAEnum(TipoBloqueioCalendario, name="tipo_bloqueio_calendario"), nullable=False
+    )
     prioridade: Mapped[str] = mapped_column(String(64), nullable=False)
 
     ambiente = relationship("Ambiente", back_populates="bloqueios_calendario")
@@ -177,11 +195,11 @@ class HistoricoStatusReserva(Base):
     __tablename__ = "historico_status_reserva"
 
     reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    status_anterior_id: Mapped[int | None] = mapped_column(
-        ForeignKey("status_reserva.id"), nullable=True
+    status_anterior: Mapped[str | None] = mapped_column(
+        SAEnum(StatusReserva, name="status_reserva"), nullable=True
     )
-    status_novo_id: Mapped[int] = mapped_column(
-        ForeignKey("status_reserva.id"), nullable=False
+    status_novo: Mapped[str] = mapped_column(
+        SAEnum(StatusReserva, name="status_reserva"), nullable=False
     )
     data_mudanca: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -190,10 +208,6 @@ class HistoricoStatusReserva(Base):
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
 
     reserva = relationship("Reserva", back_populates="historico_status")
-    status_anterior = relationship(
-        "StatusReserva", foreign_keys=[status_anterior_id]
-    )
-    status_novo = relationship("StatusReserva", foreign_keys=[status_novo_id])
     usuario = relationship("Usuario")
 
 
@@ -202,7 +216,9 @@ class BufferExecucao(Base):
 
     reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
     ambiente_id: Mapped[int] = mapped_column(ForeignKey("ambientes.id"), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(32), nullable=False)
+    tipo: Mapped[str] = mapped_column(
+        SAEnum(TipoBuffer, name="tipo_buffer"), nullable=False
+    )
     hora_prevista_fim: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

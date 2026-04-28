@@ -19,6 +19,12 @@ Sistema de reserva de salas e ambientes acadêmicos.
 - [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/)
 - `git`
 
+> **WSL (Windows Subsystem for Linux)**
+>
+> - Instale o [Docker Desktop para Windows](https://www.docker.com/products/docker-desktop/) e ative a integração com WSL2 em **Settings → Resources → WSL Integration**.
+> - Clone e execute o projeto **dentro do sistema de arquivos WSL** (ex: `~/code/`), não em `/mnt/c/`. Usar o filesystem do Windows (`/mnt/c/...`) causa lentidão severa nos volumes do Docker.
+> - As URLs `http://localhost:3000` e `http://localhost:8000` funcionam diretamente no navegador do Windows graças ao port-forwarding automático do WSL2.
+
 ### 1. Clone o repositório
 
 ```bash

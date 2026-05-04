@@ -1,3 +1,3 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/v1/governanca", tags=["governanca"])
+router = APIRouter(prefix="/api/v1/governance", tags=["governance"])

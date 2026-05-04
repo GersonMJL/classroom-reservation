@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db.session import get_db
-from app.modules.users.models import Usuario
+from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
 from app.modules.users.service import UserService
 
-router = APIRouter(prefix="/api/v1/usuarios", tags=["usuarios"])
+router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
@@ -29,20 +29,20 @@ def list_users(
     skip: int = 0,
     limit: int = 100,
     service: UserService = Depends(get_user_service),
-    _: Usuario = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ) -> list[Any]:
     return service.list_users(skip=skip, limit=limit)
 
 
 @router.get("/me", response_model=UserRead)
-def get_me(current_user: Usuario = Depends(get_current_user)) -> Any:
+def get_me(current_user: User = Depends(get_current_user)) -> Any:
     setattr(
         current_user,
-        "papeis",
+        "roles",
         [
-            up.papel.nome
-            for up in current_user.usuario_papeis
-            if up.papel is not None
+            ur.role.name
+            for ur in current_user.user_roles
+            if ur.role is not None
         ],
     )
     return current_user
@@ -53,25 +53,25 @@ def update_user(
     user_id: int,
     payload: UserUpdate,
     service: UserService = Depends(get_user_service),
-    _: Usuario = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ) -> Any:
-    usuario = service.get_user(user_id)
-    if usuario is None:
+    user = service.get_user(user_id)
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
-    return service.update_user(usuario, payload)
+    return service.update_user(user, payload)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: int,
     service: UserService = Depends(get_user_service),
-    _: Usuario = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ) -> None:
-    usuario = service.get_user(user_id)
-    if usuario is None:
+    user = service.get_user(user_id)
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
-    service.delete_user(usuario)
+    service.delete_user(user)

@@ -6,98 +6,98 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Ambiente(Base):
-    __tablename__ = "ambientes"
+class Environment(Base):
+    __tablename__ = "environments"
 
-    nome: Mapped[str] = mapped_column(String(255), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
-    criticidade: Mapped[str] = mapped_column(String(64), nullable=False)
-    capacidade: Mapped[int] = mapped_column(Integer, nullable=False)
-    localizacao_id: Mapped[int] = mapped_column(
-        ForeignKey("localizacoes.id"), nullable=False
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    criticality: Mapped[str] = mapped_column(String(64), nullable=False)
+    capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("locations.id"), nullable=False
     )
-    horario_funcionamento: Mapped[str] = mapped_column(String(255), nullable=False)
-    requer_aprovacao: Mapped[bool] = mapped_column(
+    operating_hours: Mapped[str] = mapped_column(String(255), nullable=False)
+    requires_approval: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
-    buffer_antes_min: Mapped[int] = mapped_column(
+    buffer_before_min: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, server_default="0"
     )
-    buffer_depois_min: Mapped[int] = mapped_column(
+    buffer_after_min: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, server_default="0"
     )
-    ativo: Mapped[bool] = mapped_column(
+    active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="true"
     )
 
-    localizacao = relationship("Localizacao", back_populates="ambientes")
-    politicas = relationship(
-        "PoliticaReserva", back_populates="ambiente", cascade="all, delete-orphan"
+    location = relationship("Location", back_populates="environments")
+    policies = relationship(
+        "ReservationPolicy", back_populates="environment", cascade="all, delete-orphan"
     )
-    restricoes = relationship(
-        "RestricaoAmbiente", back_populates="ambiente", cascade="all, delete-orphan"
+    restrictions = relationship(
+        "EnvironmentRestriction", back_populates="environment", cascade="all, delete-orphan"
     )
-    recursos = relationship("Recurso", back_populates="ambiente")
-    requisitos = relationship(
-        "RequisitoAmbiente", back_populates="ambiente", cascade="all, delete-orphan"
+    resources = relationship("Resource", back_populates="environment")
+    requirements = relationship(
+        "EnvironmentRequirement", back_populates="environment", cascade="all, delete-orphan"
     )
-    reservas = relationship("Reserva", back_populates="ambiente")
-    bloqueios_calendario = relationship(
-        "BloqueioCalendario", back_populates="ambiente", cascade="all, delete-orphan"
+    reservations = relationship("Reservation", back_populates="environment")
+    calendar_blocks = relationship(
+        "CalendarBlock", back_populates="environment", cascade="all, delete-orphan"
     )
-    manutencoes = relationship(
-        "ManutencaoAmbiente", back_populates="ambiente", cascade="all, delete-orphan"
-    )
-
-
-class PoliticaReserva(Base):
-    __tablename__ = "politica_reserva"
-
-    ambiente_id: Mapped[int] = mapped_column(
-        ForeignKey("ambientes.id"), nullable=False
-    )
-    papel_id: Mapped[int] = mapped_column(ForeignKey("papeis.id"), nullable=False)
-    antecedencia_min_horas: Mapped[int] = mapped_column(Integer, nullable=False)
-    antecedencia_max_dias: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    ambiente = relationship("Ambiente", back_populates="politicas")
-    papel = relationship("Papel")
-
-
-class RestricaoAmbiente(Base):
-    __tablename__ = "restricoes_ambiente"
-
-    ambiente_id: Mapped[int] = mapped_column(
-        ForeignKey("ambientes.id"), nullable=False
-    )
-    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
-    descricao: Mapped[str] = mapped_column(String(1000), nullable=False)
-
-    ambiente = relationship("Ambiente", back_populates="restricoes")
-
-
-class RequisitoAmbiente(Base):
-    __tablename__ = "requisitos_ambiente"
-
-    ambiente_id: Mapped[int] = mapped_column(
-        ForeignKey("ambientes.id"), nullable=False
-    )
-    qualificacao_id: Mapped[int] = mapped_column(
-        ForeignKey("qualificacoes.id"), nullable=False
+    maintenances = relationship(
+        "EnvironmentMaintenance", back_populates="environment", cascade="all, delete-orphan"
     )
 
-    ambiente = relationship("Ambiente", back_populates="requisitos")
-    qualificacao = relationship("Qualificacao", back_populates="requisitos_ambiente")
 
+class ReservationPolicy(Base):
+    __tablename__ = "reservation_policies"
 
-class ManutencaoAmbiente(Base):
-    __tablename__ = "manutencao_ambiente"
-
-    ambiente_id: Mapped[int] = mapped_column(
-        ForeignKey("ambientes.id"), nullable=False
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
     )
-    data_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    data_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
+    min_lead_time_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_lead_time_days: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    ambiente = relationship("Ambiente", back_populates="manutencoes")
+    environment = relationship("Environment", back_populates="policies")
+    role = relationship("Role")
+
+
+class EnvironmentRestriction(Base):
+    __tablename__ = "environment_restrictions"
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
+    )
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    description: Mapped[str] = mapped_column(String(1000), nullable=False)
+
+    environment = relationship("Environment", back_populates="restrictions")
+
+
+class EnvironmentRequirement(Base):
+    __tablename__ = "environment_requirements"
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
+    )
+    qualification_id: Mapped[int] = mapped_column(
+        ForeignKey("qualifications.id"), nullable=False
+    )
+
+    environment = relationship("Environment", back_populates="requirements")
+    qualification = relationship("Qualification", back_populates="environment_requirements")
+
+
+class EnvironmentMaintenance(Base):
+    __tablename__ = "environment_maintenance"
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
+    )
+    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    environment = relationship("Environment", back_populates="maintenances")

@@ -1,19 +1,19 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.shared.enums import CriticidadeAmbiente, TipoAmbiente
+from app.shared.enums import EnvironmentCriticality, EnvironmentType
 
 
 class EnvironmentBase(BaseModel):
-    nome: str = Field(min_length=1, max_length=255)
-    tipo: TipoAmbiente
-    criticidade: CriticidadeAmbiente
-    capacidade: int = Field(gt=0)
-    localizacao_id: int = Field(gt=0)
-    horario_funcionamento: str = Field(min_length=1, max_length=255)
-    requer_aprovacao: bool = False
-    buffer_antes_min: int = Field(default=0, ge=0)
-    buffer_depois_min: int = Field(default=0, ge=0)
-    ativo: bool = True
+    name: str = Field(min_length=1, max_length=255)
+    type: EnvironmentType
+    criticality: EnvironmentCriticality
+    capacity: int = Field(gt=0)
+    location_id: int = Field(gt=0)
+    operating_hours: str = Field(min_length=1, max_length=255)
+    requires_approval: bool = False
+    buffer_before_min: int = Field(default=0, ge=0)
+    buffer_after_min: int = Field(default=0, ge=0)
+    active: bool = True
 
 
 class EnvironmentCreate(EnvironmentBase):
@@ -21,16 +21,16 @@ class EnvironmentCreate(EnvironmentBase):
 
 
 class EnvironmentUpdate(BaseModel):
-    nome: str | None = Field(default=None, min_length=1, max_length=255)
-    tipo: TipoAmbiente | None = None
-    criticidade: CriticidadeAmbiente | None = None
-    capacidade: int | None = Field(default=None, gt=0)
-    localizacao_id: int | None = Field(default=None, gt=0)
-    horario_funcionamento: str | None = Field(default=None, min_length=1, max_length=255)
-    requer_aprovacao: bool | None = None
-    buffer_antes_min: int | None = Field(default=None, ge=0)
-    buffer_depois_min: int | None = Field(default=None, ge=0)
-    ativo: bool | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    type: EnvironmentType | None = None
+    criticality: EnvironmentCriticality | None = None
+    capacity: int | None = Field(default=None, gt=0)
+    location_id: int | None = Field(default=None, gt=0)
+    operating_hours: str | None = Field(default=None, min_length=1, max_length=255)
+    requires_approval: bool | None = None
+    buffer_before_min: int | None = Field(default=None, ge=0)
+    buffer_after_min: int | None = Field(default=None, ge=0)
+    active: bool | None = None
 
 
 class EnvironmentRead(EnvironmentBase):
@@ -39,18 +39,18 @@ class EnvironmentRead(EnvironmentBase):
     id: int
 
 
-class PoliticaReservaBase(BaseModel):
-    ambiente_id: int = Field(gt=0)
-    papel_id: int = Field(gt=0)
-    antecedencia_min_horas: int = Field(ge=0)
-    antecedencia_max_dias: int = Field(ge=1)
+class ReservationPolicyBase(BaseModel):
+    environment_id: int = Field(gt=0)
+    role_id: int = Field(gt=0)
+    min_lead_time_hours: int = Field(ge=0)
+    max_lead_time_days: int = Field(ge=1)
 
 
-class PoliticaReservaCreate(PoliticaReservaBase):
+class ReservationPolicyCreate(ReservationPolicyBase):
     pass
 
 
-class PoliticaReservaRead(PoliticaReservaBase):
+class ReservationPolicyRead(ReservationPolicyBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

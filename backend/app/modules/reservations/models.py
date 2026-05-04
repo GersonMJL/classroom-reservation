@@ -13,255 +13,255 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.shared.enums import (
-    StatusAprovacao,
-    StatusReserva,
-    TipoBloqueioCalendario,
-    TipoBuffer,
-    TipoReserva,
-    TipoSuporte,
+    ApprovalStatus,
+    BufferType,
+    CalendarBlockType,
+    ReservationStatus,
+    ReservationType,
+    SupportType,
 )
 
 
-class Reserva(Base):
-    __tablename__ = "reservas"
+class Reservation(Base):
+    __tablename__ = "reservations"
 
-    reserva_mestre_id: Mapped[int | None] = mapped_column(
-        ForeignKey("reservas.id"), nullable=True
+    parent_reservation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reservations.id"), nullable=True
     )
-    ambiente_id: Mapped[int] = mapped_column(ForeignKey("ambientes.id"), nullable=False)
-    solicitante_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.id"), nullable=False
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
+    requester_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False
     )
-    responsavel_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.id"), nullable=False
+    responsible_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False
     )
-    hora_inicio: Mapped[datetime] = mapped_column(
+    start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    hora_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(
-        SAEnum(StatusReserva, name="status_reserva"), nullable=False
+        SAEnum(ReservationStatus, name="reservation_status"), nullable=False
     )
-    tipo: Mapped[str] = mapped_column(
-        SAEnum(TipoReserva, name="tipo_reserva"), nullable=False
+    type: Mapped[str] = mapped_column(
+        SAEnum(ReservationType, name="reservation_type"), nullable=False
     )
-    num_participantes: Mapped[int] = mapped_column(Integer, nullable=False)
-    proposito: Mapped[str] = mapped_column(String(128), nullable=False)
+    participant_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    purpose: Mapped[str] = mapped_column(String(128), nullable=False)
     checkin_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     checkout_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    regra_recorrencia: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    recurrence_rule: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    reserva_mae = relationship(
-        "Reserva", remote_side="Reserva.id", back_populates="filhos"
+    parent_reservation = relationship(
+        "Reservation", remote_side="Reservation.id", back_populates="child_reservations"
     )
-    filhos = relationship("Reserva", back_populates="reserva_mae")
+    child_reservations = relationship("Reservation", back_populates="parent_reservation")
 
-    ambiente = relationship("Ambiente", back_populates="reservas")
-    solicitante = relationship(
-        "Usuario",
-        foreign_keys=[solicitante_id],
-        back_populates="reservas_solicitadas",
+    environment = relationship("Environment", back_populates="reservations")
+    requester = relationship(
+        "User",
+        foreign_keys=[requester_id],
+        back_populates="requested_reservations",
     )
-    responsavel = relationship(
-        "Usuario",
-        foreign_keys=[responsavel_id],
-        back_populates="reservas_responsavel",
+    responsible = relationship(
+        "User",
+        foreign_keys=[responsible_id],
+        back_populates="managed_reservations",
     )
 
-    dependencias = relationship(
-        "DependenciaReserva",
-        foreign_keys="DependenciaReserva.reserva_id",
-        back_populates="reserva",
+    dependencies = relationship(
+        "ReservationDependency",
+        foreign_keys="ReservationDependency.reservation_id",
+        back_populates="reservation",
         cascade="all, delete-orphan",
     )
-    dependente_de = relationship(
-        "DependenciaReserva",
-        foreign_keys="DependenciaReserva.depende_de_reserva_id",
-        back_populates="depende_de_reserva",
+    depended_on_by = relationship(
+        "ReservationDependency",
+        foreign_keys="ReservationDependency.dependent_reservation_id",
+        back_populates="depends_on_reservation",
     )
-    recursos = relationship(
-        "RecursoReserva", back_populates="reserva", cascade="all, delete-orphan"
+    resources = relationship(
+        "ReservationResource", back_populates="reservation", cascade="all, delete-orphan"
     )
-    suportes = relationship(
-        "SuporteReserva", back_populates="reserva", cascade="all, delete-orphan"
+    support = relationship(
+        "ReservationSupport", back_populates="reservation", cascade="all, delete-orphan"
     )
-    aprovacoes = relationship(
-        "Aprovacao", back_populates="reserva", cascade="all, delete-orphan"
+    approvals = relationship(
+        "Approval", back_populates="reservation", cascade="all, delete-orphan"
     )
-    incidentes = relationship(
-        "Incidente", back_populates="reserva", cascade="all, delete-orphan"
+    incidents = relationship(
+        "Incident", back_populates="reservation", cascade="all, delete-orphan"
     )
-    penalidades = relationship("Penalidade", back_populates="reserva")
-    versoes = relationship(
-        "VersaoReserva", back_populates="reserva", cascade="all, delete-orphan"
+    penalties = relationship("Penalty", back_populates="reservation")
+    versions = relationship(
+        "ReservationVersion", back_populates="reservation", cascade="all, delete-orphan"
     )
-    emprestimos_recurso = relationship("EmprestimoRecurso", back_populates="reserva")
-    historico_status = relationship(
-        "HistoricoStatusReserva",
-        back_populates="reserva",
+    resource_loans = relationship("ResourceLoan", back_populates="reservation")
+    status_history = relationship(
+        "ReservationStatusHistory",
+        back_populates="reservation",
         cascade="all, delete-orphan",
     )
     buffers = relationship(
-        "BufferExecucao", back_populates="reserva", cascade="all, delete-orphan"
+        "ExecutionBuffer", back_populates="reservation", cascade="all, delete-orphan"
     )
 
 
-class DependenciaReserva(Base):
-    __tablename__ = "dependencias_reserva"
+class ReservationDependency(Base):
+    __tablename__ = "reservation_dependencies"
 
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    depende_de_reserva_id: Mapped[int] = mapped_column(
-        ForeignKey("reservas.id"), nullable=False
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    dependent_reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
     )
 
-    reserva = relationship(
-        "Reserva", foreign_keys=[reserva_id], back_populates="dependencias"
+    reservation = relationship(
+        "Reservation", foreign_keys=[reservation_id], back_populates="dependencies"
     )
-    depende_de_reserva = relationship(
-        "Reserva",
-        foreign_keys=[depende_de_reserva_id],
-        back_populates="dependente_de",
-    )
-
-
-class RecursoReserva(Base):
-    __tablename__ = "recursos_reserva"
-
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
-
-    reserva = relationship("Reserva", back_populates="recursos")
-    recurso = relationship("Recurso", back_populates="recursos_reserva")
-
-
-class SuporteReserva(Base):
-    __tablename__ = "suporte_reserva"
-
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    tipo_suporte: Mapped[str] = mapped_column(
-        SAEnum(TipoSuporte, name="tipo_suporte"), nullable=False
-    )
-    funcionario_responsavel_id: Mapped[int | None] = mapped_column(
-        ForeignKey("usuarios.id"), nullable=True
-    )
-
-    reserva = relationship("Reserva", back_populates="suportes")
-    funcionario_responsavel = relationship(
-        "Usuario", back_populates="suportes_atribuidos"
+    depends_on_reservation = relationship(
+        "Reservation",
+        foreign_keys=[dependent_reservation_id],
+        back_populates="depended_on_by",
     )
 
 
-class Aprovacao(Base):
-    __tablename__ = "aprovacoes"
+class ReservationResource(Base):
+    __tablename__ = "reservation_resources"
 
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    aprovador_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
+
+    reservation = relationship("Reservation", back_populates="resources")
+    resource = relationship("Resource", back_populates="reservation_resources")
+
+
+class ReservationSupport(Base):
+    __tablename__ = "reservation_support"
+
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    support_type: Mapped[str] = mapped_column(
+        SAEnum(SupportType, name="support_type"), nullable=False
+    )
+    responsible_staff_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+
+    reservation = relationship("Reservation", back_populates="support")
+    responsible_staff = relationship(
+        "User", back_populates="assigned_support"
+    )
+
+
+class Approval(Base):
+    __tablename__ = "approvals"
+
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    approver_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     status: Mapped[str] = mapped_column(
-        SAEnum(StatusAprovacao, name="status_aprovacao"), nullable=False
+        SAEnum(ApprovalStatus, name="approval_status"), nullable=False
     )
-    tipo: Mapped[str] = mapped_column(
+    type: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="INITIAL"
     )
-    data_decisao: Mapped[datetime | None] = mapped_column(
+    decision_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    comentarios: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    comments: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
-    reserva = relationship("Reserva", back_populates="aprovacoes")
-    aprovador = relationship("Usuario", back_populates="aprovacoes")
+    reservation = relationship("Reservation", back_populates="approvals")
+    approver = relationship("User", back_populates="approvals")
 
 
-class BloqueioCalendario(Base):
-    __tablename__ = "bloqueios_calendario"
+class CalendarBlock(Base):
+    __tablename__ = "calendar_blocks"
 
-    ambiente_id: Mapped[int] = mapped_column(ForeignKey("ambientes.id"), nullable=False)
-    hora_inicio: Mapped[datetime] = mapped_column(
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
+    start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    hora_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    tipo: Mapped[str] = mapped_column(
-        SAEnum(TipoBloqueioCalendario, name="tipo_bloqueio_calendario"), nullable=False
+    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    type: Mapped[str] = mapped_column(
+        SAEnum(CalendarBlockType, name="calendar_block_type"), nullable=False
     )
-    prioridade: Mapped[str] = mapped_column(String(64), nullable=False)
+    priority: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    ambiente = relationship("Ambiente", back_populates="bloqueios_calendario")
+    environment = relationship("Environment", back_populates="calendar_blocks")
 
 
-class HistoricoStatusReserva(Base):
-    __tablename__ = "historico_status_reserva"
+class ReservationStatusHistory(Base):
+    __tablename__ = "reservation_status_history"
 
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    status_anterior: Mapped[str | None] = mapped_column(
-        SAEnum(StatusReserva, name="status_reserva"), nullable=True
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    previous_status: Mapped[str | None] = mapped_column(
+        SAEnum(ReservationStatus, name="reservation_status"), nullable=True
     )
-    status_novo: Mapped[str] = mapped_column(
-        SAEnum(StatusReserva, name="status_reserva"), nullable=False
+    new_status: Mapped[str] = mapped_column(
+        SAEnum(ReservationStatus, name="reservation_status"), nullable=False
     )
-    data_mudanca: Mapped[datetime] = mapped_column(
+    changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    motivo: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
-    reserva = relationship("Reserva", back_populates="historico_status")
-    usuario = relationship("Usuario")
+    reservation = relationship("Reservation", back_populates="status_history")
+    user = relationship("User")
 
 
-class BufferExecucao(Base):
-    __tablename__ = "buffer_execucao"
+class ExecutionBuffer(Base):
+    __tablename__ = "execution_buffers"
 
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    ambiente_id: Mapped[int] = mapped_column(ForeignKey("ambientes.id"), nullable=False)
-    tipo: Mapped[str] = mapped_column(
-        SAEnum(TipoBuffer, name="tipo_buffer"), nullable=False
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
+    type: Mapped[str] = mapped_column(
+        SAEnum(BufferType, name="buffer_type"), nullable=False
     )
-    hora_prevista_fim: Mapped[datetime] = mapped_column(
+    expected_end_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    hora_real_fim: Mapped[datetime | None] = mapped_column(
+    actual_end_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    liberado_por: Mapped[int | None] = mapped_column(
-        ForeignKey("usuarios.id"), nullable=True
+    released_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
     )
-    observacao: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    reserva = relationship("Reserva", back_populates="buffers")
-    ambiente = relationship("Ambiente")
-    liberado_por_usuario = relationship("Usuario", foreign_keys=[liberado_por])
+    reservation = relationship("Reservation", back_populates="buffers")
+    environment = relationship("Environment")
+    released_by_user = relationship("User", foreign_keys=[released_by])
 
 
-class ReservaComposta(Base):
-    __tablename__ = "reserva_composta"
+class CompositeReservation(Base):
+    __tablename__ = "composite_reservations"
 
-    nome: Mapped[str] = mapped_column(String(255), nullable=False)
-    descricao: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
-    itens = relationship(
-        "ReservaCompostaItem",
-        back_populates="reserva_composta",
+    items = relationship(
+        "CompositeReservationItem",
+        back_populates="composite_reservation",
         cascade="all, delete-orphan",
     )
 
 
-class ReservaCompostaItem(Base):
-    __tablename__ = "reserva_composta_item"
+class CompositeReservationItem(Base):
+    __tablename__ = "composite_reservation_items"
     __table_args__ = (
         UniqueConstraint(
-            "reserva_composta_id", "reserva_id", name="uq_reserva_composta_item"
+            "composite_reservation_id", "reservation_id", name="uq_composite_reservation_item"
         ),
     )
 
-    reserva_composta_id: Mapped[int] = mapped_column(
-        ForeignKey("reserva_composta.id"), nullable=False
+    composite_reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("composite_reservations.id"), nullable=False
     )
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    critico: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    ordem: Mapped[int] = mapped_column(Integer, nullable=False)
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    critical: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    reserva_composta = relationship("ReservaComposta", back_populates="itens")
-    reserva = relationship("Reserva")
+    composite_reservation = relationship("CompositeReservation", back_populates="items")
+    reservation = relationship("Reservation")

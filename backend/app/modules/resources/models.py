@@ -6,70 +6,70 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Recurso(Base):
-    __tablename__ = "recursos"
+class Resource(Base):
+    __tablename__ = "resources"
 
-    nome: Mapped[str] = mapped_column(String(255), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(64), nullable=False)
-    categoria: Mapped[str] = mapped_column(
-        String(64), nullable=False, server_default="GERAL"
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(64), nullable=False, server_default="GENERAL"
     )
-    tipo_vinculo: Mapped[str] = mapped_column(
-        String(32), nullable=False, server_default="MOVEL"
+    attachment_type: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default="MOBILE"
     )
-    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    localizacao_atual_id: Mapped[int | None] = mapped_column(
-        ForeignKey("localizacoes.id"), nullable=True
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    current_location_id: Mapped[int | None] = mapped_column(
+        ForeignKey("locations.id"), nullable=True
     )
-    ambiente_id: Mapped[int | None] = mapped_column(
-        ForeignKey("ambientes.id"), nullable=True
+    environment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("environments.id"), nullable=True
     )
 
-    localizacao_atual = relationship("Localizacao", back_populates="recursos")
-    ambiente = relationship("Ambiente", back_populates="recursos")
-    recursos_reserva = relationship("RecursoReserva", back_populates="recurso")
-    disponibilidades = relationship(
-        "DisponibilidadeRecurso",
-        back_populates="recurso",
+    current_location = relationship("Location", back_populates="resources")
+    environment = relationship("Environment", back_populates="resources")
+    reservation_resources = relationship("ReservationResource", back_populates="resource")
+    availabilities = relationship(
+        "ResourceAvailability",
+        back_populates="resource",
         cascade="all, delete-orphan",
     )
-    emprestimos = relationship("EmprestimoRecurso", back_populates="recurso")
+    loans = relationship("ResourceLoan", back_populates="resource")
 
 
-class DisponibilidadeRecurso(Base):
-    __tablename__ = "disponibilidade_recurso"
+class ResourceAvailability(Base):
+    __tablename__ = "resource_availability"
 
-    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
-    inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    disponivel: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    motivo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
+    start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    recurso = relationship("Recurso", back_populates="disponibilidades")
+    resource = relationship("Resource", back_populates="availabilities")
 
 
-class EscalaTecnico(Base):
-    __tablename__ = "escala_tecnico"
+class TechnicianSchedule(Base):
+    __tablename__ = "technician_schedule"
 
-    tecnico_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
-    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
-    data_inicio: Mapped[datetime] = mapped_column(
+    technician_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
+    start_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    data_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    tecnico = relationship("Usuario")
-    recurso = relationship("Recurso")
+    technician = relationship("User")
+    resource = relationship("Resource")
 
 
-class ManutencaoRecurso(Base):
-    __tablename__ = "manutencao_recurso"
+class ResourceMaintenance(Base):
+    __tablename__ = "resource_maintenance"
 
-    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
-    data_inicio: Mapped[datetime] = mapped_column(
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
+    start_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    data_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
 
-    recurso = relationship("Recurso")
+    resource = relationship("Resource")

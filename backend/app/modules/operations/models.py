@@ -1,38 +1,38 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
-class Incidente(Base):
-    __tablename__ = "incidentes"
+class Incident(Base):
+    __tablename__ = "incidents"
 
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    descricao: Mapped[str] = mapped_column(String(1000), nullable=False)
-    severidade: Mapped[str] = mapped_column(String(64), nullable=False)
-    reportado_em: Mapped[datetime] = mapped_column(
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    description: Mapped[str] = mapped_column(String(1000), nullable=False)
+    severity: Mapped[str] = mapped_column(String(64), nullable=False)
+    reported_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
 
-    reserva = relationship("Reserva", back_populates="incidentes")
+    reservation = relationship("Reservation", back_populates="incidents")
 
 
-class EmprestimoRecurso(Base):
-    __tablename__ = "emprestimos_recurso"
+class ResourceLoan(Base):
+    __tablename__ = "resource_loans"
 
-    recurso_id: Mapped[int] = mapped_column(ForeignKey("recursos.id"), nullable=False)
-    reserva_id: Mapped[int] = mapped_column(ForeignKey("reservas.id"), nullable=False)
-    hora_retirada: Mapped[datetime] = mapped_column(
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    checkout_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    hora_devolucao_prevista: Mapped[datetime] = mapped_column(
+    expected_return_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    hora_devolucao: Mapped[datetime | None] = mapped_column(
+    return_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
-    recurso = relationship("Recurso", back_populates="emprestimos")
-    reserva = relationship("Reserva", back_populates="emprestimos_recurso")
+    resource = relationship("Resource", back_populates="loans")
+    reservation = relationship("Reservation", back_populates="resource_loans")

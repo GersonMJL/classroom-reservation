@@ -2,25 +2,25 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserBase(BaseModel):
-    nome: str
+    name: str
     email: EmailStr
-    ativo: bool = True
-    papeis: list[str] = Field(default_factory=list)
+    active: bool = True
+    roles: list[str] = Field(default_factory=list)
 
 
 class UserCreate(BaseModel):
-    nome: str
+    name: str
     email: EmailStr
-    senha: str
-    ativo: bool = True
-    papeis: list[str] = Field(default_factory=list)
+    password: str
+    active: bool = True
+    roles: list[str] = Field(default_factory=list)
 
 
 class UserUpdate(BaseModel):
-    nome: str | None = None
+    name: str | None = None
     email: EmailStr | None = None
-    ativo: bool | None = None
-    papeis: list[str] | None = None
+    active: bool | None = None
+    roles: list[str] | None = None
 
 
 class UserRead(UserBase):

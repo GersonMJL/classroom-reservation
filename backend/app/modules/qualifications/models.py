@@ -6,30 +6,30 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Qualificacao(Base):
-    __tablename__ = "qualificacoes"
+class Qualification(Base):
+    __tablename__ = "qualifications"
 
-    nome: Mapped[str] = mapped_column(String(255), nullable=False)
-    descricao: Mapped[str] = mapped_column(String(1000), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(String(1000), nullable=False)
 
-    qualificacoes_usuario = relationship(
-        "QualificacaoUsuario",
-        back_populates="qualificacao",
+    user_qualifications = relationship(
+        "UserQualification",
+        back_populates="qualification",
         cascade="all, delete-orphan",
     )
-    requisitos_ambiente = relationship(
-        "RequisitoAmbiente", back_populates="qualificacao"
+    environment_requirements = relationship(
+        "EnvironmentRequirement", back_populates="qualification"
     )
 
 
-class QualificacaoUsuario(Base):
-    __tablename__ = "qualificacoes_usuario"
+class UserQualification(Base):
+    __tablename__ = "user_qualifications"
 
-    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
-    qualificacao_id: Mapped[int] = mapped_column(
-        ForeignKey("qualificacoes.id"), nullable=False
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    qualification_id: Mapped[int] = mapped_column(
+        ForeignKey("qualifications.id"), nullable=False
     )
-    valido_ate: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    valid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    usuario = relationship("Usuario", back_populates="qualificacoes")
-    qualificacao = relationship("Qualificacao", back_populates="qualificacoes_usuario")
+    user = relationship("User", back_populates="qualifications")
+    qualification = relationship("Qualification", back_populates="user_qualifications")

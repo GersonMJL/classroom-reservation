@@ -1,111 +1,111 @@
 from enum import StrEnum
 
 
-class TipoAmbiente(StrEnum):
-    SALA_AULA = "SALA_AULA"
-    LABORATORIO = "LABORATORIO"
-    AUDITORIO = "AUDITORIO"
-    SALA_REUNIAO = "SALA_REUNIAO"
-    ESTUDIO = "ESTUDIO"
-    MULTIPROPOSITO = "MULTIPROPOSITO"
+class EnvironmentType(StrEnum):
+    CLASSROOM = "CLASSROOM"
+    LABORATORY = "LABORATORY"
+    AUDITORIUM = "AUDITORIUM"
+    MEETING_ROOM = "MEETING_ROOM"
+    STUDIO = "STUDIO"
+    MULTIPURPOSE = "MULTIPURPOSE"
 
 
-class CriticidadeAmbiente(StrEnum):
-    COMUM = "COMUM"
-    CONTROLADO = "CONTROLADO"
-    RESTRITO = "RESTRITO"
+class EnvironmentCriticality(StrEnum):
+    COMMON = "COMMON"
+    CONTROLLED = "CONTROLLED"
+    RESTRICTED = "RESTRICTED"
 
 
-class TipoRecurso(StrEnum):
-    EQUIPAMENTO = "EQUIPAMENTO"
-    MOBILIARIO = "MOBILIARIO"
-    LICENCA_SOFTWARE = "LICENCA_SOFTWARE"
-    CHAVE = "CHAVE"
-    SUPRIMENTO = "SUPRIMENTO"
+class ResourceType(StrEnum):
+    EQUIPMENT = "EQUIPMENT"
+    FURNITURE = "FURNITURE"
+    SOFTWARE_LICENSE = "SOFTWARE_LICENSE"
+    KEY = "KEY"
+    SUPPLY = "SUPPLY"
     KIT = "KIT"
 
 
-class FinalidadeReserva(StrEnum):
-    AULA = "AULA"
-    REUNIAO = "REUNIAO"
-    PESQUISA = "PESQUISA"
-    EVENTO = "EVENTO"
-    MANUTENCAO = "MANUTENCAO"
-    TREINAMENTO = "TREINAMENTO"
+class ReservationPurpose(StrEnum):
+    CLASS = "CLASS"
+    MEETING = "MEETING"
+    RESEARCH = "RESEARCH"
+    EVENT = "EVENT"
+    MAINTENANCE = "MAINTENANCE"
+    TRAINING = "TRAINING"
 
 
-class StatusReserva(StrEnum):
-    RASCUNHO = "RASCUNHO"
-    AGUARDANDO_APROVACAO = "AGUARDANDO_APROVACAO"
-    APROVADA = "APROVADA"
-    REJEITADA = "REJEITADA"
-    AGUARDANDO_CHECKIN = "AGUARDANDO_CHECKIN"
-    EM_USO = "EM_USO"
-    AGUARDANDO_CHECKOUT = "AGUARDANDO_CHECKOUT"
-    CONCLUIDA = "CONCLUIDA"
-    CANCELADA = "CANCELADA"
-    NAO_COMPARECEU = "NAO_COMPARECEU"
+class ReservationStatus(StrEnum):
+    DRAFT = "DRAFT"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    AWAITING_CHECKIN = "AWAITING_CHECKIN"
+    IN_USE = "IN_USE"
+    AWAITING_CHECKOUT = "AWAITING_CHECKOUT"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    NO_SHOW = "NO_SHOW"
 
 
-class TipoReserva(StrEnum):
-    SIMPLES = "SIMPLES"
-    RECORRENTE = "RECORRENTE"
-    COMPOSTA = "COMPOSTA"
+class ReservationType(StrEnum):
+    SIMPLE = "SIMPLE"
+    RECURRING = "RECURRING"
+    COMPOSITE = "COMPOSITE"
 
 
-class StatusAprovacao(StrEnum):
-    PENDENTE = "PENDENTE"
-    APROVADO = "APROVADO"
-    REJEITADO = "REJEITADO"
+class ApprovalStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
-class TipoBloqueioCalendario(StrEnum):
-    MANUTENCAO = "MANUTENCAO"
-    FERIADO = "FERIADO"
-    EVENTO = "EVENTO"
-    RESERVA_ADMIN = "RESERVA_ADMIN"
+class CalendarBlockType(StrEnum):
+    MAINTENANCE = "MAINTENANCE"
+    HOLIDAY = "HOLIDAY"
+    EVENT = "EVENT"
+    ADMIN_BLOCK = "ADMIN_BLOCK"
 
 
-class TipoPenalidade(StrEnum):
-    ADVERTENCIA = "ADVERTENCIA"
-    SUSPENSAO = "SUSPENSAO"
-    BLOQUEIO = "BLOQUEIO"
+class PenaltyType(StrEnum):
+    WARNING = "WARNING"
+    SUSPENSION = "SUSPENSION"
+    BLOCK = "BLOCK"
 
 
-class AcaoAuditoria(StrEnum):
-    CRIACAO = "CRIACAO"
-    ATUALIZACAO = "ATUALIZACAO"
-    EXCLUSAO = "EXCLUSAO"
-    MUDANCA_STATUS = "MUDANCA_STATUS"
+class AuditAction(StrEnum):
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+    STATUS_CHANGE = "STATUS_CHANGE"
     LOGIN = "LOGIN"
     LOGOUT = "LOGOUT"
 
 
-class TipoBuffer(StrEnum):
+class BufferType(StrEnum):
     PRE = "PRE"
-    POS = "POS"
+    POST = "POST"
 
 
-class TipoSuporte(StrEnum):
-    TECNICO = "TECNICO"
-    LIMPEZA = "LIMPEZA"
-    SEGURANCA = "SEGURANCA"
+class SupportType(StrEnum):
+    TECHNICAL = "TECHNICAL"
+    CLEANING = "CLEANING"
+    SECURITY = "SECURITY"
 
 
-class PapelUsuario(StrEnum):
+class UserRole(StrEnum):
     ADMIN = "ADMIN"
-    GERENTE = "GERENTE"
-    TECNICO = "TECNICO"
-    SOLICITANTE = "SOLICITANTE"
+    MANAGER = "MANAGER"
+    TECHNICIAN = "TECHNICIAN"
+    REQUESTER = "REQUESTER"
 
 
-class TipoVinculo(StrEnum):
-    ALUNO = "ALUNO"
+class AttachmentType(StrEnum):
+    STUDENT = "STUDENT"
     PROFESSOR = "PROFESSOR"
-    FUNCIONARIO = "FUNCIONARIO"
-    EXTERNO = "EXTERNO"
+    STAFF = "STAFF"
+    EXTERNAL = "EXTERNAL"
 
 
-class VinculoRecurso(StrEnum):
-    FIXO = "FIXO"
-    MOVEL = "MOVEL"
+class ResourceAttachment(StrEnum):
+    FIXED = "FIXED"
+    MOBILE = "MOBILE"

@@ -2,11 +2,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResourceBase(BaseModel):
-    nome: str = Field(min_length=1, max_length=255)
-    tipo: str = Field(min_length=1, max_length=64)
-    categoria: str = Field(min_length=1, max_length=64)
-    tipo_vinculo: str = Field(pattern="^(FIXO|MOVEL)$")
-    ambiente_id: int | None = Field(default=None, gt=0)
+    name: str = Field(min_length=1, max_length=255)
+    type: str = Field(min_length=1, max_length=64)
+    category: str = Field(min_length=1, max_length=64)
+    attachment_type: str = Field(pattern="^(FIXED|MOBILE)$")
+    environment_id: int | None = Field(default=None, gt=0)
 
 
 class ResourceCreate(ResourceBase):
@@ -14,16 +14,16 @@ class ResourceCreate(ResourceBase):
 
 
 class ResourceUpdate(BaseModel):
-    nome: str | None = Field(default=None, min_length=1, max_length=255)
-    tipo: str | None = Field(default=None, min_length=1, max_length=64)
-    categoria: str | None = Field(default=None, min_length=1, max_length=64)
-    tipo_vinculo: str | None = Field(default=None, pattern="^(FIXO|MOVEL)$")
-    ambiente_id: int | None = Field(default=None, gt=0)
-    ativo: bool | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    type: str | None = Field(default=None, min_length=1, max_length=64)
+    category: str | None = Field(default=None, min_length=1, max_length=64)
+    attachment_type: str | None = Field(default=None, pattern="^(FIXED|MOBILE)$")
+    environment_id: int | None = Field(default=None, gt=0)
+    active: bool | None = None
 
 
 class ResourceRead(ResourceBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    ativo: bool
+    active: bool

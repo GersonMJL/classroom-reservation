@@ -2,14 +2,15 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
-ENV PYTHONPATH=/app
-ENV UV_LINK_MODE=copy
-ENV UV_CACHE_DIR=/app/.cache
+ENV PYTHONPATH=/app \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
 
-# Install uv
-RUN pip install uv
+COPY --from=ghcr.io/astral-sh/uv:0.7.2 /uv /uvx /usr/local/bin/
 
-# Copy application code
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache
+
 COPY . .
 
-CMD ["sh", "-c", "uv sync --frozen && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["/opt/venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

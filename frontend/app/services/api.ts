@@ -98,14 +98,14 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  is_active: boolean;
+  active: boolean;
   roles: string[];
 }
 
 export interface UserUpdate {
   name?: string;
   email?: string;
-  is_active?: boolean;
+  active?: boolean;
   roles?: string[];
 }
 
@@ -117,7 +117,7 @@ export interface UserCreateInput {
   name: string;
   email: string;
   password: string;
-  is_active?: boolean;
+  active?: boolean;
   roles?: string[];
 }
 
@@ -469,7 +469,7 @@ export const userApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({
         ...data,
-        is_active: data.is_active ?? true,
+        active: data.active ?? true,
       }),
     });
     if (!response.ok) {

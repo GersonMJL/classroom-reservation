@@ -40,7 +40,7 @@ def get_me(current_user: User = Depends(get_current_user)) -> Any:
         current_user,
         "roles",
         [
-            ur.role.name
+            ur.role.code.lower()
             for ur in current_user.user_roles
             if ur.role is not None
         ],

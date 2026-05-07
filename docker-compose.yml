@@ -18,12 +18,11 @@ services:
   backend:
     build:
       context: ./backend
-    user: "${UID}:${GID}"
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/app
-    command: sh -c "uv sync --frozen && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: /opt/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
     depends_on:

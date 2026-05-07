@@ -22,7 +22,7 @@ class AuthService:
             )
 
         roles = [
-            ur.role.name
+            ur.role.code.lower()
             for ur in user.user_roles
             if ur.role is not None
         ]

@@ -12,7 +12,7 @@ class UserService:
         setattr(
             user,
             "roles",
-            [ur.role.name for ur in user.user_roles if ur.role is not None],
+            [ur.role.code.lower() for ur in user.user_roles if ur.role is not None],
         )
 
     def list_users(self, *, skip: int = 0, limit: int = 100) -> list[User]:

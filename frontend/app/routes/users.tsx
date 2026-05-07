@@ -219,7 +219,7 @@ export default function UsersManagement() {
         name,
         email,
         password: createForm.password,
-        is_active: true,
+        active: true,
         roles: normalizedRoles,
       });
 
@@ -369,8 +369,8 @@ export default function UsersManagement() {
                   <TableCell>
                     <Chip
                       size="small"
-                      label={user.is_active ? "Ativo" : "Inativo"}
-                      color={user.is_active ? "success" : "default"}
+                      label={user.active ? "Ativo" : "Inativo"}
+                      color={user.active ? "success" : "default"}
                     />
                   </TableCell>
                   <TableCell>

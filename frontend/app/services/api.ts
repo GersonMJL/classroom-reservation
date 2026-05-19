@@ -59,22 +59,33 @@ export type Room = Environment;
 export type RoomCreate = EnvironmentCreate;
 export type RoomCriticality = EnvironmentCriticality;
 
+export type ResourceAttachment = "FIXED" | "MOBILE";
+
 export interface Resource {
   id: number;
-  resource_code: string;
   name: string;
-  resource_type: string;
-  availability_notes: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  type: string;
+  category: string;
+  attachment_type: ResourceAttachment;
+  environment_id: number | null;
+  active: boolean;
 }
 
 export interface ResourceCreate {
-  resource_code: string;
   name: string;
-  resource_type: string;
-  availability_notes?: string | null;
+  type: string;
+  category: string;
+  attachment_type: ResourceAttachment;
+  environment_id?: number | null;
+}
+
+export interface ResourceUpdate {
+  name?: string;
+  type?: string;
+  category?: string;
+  attachment_type?: ResourceAttachment;
+  environment_id?: number | null;
+  active?: boolean;
 }
 
 export interface Purpose {
@@ -541,6 +552,444 @@ export const userApi = {
       const error: ApiError = await response.json();
       throw new Error(error.detail || "Falha ao excluir usuário");
     }
+  },
+};
+
+// Organizational Units
+
+export interface OrganizationalUnit {
+  id: number;
+  name: string;
+  type: string;
+}
+
+export interface OrganizationalUnitCreate {
+  name: string;
+  type: string;
+}
+
+export const organizationalUnitApi = {
+  async getAll(skip = 0, limit = 100): Promise<OrganizationalUnit[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/organizational-units?skip=${skip}&limit=${limit}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar unidades organizacionais");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<OrganizationalUnit[]>;
+  },
+
+  async getById(id: number): Promise<OrganizationalUnit> {
+    const response = await fetch(`${API_BASE_URL}/organizational-units/${id}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar unidade organizacional");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<OrganizationalUnit>;
+  },
+
+  async create(data: OrganizationalUnitCreate): Promise<OrganizationalUnit> {
+    const response = await fetch(`${API_BASE_URL}/organizational-units`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao criar unidade organizacional");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<OrganizationalUnit>;
+  },
+
+  async update(id: number, data: Partial<OrganizationalUnitCreate>): Promise<OrganizationalUnit> {
+    const response = await fetch(`${API_BASE_URL}/organizational-units/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao atualizar unidade organizacional");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<OrganizationalUnit>;
+  },
+
+  async delete(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/organizational-units/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao excluir unidade organizacional");
+      throw new Error(detail);
+    }
+  },
+};
+
+// Qualifications
+
+export interface Qualification {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export interface QualificationCreate {
+  name: string;
+  description: string;
+}
+
+export interface UserQualification {
+  id: number;
+  user_id: number;
+  qualification_id: number;
+  valid_until: string;
+}
+
+export interface UserQualificationCreate {
+  user_id: number;
+  qualification_id: number;
+  valid_until: string;
+}
+
+export const qualificationApi = {
+  async getAll(skip = 0, limit = 100): Promise<Qualification[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/qualifications?skip=${skip}&limit=${limit}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar qualificações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Qualification[]>;
+  },
+
+  async getById(id: number): Promise<Qualification> {
+    const response = await fetch(`${API_BASE_URL}/qualifications/${id}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar qualificação");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Qualification>;
+  },
+
+  async create(data: QualificationCreate): Promise<Qualification> {
+    const response = await fetch(`${API_BASE_URL}/qualifications`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao criar qualificação");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Qualification>;
+  },
+
+  async update(id: number, data: Partial<QualificationCreate>): Promise<Qualification> {
+    const response = await fetch(`${API_BASE_URL}/qualifications/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao atualizar qualificação");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Qualification>;
+  },
+
+  async delete(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/qualifications/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao excluir qualificação");
+      throw new Error(detail);
+    }
+  },
+
+  async listUserQualifications(userId: number): Promise<UserQualification[]> {
+    const response = await fetch(`${API_BASE_URL}/qualifications/users/${userId}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar qualificações do usuário");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<UserQualification[]>;
+  },
+
+  async assignToUser(data: UserQualificationCreate): Promise<UserQualification> {
+    const response = await fetch(`${API_BASE_URL}/qualifications/users`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao atribuir qualificação");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<UserQualification>;
+  },
+
+  async removeFromUser(userQualificationId: number): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/qualifications/users/${userQualificationId}`,
+      { method: "DELETE", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao remover qualificação");
+      throw new Error(detail);
+    }
+  },
+};
+
+// ========== Reservas ==========
+
+export type ReservationStatus =
+  | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "PRE_BLOCKED"
+  | "APPROVED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "IN_USE"
+  | "COMPLETED"
+  | "NO_SHOW"
+  | "EXPIRED";
+
+export type ReservationType =
+  | "SIMPLE"
+  | "RECURRING"
+  | "COMPOSITE_PARENT"
+  | "COMPOSITE_CHILD";
+
+export type SupportType =
+  | "IT_SUPPORT"
+  | "AUDIOVISUAL"
+  | "LAB_TECHNICIAN"
+  | "SECURITY"
+  | "CLEANING";
+
+export interface ReservationResourceRead {
+  id: number;
+  resource_id: number;
+}
+
+export interface ReservationSupportRead {
+  id: number;
+  support_type: SupportType;
+  responsible_staff_id: number | null;
+}
+
+export interface Reservation {
+  id: number;
+  environment_id: number;
+  requester_id: number;
+  responsible_id: number;
+  start_time: string;
+  end_time: string;
+  status: ReservationStatus;
+  type: ReservationType;
+  purpose: string;
+  participant_count: number;
+  checkin_at: string | null;
+  checkout_at: string | null;
+  resources: ReservationResourceRead[];
+  support: ReservationSupportRead[];
+}
+
+export interface ReservationResourceCreate {
+  resource_id: number;
+}
+
+export interface ReservationSupportCreate {
+  support_type: SupportType;
+  responsible_staff_id?: number | null;
+}
+
+export interface ReservationCreate {
+  environment_id: number;
+  requester_id: number;
+  responsible_id: number;
+  start_time: string;
+  end_time: string;
+  purpose: string;
+  participant_count: number;
+  type?: ReservationType;
+  resources?: ReservationResourceCreate[];
+  support?: ReservationSupportCreate[];
+}
+
+export interface ReservationUpdate {
+  environment_id?: number;
+  responsible_id?: number;
+  start_time?: string;
+  end_time?: string;
+  purpose?: string;
+  participant_count?: number;
+  resources?: ReservationResourceCreate[];
+  support?: ReservationSupportCreate[];
+}
+
+export interface ReservationConflictDetail {
+  type: string;
+  detail: string;
+}
+
+export class ReservationConflictError extends Error {
+  conflicts: ReservationConflictDetail[];
+  constructor(message: string, conflicts: ReservationConflictDetail[]) {
+    super(message);
+    this.name = "ReservationConflictError";
+    this.conflicts = conflicts;
+  }
+}
+
+const parseReservationError = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail: unknown };
+    if (
+      response.status === 409 &&
+      body.detail &&
+      typeof body.detail === "object"
+    ) {
+      const detail = body.detail as {
+        message?: string;
+        conflicts?: ReservationConflictDetail[];
+      };
+      throw new ReservationConflictError(
+        detail.message || "Conflito detectado",
+        detail.conflicts ?? []
+      );
+    }
+    if (typeof body.detail === "string") {
+      return body.detail;
+    }
+    return fallbackMessage;
+  } catch (err) {
+    if (err instanceof ReservationConflictError) {
+      throw err;
+    }
+    return fallbackMessage;
+  }
+};
+
+export interface ReservationListParams {
+  skip?: number;
+  limit?: number;
+  environment_id?: number;
+  requester_id?: number;
+  status_filter?: ReservationStatus;
+  start_after?: string;
+  end_before?: string;
+}
+
+const buildQuery = (params: Record<string, unknown>): string => {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    search.append(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+};
+
+export const reservationApi = {
+  async list(params: ReservationListParams = {}): Promise<Reservation[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas${buildQuery(params as Record<string, unknown>)}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao listar reservas"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation[]>;
+  },
+
+  async getById(id: number): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao buscar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async create(data: ReservationCreate): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao criar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async update(id: number, data: ReservationUpdate): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao atualizar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async cancel(id: number, reason: string): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/cancelar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao cancelar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
   },
 };
 

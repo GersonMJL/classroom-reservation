@@ -15,7 +15,7 @@ migrate: ## Run Alembic migrations against local DB
 	cd backend && DATABASE_URL=$(LOCAL_DB_URL) uv run alembic upgrade head
 
 migrate-container: ## Run Alembic migrations inside the running backend container
-	docker compose exec backend uv run alembic upgrade head
+	docker compose exec backend /opt/venv/bin/alembic upgrade head
 
 run: ## Start backend and frontend (Ctrl+C stops both)
 	@trap 'kill 0' EXIT; \

@@ -25,6 +25,13 @@ class ResourceType(StrEnum):
     KIT = "KIT"
 
 
+class ResourceCheckoutStatus(StrEnum):
+    CHECKED_OUT = "CHECKED_OUT"
+    RETURNED = "RETURNED"
+    OVERDUE = "OVERDUE"
+    LOST = "LOST"
+
+
 class ReservationPurpose(StrEnum):
     CLASS = "CLASS"
     MEETING = "MEETING"
@@ -37,48 +44,75 @@ class ReservationPurpose(StrEnum):
 class ReservationStatus(StrEnum):
     DRAFT = "DRAFT"
     PENDING_APPROVAL = "PENDING_APPROVAL"
+    PRE_BLOCKED = "PRE_BLOCKED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
-    AWAITING_CHECKIN = "AWAITING_CHECKIN"
-    IN_USE = "IN_USE"
-    AWAITING_CHECKOUT = "AWAITING_CHECKOUT"
-    COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+    IN_USE = "IN_USE"
+    COMPLETED = "COMPLETED"
     NO_SHOW = "NO_SHOW"
+    EXPIRED = "EXPIRED"
 
 
 class ReservationType(StrEnum):
     SIMPLE = "SIMPLE"
     RECURRING = "RECURRING"
-    COMPOSITE = "COMPOSITE"
+    COMPOSITE_PARENT = "COMPOSITE_PARENT"
+    COMPOSITE_CHILD = "COMPOSITE_CHILD"
 
 
 class ApprovalStatus(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    REQUIRES_CHANGES = "REQUIRES_CHANGES"
+    ESCALATED = "ESCALATED"
 
 
 class CalendarBlockType(StrEnum):
-    MAINTENANCE = "MAINTENANCE"
-    HOLIDAY = "HOLIDAY"
-    EVENT = "EVENT"
     ADMIN_BLOCK = "ADMIN_BLOCK"
+    MAINTENANCE = "MAINTENANCE"
+    RECURRING_EVENT = "RECURRING_EVENT"
+    BUFFER = "BUFFER"
+    HOLIDAY = "HOLIDAY"
+    CLOSURE = "CLOSURE"
 
 
 class PenaltyType(StrEnum):
-    WARNING = "WARNING"
-    SUSPENSION = "SUSPENSION"
-    BLOCK = "BLOCK"
+    NO_SHOW = "NO_SHOW"
+    LATE_CANCELLATION = "LATE_CANCELLATION"
+    DAMAGE = "DAMAGE"
+    MISUSE = "MISUSE"
+    OVERTIME = "OVERTIME"
+    SAFETY_VIOLATION = "SAFETY_VIOLATION"
+
+
+class PenaltyStatus(StrEnum):
+    PENDING = "PENDING"
+    APPLIED = "APPLIED"
+    WAIVED = "WAIVED"
+    UNDER_APPEAL = "UNDER_APPEAL"
+    RESOLVED = "RESOLVED"
+
+
+class AppealStatus(StrEnum):
+    SUBMITTED = "SUBMITTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class AuditAction(StrEnum):
     CREATE = "CREATE"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
-    STATUS_CHANGE = "STATUS_CHANGE"
-    LOGIN = "LOGIN"
-    LOGOUT = "LOGOUT"
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    CANCEL = "CANCEL"
+    CHECKIN = "CHECKIN"
+    CHECKOUT = "CHECKOUT"
+    ASSIGN_RESOURCE = "ASSIGN_RESOURCE"
+    REMOVE_RESOURCE = "REMOVE_RESOURCE"
 
 
 class BufferType(StrEnum):
@@ -87,9 +121,26 @@ class BufferType(StrEnum):
 
 
 class SupportType(StrEnum):
-    TECHNICAL = "TECHNICAL"
-    CLEANING = "CLEANING"
+    IT_SUPPORT = "IT_SUPPORT"
+    AUDIOVISUAL = "AUDIOVISUAL"
+    LAB_TECHNICIAN = "LAB_TECHNICIAN"
     SECURITY = "SECURITY"
+    CLEANING = "CLEANING"
+
+
+class CheckinMethod(StrEnum):
+    MANUAL = "MANUAL"
+    QR_CODE = "QR_CODE"
+    CARD_ACCESS = "CARD_ACCESS"
+    KEY_PICKUP = "KEY_PICKUP"
+    SENSOR_TRIGGERED = "SENSOR_TRIGGERED"
+
+
+class IncidentSeverity(StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
 class UserRole(StrEnum):

@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-RUN npm ci
-
 COPY . .
 
-CMD ["npm", "run", "dev"]
+CMD sh -c '[ -d node_modules/.bin ] || npm ci && exec npm run dev'

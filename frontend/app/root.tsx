@@ -16,6 +16,12 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
+
+dayjs.locale("pt-br");
 
 import type { Route } from "./+types/root";
 import {
@@ -215,13 +221,17 @@ export default function App() {
   };
 
   const menuItems = [
+    { label: "Reservas", path: "/reservas" },
     { label: "Ambientes", path: "/environments" },
     { label: "Recursos", path: "/resources" },
     { label: "Finalidades", path: "/purposes" },
+    { label: "Unidades Org.", path: "/organizational-units" },
+    { label: "Qualificações", path: "/qualifications" },
   ];
 
   return (
     <ThemeProvider theme={lightTheme}>
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
       <CssBaseline />
       <Box id="app-root">
         {!isHomeRoute && (
@@ -319,6 +329,7 @@ export default function App() {
           <Outlet />
         </Box>
       </Box>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

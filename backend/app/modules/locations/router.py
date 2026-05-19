@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.modules.locations.repository import LocationRepository
-from app.modules.locations.schemas import LocationRead
+from app.modules.locations.schemas import LocationCreate, LocationRead, LocationUpdate
 from app.modules.locations.service import LocationService
 from app.modules.users.models import User
 
@@ -39,3 +39,39 @@ def get_location(
             status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
         )
     return location
+
+
+@router.post("", response_model=LocationRead, status_code=status.HTTP_201_CREATED)
+def create_location(
+    payload: LocationCreate,
+    service: LocationService = Depends(get_location_service),
+    _: User = Depends(get_current_user),
+) -> Any:
+    return service.create_location(payload)
+
+
+@router.put("/{location_id}", response_model=LocationRead)
+def update_location(
+    location_id: int,
+    payload: LocationUpdate,
+    service: LocationService = Depends(get_location_service),
+    _: User = Depends(get_current_user),
+) -> Any:
+    location = service.update_location(location_id, payload)
+    if location is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
+        )
+    return location
+
+
+@router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_location(
+    location_id: int,
+    service: LocationService = Depends(get_location_service),
+    _: User = Depends(get_current_user),
+) -> None:
+    if not service.delete_location(location_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
+        )

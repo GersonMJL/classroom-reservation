@@ -1,0 +1,118 @@
+from collections.abc import Iterable
+from datetime import datetime
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.modules.reservations.models import Reservation, ReservationResource
+from app.modules.reservations.state_machine import BLOCKING_STATUSES
+from app.shared.enums import ReservationStatus
+
+
+def _eager_options() -> tuple:
+    return (
+        selectinload(Reservation.resources),
+        selectinload(Reservation.support),
+    )
+
+
+class ReservationRepository:
+    def __init__(self, db: Session) -> None:
+        self.db = db
+
+    def list(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        environment_id: int | None = None,
+        requester_id: int | None = None,
+        status: ReservationStatus | None = None,
+        start_after: datetime | None = None,
+        end_before: datetime | None = None,
+    ) -> list[Reservation]:
+        query = select(Reservation).options(*_eager_options())
+        if environment_id is not None:
+            query = query.where(Reservation.environment_id == environment_id)
+        if requester_id is not None:
+            query = query.where(Reservation.requester_id == requester_id)
+        if status is not None:
+            query = query.where(Reservation.status == status)
+        if start_after is not None:
+            query = query.where(Reservation.end_time > start_after)
+        if end_before is not None:
+            query = query.where(Reservation.start_time < end_before)
+        query = query.order_by(Reservation.start_time).offset(skip).limit(limit)
+        return list(self.db.execute(query).scalars().unique().all())
+
+    def get_by_id(self, reservation_id: int) -> Reservation | None:
+        query = (
+            select(Reservation)
+            .options(*_eager_options())
+            .where(Reservation.id == reservation_id)
+        )
+        return self.db.execute(query).scalars().unique().one_or_none()
+
+    def get_overlapping(
+        self,
+        *,
+        environment_id: int,
+        start: datetime,
+        end: datetime,
+        exclude_id: int | None = None,
+        statuses: Iterable[ReservationStatus] = BLOCKING_STATUSES,
+        with_for_update: bool = False,
+    ) -> list[Reservation]:
+        query = (
+            select(Reservation)
+            .where(Reservation.environment_id == environment_id)
+            .where(Reservation.status.in_(list(statuses)))
+            .where(Reservation.start_time < end)
+            .where(Reservation.end_time > start)
+        )
+        if exclude_id is not None:
+            query = query.where(Reservation.id != exclude_id)
+        if with_for_update:
+            query = query.with_for_update()
+        return list(self.db.execute(query).scalars().all())
+
+    def get_resource_overlapping(
+        self,
+        *,
+        resource_ids: list[int],
+        start: datetime,
+        end: datetime,
+        exclude_id: int | None = None,
+        statuses: Iterable[ReservationStatus] = BLOCKING_STATUSES,
+    ) -> list[Reservation]:
+        if not resource_ids:
+            return []
+        query = (
+            select(Reservation)
+            .join(
+                ReservationResource,
+                ReservationResource.reservation_id == Reservation.id,
+            )
+            .where(ReservationResource.resource_id.in_(resource_ids))
+            .where(Reservation.status.in_(list(statuses)))
+            .where(Reservation.start_time < end)
+            .where(Reservation.end_time > start)
+        )
+        if exclude_id is not None:
+            query = query.where(Reservation.id != exclude_id)
+        return list(self.db.execute(query).scalars().unique().all())
+
+    def add(self, reservation: Reservation) -> Reservation:
+        self.db.add(reservation)
+        self.db.commit()
+        self.db.refresh(reservation)
+        return reservation
+
+    def save(self, reservation: Reservation) -> Reservation:
+        self.db.add(reservation)
+        self.db.commit()
+        self.db.refresh(reservation)
+        return reservation
+
+    def flush(self) -> None:
+        self.db.flush()

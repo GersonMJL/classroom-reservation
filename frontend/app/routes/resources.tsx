@@ -11,7 +11,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -32,13 +36,13 @@ import {
   hasValidAccessToken,
   resourceApi,
 } from "../services/api";
-import type { Resource, ResourceCreate } from "../services/api";
+import type { Resource, ResourceAttachment, ResourceCreate } from "../services/api";
 
 const emptyForm: ResourceCreate = {
-  resource_code: "",
   name: "",
-  resource_type: "",
-  availability_notes: "",
+  type: "",
+  category: "GENERAL",
+  attachment_type: "MOBILE",
 };
 
 export default function ResourcesManagement() {
@@ -66,7 +70,7 @@ export default function ResourcesManagement() {
       if (
         message.includes("Could not validate credentials")
         || message.includes("Token expired")
-        || message.includes("Não foi possível validar as credenciais")
+        || message.includes("Sua sessão expirou")
         || message.includes("Token expirado")
       ) {
         clearAuthTokens();
@@ -96,9 +100,9 @@ export default function ResourcesManagement() {
     }
 
     return resources.filter((resource) =>
-      resource.resource_code.toLowerCase().includes(normalized)
-      || resource.name.toLowerCase().includes(normalized)
-      || resource.resource_type.toLowerCase().includes(normalized)
+      resource.name.toLowerCase().includes(normalized)
+      || resource.type.toLowerCase().includes(normalized)
+      || resource.category.toLowerCase().includes(normalized)
     );
   }, [resources, searchValue]);
 
@@ -113,10 +117,11 @@ export default function ResourcesManagement() {
     setIsEditMode(true);
     setEditingResourceId(resource.id);
     setFormData({
-      resource_code: resource.resource_code,
       name: resource.name,
-      resource_type: resource.resource_type,
-      availability_notes: resource.availability_notes || "",
+      type: resource.type,
+      category: resource.category,
+      attachment_type: resource.attachment_type,
+      environment_id: resource.environment_id,
     });
     setIsDialogOpen(true);
   };
@@ -130,21 +135,18 @@ export default function ResourcesManagement() {
 
   const handleSave = async () => {
     const payload: ResourceCreate = {
-      resource_code: formData.resource_code.trim(),
       name: formData.name.trim(),
-      resource_type: formData.resource_type.trim(),
-      availability_notes: formData.availability_notes?.trim() || null,
+      type: formData.type.trim(),
+      category: formData.category.trim() || "GENERAL",
+      attachment_type: formData.attachment_type,
+      environment_id: formData.environment_id ?? null,
     };
 
-    if (!payload.resource_code && !isEditMode) {
-      setError("Código do recurso é obrigatório");
-      return;
-    }
     if (!payload.name) {
       setError("Nome do recurso é obrigatório");
       return;
     }
-    if (!payload.resource_type) {
+    if (!payload.type) {
       setError("Tipo do recurso é obrigatório");
       return;
     }
@@ -154,17 +156,13 @@ export default function ResourcesManagement() {
     setSuccessMessage("");
     try {
       if (isEditMode && editingResourceId !== null) {
-        const updated = await resourceApi.updateResource(editingResourceId, {
-          name: payload.name,
-          resource_type: payload.resource_type,
-          availability_notes: payload.availability_notes,
-        });
+        const updated = await resourceApi.updateResource(editingResourceId, payload);
         setResources((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        setSuccessMessage(`Recurso ${updated.resource_code} atualizado`);
+        setSuccessMessage(`Recurso "${updated.name}" atualizado`);
       } else {
         const created = await resourceApi.createResource(payload);
         setResources((prev) => [...prev, created]);
-        setSuccessMessage(`Recurso ${created.resource_code} criado`);
+        setSuccessMessage(`Recurso "${created.name}" criado`);
       }
       closeDialog();
     } catch (err) {
@@ -175,9 +173,7 @@ export default function ResourcesManagement() {
   };
 
   const handleDelete = async (resource: Resource) => {
-    const confirmed = window.confirm(
-      `Excluir o recurso ${resource.resource_code} - ${resource.name}?`
-    );
+    const confirmed = window.confirm(`Excluir o recurso "${resource.name}"?`);
     if (!confirmed) {
       return;
     }
@@ -187,10 +183,12 @@ export default function ResourcesManagement() {
     setSuccessMessage("");
     try {
       await resourceApi.deleteResource(resource.id);
-      setResources((prev) => prev.map((item) => (
-        item.id === resource.id ? { ...item, is_active: false } : item
-      )));
-      setSuccessMessage(`Recurso ${resource.resource_code} excluído`);
+      setResources((prev) =>
+        prev.map((item) =>
+          item.id === resource.id ? { ...item, active: false } : item
+        )
+      );
+      setSuccessMessage(`Recurso "${resource.name}" excluído`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao excluir recurso");
     } finally {
@@ -250,7 +248,7 @@ export default function ResourcesManagement() {
           label="Pesquisar recursos"
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
-          placeholder="Pesquise por código, nome ou tipo"
+          placeholder="Pesquise por nome, tipo ou categoria"
         />
       </Paper>
 
@@ -264,10 +262,10 @@ export default function ResourcesManagement() {
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableCell>ID</TableCell>
-                <TableCell>Código</TableCell>
                 <TableCell>Nome</TableCell>
                 <TableCell>Tipo</TableCell>
-                <TableCell>Observações</TableCell>
+                <TableCell>Categoria</TableCell>
+                <TableCell>Vínculo</TableCell>
                 <TableCell>Status</TableCell>
                 {isAdmin && <TableCell align="center">Ações</TableCell>}
               </TableRow>
@@ -276,15 +274,21 @@ export default function ResourcesManagement() {
               {filteredResources.map((resource) => (
                 <TableRow key={resource.id}>
                   <TableCell>{resource.id}</TableCell>
-                  <TableCell>{resource.resource_code}</TableCell>
-                  <TableCell>{resource.name}</TableCell>
-                  <TableCell>{resource.resource_type}</TableCell>
-                  <TableCell>{resource.availability_notes || "-"}</TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>{resource.name}</TableCell>
+                  <TableCell>{resource.type}</TableCell>
+                  <TableCell>{resource.category}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
-                      label={resource.is_active ? "Ativo" : "Inativo"}
-                      color={resource.is_active ? "success" : "default"}
+                      label={resource.attachment_type === "FIXED" ? "Fixo" : "Móvel"}
+                      color={resource.attachment_type === "FIXED" ? "info" : "default"}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={resource.active ? "Ativo" : "Inativo"}
+                      color={resource.active ? "success" : "default"}
                     />
                   </TableCell>
                   {isAdmin && (
@@ -294,7 +298,7 @@ export default function ResourcesManagement() {
                           size="small"
                           startIcon={<EditIcon />}
                           onClick={() => openEditDialog(resource)}
-                          disabled={loading || !resource.is_active}
+                          disabled={loading || !resource.active}
                         >
                           Editar
                         </Button>
@@ -303,7 +307,7 @@ export default function ResourcesManagement() {
                           color="error"
                           startIcon={<DeleteIcon />}
                           onClick={() => handleDelete(resource)}
-                          disabled={loading || !resource.is_active}
+                          disabled={loading || !resource.active}
                         >
                           Excluir
                         </Button>
@@ -328,40 +332,49 @@ export default function ResourcesManagement() {
         <DialogTitle>{isEditMode ? "Editar Recurso" : "Novo Recurso"}</DialogTitle>
         <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
-            label="Código"
-            value={formData.resource_code}
-            onChange={(event) =>
-              setFormData((prev) => ({ ...prev, resource_code: event.target.value }))
-            }
-            fullWidth
-            disabled={isEditMode}
-          />
-          <TextField
             label="Nome"
             value={formData.name}
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, name: event.target.value }))
             }
             fullWidth
+            autoFocus
           />
           <TextField
             label="Tipo"
-            value={formData.resource_type}
+            value={formData.type}
             onChange={(event) =>
-              setFormData((prev) => ({ ...prev, resource_type: event.target.value }))
+              setFormData((prev) => ({ ...prev, type: event.target.value }))
             }
+            placeholder="Ex.: EQUIPMENT, FURNITURE, KEY"
             fullWidth
           />
           <TextField
-            label="Observações de disponibilidade"
-            value={formData.availability_notes || ""}
+            label="Categoria"
+            value={formData.category}
             onChange={(event) =>
-              setFormData((prev) => ({ ...prev, availability_notes: event.target.value }))
+              setFormData((prev) => ({ ...prev, category: event.target.value }))
             }
+            placeholder="Ex.: AUDIOVISUAL, COMPUTING, ACCESS"
             fullWidth
-            multiline
-            minRows={2}
           />
+          <FormControl fullWidth>
+            <InputLabel id="attachment-label">Vínculo</InputLabel>
+            <Select
+              labelId="attachment-label"
+              label="Vínculo"
+              value={formData.attachment_type}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  attachment_type: event.target.value as ResourceAttachment,
+                }))
+              }
+            >
+              <MenuItem value="MOBILE">Móvel</MenuItem>
+              <MenuItem value="FIXED">Fixo</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancelar</Button>

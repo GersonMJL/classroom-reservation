@@ -8,5 +8,8 @@ export default [
   route("resources", "routes/resources.tsx"),
   route("purposes", "routes/purposes.tsx"),
   route("users", "routes/users.tsx"),
+  route("organizational-units", "routes/organizational-units.tsx"),
+  route("qualifications", "routes/qualifications.tsx"),
+  route("reservas", "routes/reservations.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

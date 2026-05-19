@@ -28,13 +28,11 @@ class Reservation(Base):
     parent_reservation_id: Mapped[int | None] = mapped_column(
         ForeignKey("reservations.id"), nullable=True
     )
-    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
-    requester_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
     )
-    responsible_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False
-    )
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    responsible_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -58,7 +56,9 @@ class Reservation(Base):
     parent_reservation = relationship(
         "Reservation", remote_side="Reservation.id", back_populates="child_reservations"
     )
-    child_reservations = relationship("Reservation", back_populates="parent_reservation")
+    child_reservations = relationship(
+        "Reservation", back_populates="parent_reservation"
+    )
 
     environment = relationship("Environment", back_populates="reservations")
     requester = relationship(
@@ -84,7 +84,9 @@ class Reservation(Base):
         back_populates="depends_on_reservation",
     )
     resources = relationship(
-        "ReservationResource", back_populates="reservation", cascade="all, delete-orphan"
+        "ReservationResource",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
     )
     support = relationship(
         "ReservationSupport", back_populates="reservation", cascade="all, delete-orphan"
@@ -113,7 +115,9 @@ class Reservation(Base):
 class ReservationDependency(Base):
     __tablename__ = "reservation_dependencies"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     dependent_reservation_id: Mapped[int] = mapped_column(
         ForeignKey("reservations.id"), nullable=False
     )
@@ -131,7 +135,9 @@ class ReservationDependency(Base):
 class ReservationResource(Base):
     __tablename__ = "reservation_resources"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"), nullable=False)
 
     reservation = relationship("Reservation", back_populates="resources")
@@ -141,7 +147,9 @@ class ReservationResource(Base):
 class ReservationSupport(Base):
     __tablename__ = "reservation_support"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     support_type: Mapped[str] = mapped_column(
         SAEnum(SupportType, name="support_type"), nullable=False
     )
@@ -150,15 +158,15 @@ class ReservationSupport(Base):
     )
 
     reservation = relationship("Reservation", back_populates="support")
-    responsible_staff = relationship(
-        "User", back_populates="assigned_support"
-    )
+    responsible_staff = relationship("User", back_populates="assigned_support")
 
 
 class Approval(Base):
     __tablename__ = "approvals"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     approver_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     status: Mapped[str] = mapped_column(
         SAEnum(ApprovalStatus, name="approval_status"), nullable=False
@@ -178,7 +186,9 @@ class Approval(Base):
 class CalendarBlock(Base):
     __tablename__ = "calendar_blocks"
 
-    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
+    )
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -194,7 +204,9 @@ class CalendarBlock(Base):
 class ReservationStatusHistory(Base):
     __tablename__ = "reservation_status_history"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     previous_status: Mapped[str | None] = mapped_column(
         SAEnum(ReservationStatus, name="reservation_status"), nullable=True
     )
@@ -214,8 +226,12 @@ class ReservationStatusHistory(Base):
 class ExecutionBuffer(Base):
     __tablename__ = "execution_buffers"
 
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
-    environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environments.id"), nullable=False
+    )
     type: Mapped[str] = mapped_column(
         SAEnum(BufferType, name="buffer_type"), nullable=False
     )
@@ -252,14 +268,18 @@ class CompositeReservationItem(Base):
     __tablename__ = "composite_reservation_items"
     __table_args__ = (
         UniqueConstraint(
-            "composite_reservation_id", "reservation_id", name="uq_composite_reservation_item"
+            "composite_reservation_id",
+            "reservation_id",
+            name="uq_composite_reservation_item",
         ),
     )
 
     composite_reservation_id: Mapped[int] = mapped_column(
         ForeignKey("composite_reservations.id"), nullable=False
     )
-    reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(
+        ForeignKey("reservations.id"), nullable=False
+    )
     critical: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False)
 

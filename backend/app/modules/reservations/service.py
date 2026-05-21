@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
-from app.modules.reservations import conflict_checker, state_machine
+from app.modules.reservations import buffer_manager, conflict_checker, state_machine
 from app.modules.reservations.models import (
     Reservation,
     ReservationResource,
@@ -123,6 +123,13 @@ class ReservationService:
             )
         ]
         saved = self.repository.add(reservation)
+        if initial_status is ReservationStatus.APPROVED:
+            buffer_manager.create_buffer_blocks(
+                reservation=saved,
+                environment=environment,
+                session=self.repository.db,
+            )
+            self.repository.db.commit()
         self.audit.record(
             entity_type="reservation",
             target_id=saved.id,

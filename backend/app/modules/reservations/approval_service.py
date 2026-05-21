@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
-from app.modules.reservations import state_machine
+from app.modules.environments.models import Environment
+from app.modules.reservations import buffer_manager, state_machine
 from app.modules.reservations.models import (
     Approval,
     Reservation,
@@ -87,6 +88,16 @@ class ApprovalService:
                 user_id=approver.id,
             )
         )
+        if target is ReservationStatus.APPROVED:
+            environment = self.repository.db.get(
+                Environment, reservation.environment_id
+            )
+            if environment is not None:
+                buffer_manager.create_buffer_blocks(
+                    reservation=reservation,
+                    environment=environment,
+                    session=self.repository.db,
+                )
         saved = self.repository.save(reservation)
         self.audit.record(
             entity_type="reservation",

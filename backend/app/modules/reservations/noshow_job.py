@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.environments.models import Environment
+from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.governance.penalty_service import PenaltyService
 from app.modules.reservations.models import Reservation, ReservationStatusHistory
 from app.shared.enums import AuditAction, ReservationStatus
 
@@ -14,6 +16,10 @@ def mark_noshows(db: Session, *, now: datetime | None = None) -> list[int]:
     sem check-in. Retorna IDs alterados."""
     now = now or datetime.now(UTC)
     audit = build_audit_service(db)
+    penalty_service = PenaltyService(
+        repository=PenaltyRepository(db=db),
+        audit=audit,
+    )
 
     candidates = (
         db.execute(
@@ -52,6 +58,10 @@ def mark_noshows(db: Session, *, now: datetime | None = None) -> list[int]:
             after={"status": "NO_SHOW"},
         )
         changed.append(reservation.id)
+        penalty_service.apply_no_show(
+            user_id=reservation.requester_id,
+            reservation_id=reservation.id,
+        )
 
     if changed:
         db.commit()

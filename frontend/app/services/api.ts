@@ -1136,6 +1136,112 @@ export const auditApi = {
   },
 };
 
+export type CalendarBlockType =
+  | "ADMIN_BLOCK"
+  | "MAINTENANCE"
+  | "RECURRING_EVENT"
+  | "BUFFER"
+  | "HOLIDAY"
+  | "CLOSURE";
+
+export type CalendarBlockPriority = "CRITICAL" | "HIGH" | "NORMAL" | "LOW";
+
+export interface CalendarBlock {
+  id: number;
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  type: CalendarBlockType;
+  priority: string;
+}
+
+export interface CalendarBlockCreate {
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  type: CalendarBlockType;
+  priority?: string;
+}
+
+export type CalendarBlockUpdate = Partial<CalendarBlockCreate>;
+
+const _calendarBlockError = async (
+  response: Response,
+  fallback: string
+): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const calendarBlockApi = {
+  async list(environmentId?: number): Promise<CalendarBlock[]> {
+    const url = new URL(`${API_BASE_URL}/calendar-blocks`);
+    if (environmentId !== undefined) {
+      url.searchParams.set("environment_id", String(environmentId));
+    }
+    url.searchParams.set("limit", "500");
+    const response = await fetch(url.toString(), { headers: getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao listar bloqueios"));
+    }
+    return response.json() as Promise<CalendarBlock[]>;
+  },
+
+  async create(payload: CalendarBlockCreate): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao criar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
+
+  async update(id: number, payload: CalendarBlockUpdate): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao atualizar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
+
+  async remove(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao remover bloqueio"));
+    }
+  },
+
+  async releaseEarly(id: number): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}/liberar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao liberar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
+};
+
 export const getTokenRoles = (): string[] => {
   if (!isBrowser) {
     return [];

@@ -177,6 +177,7 @@ export default function App() {
   const isAuthenticated = isBrowser ? hasValidAccessToken() : false;
   const isAdmin = isAuthenticated && isBrowser ? getTokenRoles().includes("admin") : false;
   const isManager = isAuthenticated && isBrowser ? getTokenRoles().includes("manager") : false;
+  const isTechnician = isAuthenticated && isBrowser ? getTokenRoles().includes("technician") : false;
 
   useEffect(() => {
     if (!isBrowser) {
@@ -344,6 +345,28 @@ export default function App() {
                 }}
               >
                 Auditoria
+              </Button>
+            )}
+            {(isAdmin || isManager || isTechnician) && (
+              <Button
+                variant={location.pathname.startsWith("/bloqueios") ? "contained" : "text"}
+                color={location.pathname.startsWith("/bloqueios") ? "primary" : "inherit"}
+                onClick={() => navigate("/bloqueios")}
+                sx={{
+                  color: location.pathname.startsWith("/bloqueios")
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  backgroundColor: location.pathname.startsWith("/bloqueios")
+                    ? "primary.main"
+                    : alpha("#1f6f5f", 0.08),
+                  "&:hover": {
+                    backgroundColor: location.pathname.startsWith("/bloqueios")
+                      ? "primary.dark"
+                      : alpha("#1f6f5f", 0.14),
+                  },
+                }}
+              >
+                Bloqueios
               </Button>
             )}
             {isAuthenticated ? (

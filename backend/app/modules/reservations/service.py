@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import HTTPException, status
 
+from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.reservations import conflict_checker, state_machine
 from app.modules.reservations.models import (
@@ -18,12 +20,18 @@ from app.modules.reservations.schemas import (
     ReservationUpdate,
 )
 from app.modules.users.models import User
-from app.shared.enums import EnvironmentCriticality, ReservationStatus, ReservationType
+from app.shared.enums import (
+    AuditAction,
+    EnvironmentCriticality,
+    ReservationStatus,
+    ReservationType,
+)
 
 
 class ReservationService:
-    def __init__(self, repository: ReservationRepository) -> None:
+    def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
         self.repository = repository
+        self.audit = audit
 
     # ----------- consultas -----------
 
@@ -114,7 +122,16 @@ class ReservationService:
                 reason=initial_reason,
             )
         ]
-        return self.repository.add(reservation)
+        saved = self.repository.add(reservation)
+        self.audit.record(
+            entity_type="reservation",
+            target_id=saved.id,
+            action=AuditAction.CREATE,
+            performed_by=current_user.id,
+            before=None,
+            after=_snapshot(saved),
+        )
+        return saved
 
     def update_reservation(
         self,
@@ -128,6 +145,7 @@ class ReservationService:
                 detail="Reserva não pode ser editada neste status",
             )
 
+        before_snapshot = _snapshot(reservation)
         data = payload.model_dump(exclude_unset=True)
         new_start = data.get("start_time", reservation.start_time)
         new_end = data.get("end_time", reservation.end_time)
@@ -188,7 +206,16 @@ class ReservationService:
                 [ReservationSupportCreate(**s) for s in data["support"]]
             )
 
-        return self.repository.save(reservation)
+        saved = self.repository.save(reservation)
+        self.audit.record(
+            entity_type="reservation",
+            target_id=saved.id,
+            action=AuditAction.UPDATE,
+            performed_by=current_user.id,
+            before=before_snapshot,
+            after=_snapshot(saved),
+        )
+        return saved
 
     def cancel_reservation(
         self, reservation: Reservation, reason: str, current_user: User
@@ -202,6 +229,7 @@ class ReservationService:
                 status_code=status.HTTP_409_CONFLICT, detail=str(exc)
             ) from exc
 
+        before_snapshot = _snapshot(reservation)
         reservation.status = target
         reservation.status_history.append(
             _history_entry(
@@ -211,7 +239,16 @@ class ReservationService:
                 reason=reason,
             )
         )
-        return self.repository.save(reservation)
+        saved = self.repository.save(reservation)
+        self.audit.record(
+            entity_type="reservation",
+            target_id=saved.id,
+            action=AuditAction.CANCEL,
+            performed_by=current_user.id,
+            before=before_snapshot,
+            after=_snapshot(saved),
+        )
+        return saved
 
 
 def _build_resources(
@@ -260,3 +297,18 @@ def _raise_if_conflicts(report: conflict_checker.ConflictReport) -> None:
             ],
         },
     )
+
+
+def _snapshot(reservation: Reservation) -> dict[str, Any]:
+    return {
+        "id": reservation.id,
+        "status": reservation.status,
+        "environment_id": reservation.environment_id,
+        "start_time": reservation.start_time.isoformat()
+        if reservation.start_time
+        else None,
+        "end_time": reservation.end_time.isoformat() if reservation.end_time else None,
+        "participant_count": reservation.participant_count,
+        "purpose": reservation.purpose,
+        "resources": [r.resource_id for r in reservation.resources],
+    }

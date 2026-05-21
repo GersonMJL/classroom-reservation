@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 
+from app.modules.audit.audit_service import AuditService
 from app.modules.reservations import state_machine
 from app.modules.reservations.models import (
     Approval,
@@ -11,12 +12,13 @@ from app.modules.reservations.models import (
 )
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.users.models import User
-from app.shared.enums import ApprovalStatus, ReservationStatus
+from app.shared.enums import ApprovalStatus, AuditAction, ReservationStatus
 
 
 class ApprovalService:
-    def __init__(self, repository: ReservationRepository) -> None:
+    def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
         self.repository = repository
+        self.audit = audit
 
     def list_pending(self, *, skip: int = 0, limit: int = 100) -> list[Reservation]:
         return self.repository.list_pending(skip=skip, limit=limit)
@@ -85,4 +87,15 @@ class ApprovalService:
                 user_id=approver.id,
             )
         )
-        return self.repository.save(reservation)
+        saved = self.repository.save(reservation)
+        self.audit.record(
+            entity_type="reservation",
+            target_id=saved.id,
+            action=AuditAction.APPROVE
+            if approval_status is ApprovalStatus.APPROVED
+            else AuditAction.REJECT,
+            performed_by=approver.id,
+            before={"status": current.value},
+            after={"status": target.value},
+        )
+        return saved

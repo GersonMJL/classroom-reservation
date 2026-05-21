@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+:root {
+  --color-primary: #1f6f5f;
+  --color-secondary: #b25e2e;
+  --color-surface: #f3f5ef;
+  --color-text: #17322d;
+  --color-text-secondary: #4f665f;
+  --color-border-subtle: rgba(31, 111, 95, 0.12);
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-md: 0 10px 30px rgba(23, 50, 45, 0.08);
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --easing-standard: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 @theme {
   --font-sans: "Sora", "Space Grotesk", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";

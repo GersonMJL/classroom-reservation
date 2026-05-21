@@ -1,3 +1,7 @@
+/**
+ * Design tokens for use in MUI `sx` props and `theme` configuration.
+ * For Tailwind/global CSS usage, see the CSS vars in `app.css` (:root block).
+ */
 // frontend/app/ui/tokens.ts
 export const tokens = {
   color: {

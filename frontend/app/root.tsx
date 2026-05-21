@@ -9,14 +9,12 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
-import { ThemeProvider, alpha } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import { lightTheme } from "./ui/theme";
 import CssBaseline from "@mui/material/CssBaseline";
-import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
+import { AppShell } from "./ui/AppShell";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
@@ -72,9 +70,6 @@ export default function App() {
   const [, setAuthRefreshKey] = useState(0);
   const isHomeRoute = location.pathname === "/";
   const isAuthenticated = isBrowser ? hasValidAccessToken() : false;
-  const isAdmin = isAuthenticated && isBrowser ? getTokenRoles().includes("admin") : false;
-  const isManager = isAuthenticated && isBrowser ? getTokenRoles().includes("manager") : false;
-  const isTechnician = isAuthenticated && isBrowser ? getTokenRoles().includes("technician") : false;
 
   useEffect(() => {
     if (!isBrowser) {
@@ -119,218 +114,17 @@ export default function App() {
     navigate("/");
   };
 
-  const menuItems = [
-    { label: "Reservas", path: "/reservas" },
-    { label: "Ambientes", path: "/environments" },
-    { label: "Recursos", path: "/resources" },
-    { label: "Finalidades", path: "/purposes" },
-    { label: "Unidades Org.", path: "/organizational-units" },
-    { label: "Qualificações", path: "/qualifications" },
-  ];
-
   return (
     <ThemeProvider theme={lightTheme}>
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
       <CssBaseline />
       <Box id="app-root">
         {!isHomeRoute && (
-          <AppBar position="fixed" color="default" elevation={0}>
-            <Toolbar sx={{ gap: 1, minHeight: 74, px: { xs: 1, md: 2 } }}>
-            <Typography
-              variant="h6"
-              component="button"
-              onClick={() => navigate("/")}
-              style={{
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                font: "inherit",
-                fontWeight: 700,
-                marginRight: "auto",
-                color: "#17322d",
-              }}
-            >
-              Reserva de Salas
-            </Typography>
-
-            {menuItems.map((item) => {
-              const isActive = location.pathname.startsWith(item.path);
-
-              return (
-                <Button
-                  key={item.path}
-                  variant={isActive ? "contained" : "text"}
-                  color={isActive ? "primary" : "inherit"}
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    color: isActive ? "primary.contrastText" : "text.primary",
-                    backgroundColor: isActive
-                      ? "primary.main"
-                      : alpha("#1f6f5f", 0.08),
-                    "&:hover": {
-                      backgroundColor: isActive
-                        ? "primary.dark"
-                        : alpha("#1f6f5f", 0.14),
-                    },
-                  }}
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
-            {isAdmin && (
-              <Button
-                variant={location.pathname.startsWith("/users") ? "contained" : "text"}
-                color={location.pathname.startsWith("/users") ? "secondary" : "inherit"}
-                onClick={() => navigate("/users")}
-                sx={{
-                  color: location.pathname.startsWith("/users")
-                    ? "secondary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/users")
-                    ? "secondary.main"
-                    : alpha("#b25e2e", 0.1),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/users")
-                      ? "secondary.dark"
-                      : alpha("#b25e2e", 0.16),
-                  },
-                }}
-              >
-                Usuários
-              </Button>
-            )}
-            {(isAdmin || isManager) && (
-              <Button
-                variant={location.pathname.startsWith("/aprovacoes") ? "contained" : "text"}
-                color={location.pathname.startsWith("/aprovacoes") ? "primary" : "inherit"}
-                onClick={() => navigate("/aprovacoes")}
-                sx={{
-                  color: location.pathname.startsWith("/aprovacoes")
-                    ? "primary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/aprovacoes")
-                    ? "primary.main"
-                    : alpha("#1f6f5f", 0.08),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/aprovacoes")
-                      ? "primary.dark"
-                      : alpha("#1f6f5f", 0.14),
-                  },
-                }}
-              >
-                Aprovações
-              </Button>
-            )}
-            {(isAdmin || isManager) && (
-              <Button
-                variant={location.pathname.startsWith("/auditoria") ? "contained" : "text"}
-                color={location.pathname.startsWith("/auditoria") ? "primary" : "inherit"}
-                onClick={() => navigate("/auditoria")}
-                sx={{
-                  color: location.pathname.startsWith("/auditoria")
-                    ? "primary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/auditoria")
-                    ? "primary.main"
-                    : alpha("#1f6f5f", 0.08),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/auditoria")
-                      ? "primary.dark"
-                      : alpha("#1f6f5f", 0.14),
-                  },
-                }}
-              >
-                Auditoria
-              </Button>
-            )}
-            {(isAdmin || isManager || isTechnician) && (
-              <Button
-                variant={location.pathname.startsWith("/bloqueios") ? "contained" : "text"}
-                color={location.pathname.startsWith("/bloqueios") ? "primary" : "inherit"}
-                onClick={() => navigate("/bloqueios")}
-                sx={{
-                  color: location.pathname.startsWith("/bloqueios")
-                    ? "primary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/bloqueios")
-                    ? "primary.main"
-                    : alpha("#1f6f5f", 0.08),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/bloqueios")
-                      ? "primary.dark"
-                      : alpha("#1f6f5f", 0.14),
-                  },
-                }}
-              >
-                Bloqueios
-              </Button>
-            )}
-            {isAuthenticated && (
-              <Button
-                variant={location.pathname.startsWith("/penalidades") ? "contained" : "text"}
-                color={location.pathname.startsWith("/penalidades") ? "primary" : "inherit"}
-                onClick={() => navigate("/penalidades")}
-                sx={{
-                  color: location.pathname.startsWith("/penalidades")
-                    ? "primary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/penalidades")
-                    ? "primary.main"
-                    : alpha("#1f6f5f", 0.08),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/penalidades")
-                      ? "primary.dark"
-                      : alpha("#1f6f5f", 0.14),
-                  },
-                }}
-              >
-                Penalidades
-              </Button>
-            )}
-            {(isAdmin || isManager || isTechnician) && (
-              <Button
-                variant={location.pathname.startsWith("/incidentes") ? "contained" : "text"}
-                color={location.pathname.startsWith("/incidentes") ? "primary" : "inherit"}
-                onClick={() => navigate("/incidentes")}
-                sx={{
-                  color: location.pathname.startsWith("/incidentes")
-                    ? "primary.contrastText"
-                    : "text.primary",
-                  backgroundColor: location.pathname.startsWith("/incidentes")
-                    ? "primary.main"
-                    : alpha("#1f6f5f", 0.08),
-                  "&:hover": {
-                    backgroundColor: location.pathname.startsWith("/incidentes")
-                      ? "primary.dark"
-                      : alpha("#1f6f5f", 0.14),
-                  },
-                }}
-              >
-                Incidentes
-              </Button>
-            )}
-            {isAuthenticated ? (
-              <Button
-                variant="outlined"
-                color="inherit"
-                onClick={handleLogout}
-                sx={{ borderColor: "rgba(23, 50, 45, 0.28)" }}
-              >
-                Sair
-              </Button>
-            ) : (
-              <>
-                <Button color="inherit" href="/login">
-                  Entrar
-                </Button>
-                <Button variant="contained" href="/register">
-                  Cadastrar
-                </Button>
-              </>
-            )}
-            </Toolbar>
-          </AppBar>
+          <AppShell
+            isAuthenticated={isAuthenticated}
+            roles={isBrowser ? getTokenRoles() : []}
+            onLogout={handleLogout}
+          />
         )}
 
         <Box component="main" className="page-enter" sx={{ pb: 5 }}>

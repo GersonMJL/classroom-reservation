@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* See tokens.ts for the full token system; these CSS vars are a subset exposed to Tailwind/global CSS. */
 :root {
   --color-primary: #1f6f5f;
   --color-secondary: #b25e2e;

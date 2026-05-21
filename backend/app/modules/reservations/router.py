@@ -9,6 +9,7 @@ from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.reservations.approval_service import ApprovalService
+from app.modules.reservations.noshow_job import mark_noshows
 from app.modules.reservations.checkin_service import CheckinService
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.reservations.schemas import (
@@ -202,3 +203,11 @@ def checkout_reservation(
             detail="Reserva não encontrada",
         )
     return service.checkout(reservation, current_user)
+
+
+@router.post("/jobs/no-show", response_model=dict)
+def run_noshow_job(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
+) -> dict:
+    return {"updated_ids": mark_noshows(db)}

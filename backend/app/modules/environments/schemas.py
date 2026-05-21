@@ -15,6 +15,7 @@ class EnvironmentBase(BaseModel):
     requires_approval: bool = False
     buffer_before_min: int = Field(default=0, ge=0)
     buffer_after_min: int = Field(default=0, ge=0)
+    noshow_tolerance_min: int = Field(default=15, ge=0)
     active: bool = True
 
 
@@ -32,6 +33,7 @@ class EnvironmentUpdate(BaseModel):
     requires_approval: bool | None = None
     buffer_before_min: int | None = Field(default=None, ge=0)
     buffer_after_min: int | None = Field(default=None, ge=0)
+    noshow_tolerance_min: int | None = Field(default=None, ge=0)
     active: bool | None = None
 
 

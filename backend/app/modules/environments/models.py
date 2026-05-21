@@ -26,6 +26,9 @@ class Environment(Base):
     buffer_after_min: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, server_default="0"
     )
+    noshow_tolerance_min: Mapped[int] = mapped_column(
+        Integer, default=15, nullable=False, server_default="15"
+    )
     active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="true"
     )

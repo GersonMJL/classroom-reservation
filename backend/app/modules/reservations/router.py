@@ -9,6 +9,7 @@ from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.reservations.approval_service import ApprovalService
+from app.modules.reservations.checkin_service import CheckinService
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.reservations.schemas import (
     ReservationCancel,
@@ -33,6 +34,13 @@ def get_reservation_service(db: Session = Depends(get_db)) -> ReservationService
 
 def get_approval_service(db: Session = Depends(get_db)) -> ApprovalService:
     return ApprovalService(
+        repository=ReservationRepository(db=db),
+        audit=build_audit_service(db),
+    )
+
+
+def get_checkin_service(db: Session = Depends(get_db)) -> CheckinService:
+    return CheckinService(
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
     )
@@ -164,3 +172,35 @@ def reject_reservation(
             detail="Motivo obrigatório para rejeição",
         )
     return service.reject(reservation, current_user, payload.comments)
+
+
+@router.post("/{reservation_id}/checkin", response_model=ReservationRead)
+def checkin_reservation(
+    reservation_id: int,
+    service: CheckinService = Depends(get_checkin_service),
+    res_service: ReservationService = Depends(get_reservation_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    reservation = res_service.get_reservation(reservation_id)
+    if reservation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reserva não encontrada",
+        )
+    return service.checkin(reservation, current_user)
+
+
+@router.post("/{reservation_id}/checkout", response_model=ReservationRead)
+def checkout_reservation(
+    reservation_id: int,
+    service: CheckinService = Depends(get_checkin_service),
+    res_service: ReservationService = Depends(get_reservation_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    reservation = res_service.get_reservation(reservation_id)
+    if reservation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reserva não encontrada",
+        )
+    return service.checkout(reservation, current_user)

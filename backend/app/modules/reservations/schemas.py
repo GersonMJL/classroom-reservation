@@ -95,3 +95,7 @@ class ReservationRead(BaseModel):
 
 class ReservationCancel(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
+
+
+class ReservationDecision(BaseModel):
+    comments: str | None = Field(default=None, max_length=1000)

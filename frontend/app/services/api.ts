@@ -1042,6 +1042,36 @@ export const reservationApi = {
     }
     return response.json() as Promise<Reservation>;
   },
+
+  async checkin(id: number): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/checkin`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao registrar check-in"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async checkout(id: number): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/checkout`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao registrar check-out"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
 };
 
 export type AuditAction =

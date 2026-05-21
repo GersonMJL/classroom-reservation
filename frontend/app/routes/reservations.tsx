@@ -28,6 +28,8 @@ import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import EditIcon from "@mui/icons-material/Edit";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { PickerDay } from "@mui/x-date-pickers/PickerDay";
@@ -567,6 +569,70 @@ export default function ReservationsPage() {
                             Cancelar
                           </Button>
                         )}
+                        {reservation.status === "APPROVED" &&
+                          currentUser &&
+                          (currentUser.id === reservation.requester_id ||
+                            currentUser.id === reservation.responsible_id) && (
+                            <Button
+                              size="small"
+                              color="primary"
+                              startIcon={<LoginIcon />}
+                              onClick={async () => {
+                                try {
+                                  const updated = await reservationApi.checkin(
+                                    reservation.id
+                                  );
+                                  setReservations((prev) =>
+                                    prev.map((r) =>
+                                      r.id === updated.id ? updated : r
+                                    )
+                                  );
+                                  setSuccessMessage("Check-in registrado");
+                                } catch (err) {
+                                  const message =
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao registrar check-in";
+                                  if (!handleAuthError(message))
+                                    setError(message);
+                                }
+                              }}
+                            >
+                              Check-in
+                            </Button>
+                          )}
+                        {reservation.status === "IN_USE" &&
+                          currentUser &&
+                          (currentUser.id === reservation.requester_id ||
+                            currentUser.id === reservation.responsible_id) && (
+                            <Button
+                              size="small"
+                              color="primary"
+                              startIcon={<LogoutIcon />}
+                              onClick={async () => {
+                                try {
+                                  const updated = await reservationApi.checkout(
+                                    reservation.id
+                                  );
+                                  setReservations((prev) =>
+                                    prev.map((r) =>
+                                      r.id === updated.id ? updated : r
+                                    )
+                                  );
+                                  setSuccessMessage("Check-out registrado");
+                                } catch (err) {
+                                  const message =
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao registrar check-out";
+                                  if (!handleAuthError(message))
+                                    setError(message);
+                                }
+                              }}
+                            >
+                              Check-out
+                            </Button>
+                          )}
                       </Stack>
                     </Stack>
                   </Paper>

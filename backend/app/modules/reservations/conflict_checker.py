@@ -1,12 +1,12 @@
 """Validação centralizada de conflitos e restrições para criação/edição de reservas.
 
 Bloqueios de calendário (``CalendarBlock``) de qualquer tipo exceto ``BUFFER``
-agora geram conflito ``CALENDAR_BLOCK``. ``BUFFER`` é excluído para que a
+geram conflito ``CALENDAR_BLOCK``. ``BUFFER`` é excluído para que a
 edição de uma reserva não colida com seus próprios buffers gerados.
 
-Ainda fora de escopo nesta versão: qualificação do solicitante e
-disponibilidade de equipe de suporte. Marcados com ``# TODO`` para fases
-posteriores.
+Qualificação do solicitante gera ``QUALIFICATION``.
+Disponibilidade de equipe de suporte gera ``SUPPORT_UNAVAILABLE`` (conflito suave;
+não bloqueia criação mas força status PENDING_APPROVAL).
 """
 
 from dataclasses import dataclass, field
@@ -19,7 +19,9 @@ from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
 from app.shared.enums import CalendarBlockType, SupportType
 
-ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV
+ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV | QUALIFICATION | SUPPORT_UNAVAILABLE | CALENDAR_BLOCK
+
+SUPPORT_UNAVAILABLE = "SUPPORT_UNAVAILABLE"
 
 
 @dataclass(frozen=True)
@@ -122,14 +124,18 @@ def check_reservation(
                 f"Solicitante não possui qualificações exigidas: {sorted(missing)}",
             )
 
-    for support_type in required_support or []:
-        if not repository.has_technician_available(
-            support_type=support_type, start=start, end=end
-        ):
-            report.add(
-                "SUPPORT_UNAVAILABLE",
-                f"Sem técnico disponível para {support_type.value}",
-            )
+    if required_support:
+        # One DB round-trip covers all requested types: the current schema does not
+        # differentiate technicians by support_type, so availability is all-or-nothing.
+        technician_available = repository.has_technician_available(
+            support_type=required_support[0], start=start, end=end
+        )
+        if not technician_available:
+            for support_type in required_support:
+                report.add(
+                    SUPPORT_UNAVAILABLE,
+                    f"Sem técnico disponível para {support_type.value}",
+                )
 
     blocks = repository.get_calendar_blocks_overlapping(
         environment_id=environment.id,

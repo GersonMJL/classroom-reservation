@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
+from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
 from app.modules.reservations.models import (
     Reservation,
     ReservationResource,
@@ -90,10 +91,10 @@ class ReservationService:
             requester_role_ids=[ur.role_id for ur in current_user.user_roles],
             required_support=required_support,
         )
-        _raise_if_conflicts(report, soft_types=frozenset({"SUPPORT_UNAVAILABLE"}))
+        _raise_if_conflicts(report, soft_types=frozenset({SUPPORT_UNAVAILABLE}))
 
         has_support_conflict = any(
-            c.type == "SUPPORT_UNAVAILABLE" for c in report.conflicts
+            c.type == SUPPORT_UNAVAILABLE for c in report.conflicts
         )
         initial_status = (
             ReservationStatus.APPROVED
@@ -210,7 +211,7 @@ class ReservationService:
                 required_support=new_support_types,
                 exclude_id=reservation.id,
             )
-            _raise_if_conflicts(report, soft_types=frozenset({"SUPPORT_UNAVAILABLE"}))
+            _raise_if_conflicts(report, soft_types=frozenset({SUPPORT_UNAVAILABLE}))
 
         for field_name in (
             "environment_id",

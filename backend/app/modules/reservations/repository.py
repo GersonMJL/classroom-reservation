@@ -45,6 +45,17 @@ class ReservationRepository:
         query = query.order_by(Reservation.start_time).offset(skip).limit(limit)
         return list(self.db.execute(query).scalars().unique().all())
 
+    def list_pending(self, *, skip: int = 0, limit: int = 100) -> list[Reservation]:
+        query = (
+            select(Reservation)
+            .options(*_eager_options())
+            .where(Reservation.status == ReservationStatus.PENDING_APPROVAL)
+            .order_by(Reservation.start_time)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(self.db.execute(query).scalars().unique().all())
+
     def get_by_id(self, reservation_id: int) -> Reservation | None:
         query = (
             select(Reservation)

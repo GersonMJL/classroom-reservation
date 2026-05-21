@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
+from app.modules.reservations.recurrence import expand_weekly
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
 from app.modules.reservations.models import (
     Reservation,
@@ -65,10 +66,12 @@ class ReservationService:
     def create_reservation(
         self, payload: ReservationCreate, current_user: User
     ) -> Reservation:
+        if payload.type is ReservationType.RECURRING:
+            return self._create_recurring(payload, current_user)
         if payload.type is not ReservationType.SIMPLE:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Tipo de reserva não suportado nesta versão",
+                detail="Tipo de reserva não suportado",
             )
 
         environment = self.repository.db.get(Environment, payload.environment_id)
@@ -277,6 +280,95 @@ class ReservationService:
             after=_snapshot(saved),
         )
         return saved
+
+    def _create_recurring(
+        self, payload: ReservationCreate, current_user: User
+    ) -> Reservation:
+        environment = self.repository.db.get(Environment, payload.environment_id)
+        if environment is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
+            )
+
+        assert payload.recurrence is not None  # schema enforces this
+        slots = expand_weekly(
+            payload.start_time,
+            payload.end_time,
+            weekdays=payload.recurrence.weekdays,
+            occurrences=payload.recurrence.occurrences,
+        )
+        if not slots:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Recorrência não produziu nenhuma ocorrência",
+            )
+
+        resource_ids = [r.resource_id for r in payload.resources]
+        required_support = [s.support_type for s in payload.support]
+
+        # Valida TODOS os slots ANTES de inserir qualquer um — falha atômica
+        for slot_start, slot_end in slots:
+            report = conflict_checker.check_reservation(
+                repository=self.repository,
+                environment=environment,
+                start=slot_start,
+                end=slot_end,
+                participant_count=payload.participant_count,
+                resource_ids=resource_ids,
+                requester_id=payload.requester_id,
+                requester_role_ids=[ur.role_id for ur in current_user.user_roles],
+                required_support=required_support,
+            )
+            _raise_if_conflicts(report, soft_types=frozenset({SUPPORT_UNAVAILABLE}))
+
+        initial_status = (
+            ReservationStatus.APPROVED
+            if environment.criticality == EnvironmentCriticality.COMMON
+            and not environment.requires_approval
+            else ReservationStatus.PENDING_APPROVAL
+        )
+        now = datetime.now(UTC)
+
+        parent: Reservation | None = None
+        for idx, (slot_start, slot_end) in enumerate(slots):
+            child = Reservation(
+                parent_reservation_id=parent.id if parent else None,
+                environment_id=payload.environment_id,
+                requester_id=payload.requester_id,
+                responsible_id=payload.responsible_id,
+                start_time=slot_start,
+                end_time=slot_end,
+                status=initial_status,
+                type=ReservationType.RECURRING,
+                purpose=payload.purpose,
+                participant_count=payload.participant_count,
+                terms_accepted_at=now,
+            )
+            child.resources = _build_resources(payload.resources)
+            child.support = _build_support(payload.support)
+            child.status_history = [
+                _history_entry(
+                    previous=None,
+                    new=initial_status,
+                    user_id=current_user.id,
+                    reason=f"Reserva recorrente {idx + 1}/{len(slots)}",
+                )
+            ]
+            saved = self.repository.add(child)
+            self.audit.record(
+                entity_type="reservation",
+                target_id=saved.id,
+                action=AuditAction.CREATE,
+                performed_by=current_user.id,
+                after=_snapshot(saved),
+            )
+            if parent is None:
+                parent = saved
+            else:
+                saved.parent_reservation_id = parent.id
+                self.repository.save(saved)
+
+        return parent  # type: ignore[return-value]
 
 
 def _build_resources(

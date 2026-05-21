@@ -85,6 +85,7 @@ class ReservationService:
             end=payload.end_time,
             participant_count=payload.participant_count,
             resource_ids=resource_ids,
+            requester_id=payload.requester_id,
             requester_role_ids=[ur.role_id for ur in current_user.user_roles],
         )
         _raise_if_conflicts(report)
@@ -188,6 +189,7 @@ class ReservationService:
                 end=new_end,
                 participant_count=new_participant,
                 resource_ids=resource_ids,
+                requester_id=reservation.requester_id,
                 requester_role_ids=[ur.role_id for ur in current_user.user_roles],
                 exclude_id=reservation.id,
             )

@@ -12,6 +12,8 @@ posteriores.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from sqlalchemy import select
+
 from app.modules.environments.models import Environment
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
@@ -46,6 +48,7 @@ def check_reservation(
     end: datetime,
     participant_count: int,
     resource_ids: list[int],
+    requester_id: int,
     requester_role_ids: list[int] | None = None,
     exclude_id: int | None = None,
     now: datetime | None = None,
@@ -98,7 +101,26 @@ def check_reservation(
                 f"({clash.start_time:%d/%m/%Y %H:%M} – {clash.end_time:%H:%M})",
             )
 
-    # TODO Fase posterior: qualificações do solicitante (EnvironmentRequirement)
+    required_qual_ids = [r.qualification_id for r in environment.requirements]
+    if required_qual_ids:
+        from app.modules.qualifications.models import UserQualification
+
+        held = (
+            repository.db.execute(
+                select(UserQualification.qualification_id)
+                .where(UserQualification.user_id == requester_id)
+                .where(UserQualification.qualification_id.in_(required_qual_ids))
+            )
+            .scalars()
+            .all()
+        )
+        missing = set(required_qual_ids) - set(held)
+        if missing:
+            report.add(
+                "QUALIFICATION",
+                f"Solicitante não possui qualificações exigidas: {sorted(missing)}",
+            )
+
     # TODO Fase posterior: disponibilidade de equipe de suporte
 
     blocks = repository.get_calendar_blocks_overlapping(

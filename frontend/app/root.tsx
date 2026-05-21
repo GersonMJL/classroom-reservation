@@ -391,6 +391,28 @@ export default function App() {
                 Penalidades
               </Button>
             )}
+            {(isAdmin || isManager || isTechnician) && (
+              <Button
+                variant={location.pathname.startsWith("/incidentes") ? "contained" : "text"}
+                color={location.pathname.startsWith("/incidentes") ? "primary" : "inherit"}
+                onClick={() => navigate("/incidentes")}
+                sx={{
+                  color: location.pathname.startsWith("/incidentes")
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  backgroundColor: location.pathname.startsWith("/incidentes")
+                    ? "primary.main"
+                    : alpha("#1f6f5f", 0.08),
+                  "&:hover": {
+                    backgroundColor: location.pathname.startsWith("/incidentes")
+                      ? "primary.dark"
+                      : alpha("#1f6f5f", 0.14),
+                  },
+                }}
+              >
+                Incidentes
+              </Button>
+            )}
             {isAuthenticated ? (
               <Button
                 variant="outlined"

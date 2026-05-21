@@ -15,5 +15,6 @@ export default [
   route("auditoria", "routes/audit.tsx"),
   route("bloqueios", "routes/calendar-blocks.tsx"),
   route("penalidades", "routes/penalties.tsx"),
+  route("incidentes", "routes/incidents.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

@@ -1447,3 +1447,57 @@ export const appealApi = {
     return response.json() as Promise<Appeal>;
   },
 };
+
+// ========== Incidentes (Operations) ==========
+
+export type IncidentSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface Incident {
+  id: number;
+  reservation_id: number;
+  description: string;
+  severity: IncidentSeverity;
+  reported_at: string;
+}
+
+export interface IncidentCreate {
+  reservation_id: number;
+  description: string;
+  severity: IncidentSeverity;
+}
+
+const _opsError = async (response: Response, fallback: string): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const incidentApi = {
+  async list(reservationId?: number): Promise<Incident[]> {
+    const params = new URLSearchParams();
+    params.set("limit", "200");
+    if (reservationId !== undefined) params.set("reservation_id", String(reservationId));
+    const response = await fetch(`${API_BASE_URL}/operations/incidentes?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error(await _opsError(response, "Falha ao listar incidentes"));
+    return response.json() as Promise<Incident[]>;
+  },
+  async create(payload: IncidentCreate): Promise<Incident> {
+    const response = await fetch(`${API_BASE_URL}/operations/incidentes`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await _opsError(response, "Falha ao registrar incidente"));
+    return response.json() as Promise<Incident>;
+  },
+};

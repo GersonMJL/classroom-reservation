@@ -38,6 +38,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { PickerDay } from "@mui/x-date-pickers/PickerDay";
@@ -49,6 +50,7 @@ import {
   compositeApi,
   environmentApi,
   hasValidAccessToken,
+  incidentApi,
   reservationApi,
   ReservationConflictError,
   resourceApi,
@@ -56,6 +58,7 @@ import {
 } from "../services/api";
 import type {
   CompositeReservationCreate,
+  IncidentSeverity,
   Reservation,
   ReservationConflictDetail,
   ReservationCreate,
@@ -185,6 +188,11 @@ export default function ReservationsPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  const [incidentTarget, setIncidentTarget] = useState<Reservation | null>(null);
+  const [incidentDescription, setIncidentDescription] = useState("");
+  const [incidentSeverity, setIncidentSeverity] = useState<IncidentSeverity>("LOW");
+  const [incidentSubmitting, setIncidentSubmitting] = useState(false);
+
   const [compositeOpen, setCompositeOpen] = useState(false);
   const [compositeForm, setCompositeForm] = useState<{
     name: string;
@@ -202,6 +210,11 @@ export default function ReservationsPage() {
   const [compositeSubmitting, setCompositeSubmitting] = useState(false);
   const [compositeError, setCompositeError] = useState("");
 
+  const isStaff =
+    currentUser?.roles.includes("admin") ||
+    currentUser?.roles.includes("manager") ||
+    currentUser?.roles.includes("technician");
+
   const handleAuthError = (message: string): boolean => {
     if (
       message.includes("Sua sessão expirou") ||
@@ -213,6 +226,40 @@ export default function ReservationsPage() {
       return true;
     }
     return false;
+  };
+
+  const openIncidentDialog = (reservation: Reservation) => {
+    setIncidentTarget(reservation);
+    setIncidentDescription("");
+    setIncidentSeverity("LOW");
+  };
+
+  const closeIncidentDialog = () => {
+    if (incidentSubmitting) return;
+    setIncidentTarget(null);
+    setIncidentDescription("");
+    setIncidentSeverity("LOW");
+  };
+
+  const handleIncidentSubmit = async () => {
+    if (!incidentTarget || !incidentDescription.trim()) return;
+    setIncidentSubmitting(true);
+    setError("");
+    try {
+      await incidentApi.create({
+        reservation_id: incidentTarget.id,
+        description: incidentDescription.trim(),
+        severity: incidentSeverity,
+      });
+      setSuccessMessage("Incidente registrado com sucesso.");
+      closeIncidentDialog();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Falha ao registrar incidente";
+      if (!handleAuthError(message)) setError(message);
+    } finally {
+      setIncidentSubmitting(false);
+    }
   };
 
   const loadReservations = async (month: Dayjs) => {
@@ -807,6 +854,16 @@ export default function ReservationsPage() {
                               Check-out
                             </Button>
                           )}
+                        {isStaff && (
+                          <Button
+                            size="small"
+                            color="warning"
+                            startIcon={<ReportProblemIcon />}
+                            onClick={() => openIncidentDialog(reservation)}
+                          >
+                            Incidente
+                          </Button>
+                        )}
                       </Stack>
                     </Stack>
                   </Paper>
@@ -1306,6 +1363,73 @@ export default function ReservationsPage() {
             disabled={compositeSubmitting}
           >
             Criar composta
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Incident Dialog */}
+      <Dialog
+        open={incidentTarget !== null}
+        onClose={closeIncidentDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Registrar incidente</DialogTitle>
+        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          {incidentTarget && (
+            <Typography variant="body2" color="text.secondary">
+              Reserva #{incidentTarget.id} —{" "}
+              {environmentById.get(incidentTarget.environment_id)?.name ?? "Ambiente"}
+              {" · "}
+              {dayjs(incidentTarget.start_time).format("DD/MM/YYYY HH:mm")}
+            </Typography>
+          )}
+          <FormControl fullWidth required>
+            <InputLabel id="incident-severity-dlg-label">Severidade *</InputLabel>
+            <Select
+              labelId="incident-severity-dlg-label"
+              label="Severidade *"
+              value={incidentSeverity}
+              onChange={(e) =>
+                setIncidentSeverity(e.target.value as IncidentSeverity)
+              }
+            >
+              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as IncidentSeverity[]).map((s) => {
+                const labels: Record<IncidentSeverity, string> = {
+                  LOW: "Baixa",
+                  MEDIUM: "Média",
+                  HIGH: "Alta",
+                  CRITICAL: "Crítica",
+                };
+                return (
+                  <MenuItem key={s} value={s}>
+                    {labels[s]}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Descrição *"
+            multiline
+            rows={4}
+            value={incidentDescription}
+            onChange={(e) => setIncidentDescription(e.target.value)}
+            fullWidth
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeIncidentDialog} disabled={incidentSubmitting} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={handleIncidentSubmit}
+            disabled={incidentSubmitting || !incidentDescription.trim()}
+          >
+            {incidentSubmitting ? "Aguarde..." : "Registrar"}
           </Button>
         </DialogActions>
       </Dialog>

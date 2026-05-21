@@ -894,6 +894,10 @@ const parseReservationError = async (
   }
 };
 
+export interface ReservationDecisionInput {
+  comments?: string;
+}
+
 export interface ReservationListParams {
   skip?: number;
   limit?: number;
@@ -986,6 +990,53 @@ export const reservationApi = {
       const detail = await parseReservationError(
         response,
         "Falha ao cancelar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async listPending(skip = 0, limit = 100): Promise<Reservation[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/pendentes/lista?skip=${skip}&limit=${limit}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao listar reservas pendentes"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation[]>;
+  },
+
+  async approve(id: number, comments?: string): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/aprovar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comments } satisfies ReservationDecisionInput),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao aprovar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async reject(id: number, comments: string): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/rejeitar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comments } satisfies ReservationDecisionInput),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao rejeitar reserva"
       );
       throw new Error(detail);
     }

@@ -176,6 +176,7 @@ export default function App() {
   const isHomeRoute = location.pathname === "/";
   const isAuthenticated = isBrowser ? hasValidAccessToken() : false;
   const isAdmin = isAuthenticated && isBrowser ? getTokenRoles().includes("admin") : false;
+  const isManager = isAuthenticated && isBrowser ? getTokenRoles().includes("manager") : false;
 
   useEffect(() => {
     if (!isBrowser) {
@@ -299,6 +300,28 @@ export default function App() {
                 }}
               >
                 Usuários
+              </Button>
+            )}
+            {(isAdmin || isManager) && (
+              <Button
+                variant={location.pathname.startsWith("/aprovacoes") ? "contained" : "text"}
+                color={location.pathname.startsWith("/aprovacoes") ? "primary" : "inherit"}
+                onClick={() => navigate("/aprovacoes")}
+                sx={{
+                  color: location.pathname.startsWith("/aprovacoes")
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  backgroundColor: location.pathname.startsWith("/aprovacoes")
+                    ? "primary.main"
+                    : alpha("#1f6f5f", 0.08),
+                  "&:hover": {
+                    backgroundColor: location.pathname.startsWith("/aprovacoes")
+                      ? "primary.dark"
+                      : alpha("#1f6f5f", 0.14),
+                  },
+                }}
+              >
+                Aprovações
               </Button>
             )}
             {isAuthenticated ? (

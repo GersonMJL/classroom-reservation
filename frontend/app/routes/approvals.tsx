@@ -4,7 +4,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Container,
   Dialog,
@@ -89,7 +88,6 @@ export default function ApprovalsPage() {
         const [envs, allUsers] = await Promise.all([
           environmentApi.getAllRooms(0, 500),
           userApi.getAllUsers(0, 500),
-          userApi.getCurrentUser(),
         ]);
         setEnvironments(envs);
         setUsers(allUsers);
@@ -225,16 +223,20 @@ export default function ApprovalsPage() {
                   <TableCell>Solicitante</TableCell>
                   <TableCell>Finalidade</TableCell>
                   <TableCell>Participantes</TableCell>
-                  <TableCell>Status</TableCell>
                   <TableCell align="center">Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pending.map((r) => (
+                {pending.map((r, index) => (
                   <TableRow
                     key={r.id}
                     sx={{
-                      animation: "fadeUp 240ms cubic-bezier(0.23, 1, 0.32, 1) both",
+                      animation: `fadeUp 240ms cubic-bezier(0.23, 1, 0.32, 1) both`,
+                      animationDelay: `${Math.min(index, 6) * 40}ms`,
+                      "@keyframes fadeUp": {
+                        from: { opacity: 0, transform: "translateY(6px)" },
+                        to: { opacity: 1, transform: "translateY(0)" },
+                      },
                       "@media (prefers-reduced-motion: reduce)": {
                         animation: "none",
                       },
@@ -249,13 +251,6 @@ export default function ApprovalsPage() {
                     <TableCell>{getUserName(r.requester_id)}</TableCell>
                     <TableCell>{r.purpose}</TableCell>
                     <TableCell>{r.participant_count}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label="Pendente"
-                        color="warning"
-                        size="small"
-                      />
-                    </TableCell>
                     <TableCell align="center">
                       <Box
                         sx={{

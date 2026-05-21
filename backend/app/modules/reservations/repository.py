@@ -10,7 +10,8 @@ from app.modules.reservations.models import (
     ReservationResource,
 )
 from app.modules.reservations.state_machine import BLOCKING_STATUSES
-from app.shared.enums import CalendarBlockType, ReservationStatus
+from app.shared.enums import CalendarBlockType, ReservationStatus, SupportType
+from app.shared.enums import UserRole as SharedUserRole
 
 
 def _eager_options() -> tuple:
@@ -147,6 +148,34 @@ class ReservationRepository:
         self.db.commit()
         self.db.refresh(reservation)
         return reservation
+
+    def has_technician_available(
+        self,
+        *,
+        support_type: SupportType,
+        start: datetime,
+        end: datetime,
+    ) -> bool:
+        """Verifica se existe ao menos um técnico em escala cobrindo o intervalo.
+
+        O parâmetro ``support_type`` é aceito para evolução futura; no schema
+        atual ``TechnicianSchedule`` não diferencia tipos de suporte por técnico,
+        então a checagem é apenas presença de escala válida com papel TECHNICIAN.
+        """
+        from app.modules.resources.models import TechnicianSchedule
+        from app.modules.users.models import Role, UserRole
+
+        technician_code = SharedUserRole.TECHNICIAN.value
+        query = (
+            select(TechnicianSchedule.id)
+            .join(UserRole, UserRole.user_id == TechnicianSchedule.technician_id)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(TechnicianSchedule.start_date <= start)
+            .where(TechnicianSchedule.end_date >= end)
+            .where(Role.code == technician_code)
+            .limit(1)
+        )
+        return self.db.execute(query).first() is not None
 
     def flush(self) -> None:
         self.db.flush()

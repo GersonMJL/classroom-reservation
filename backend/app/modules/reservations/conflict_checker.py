@@ -17,7 +17,7 @@ from sqlalchemy import select
 from app.modules.environments.models import Environment
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
-from app.shared.enums import CalendarBlockType
+from app.shared.enums import CalendarBlockType, SupportType
 
 ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV
 
@@ -50,6 +50,7 @@ def check_reservation(
     resource_ids: list[int],
     requester_id: int,
     requester_role_ids: list[int] | None = None,
+    required_support: list[SupportType] | None = None,
     exclude_id: int | None = None,
     now: datetime | None = None,
 ) -> ConflictReport:
@@ -121,7 +122,14 @@ def check_reservation(
                 f"Solicitante não possui qualificações exigidas: {sorted(missing)}",
             )
 
-    # TODO Fase posterior: disponibilidade de equipe de suporte
+    for support_type in required_support or []:
+        if not repository.has_technician_available(
+            support_type=support_type, start=start, end=end
+        ):
+            report.add(
+                "SUPPORT_UNAVAILABLE",
+                f"Sem técnico disponível para {support_type.value}",
+            )
 
     blocks = repository.get_calendar_blocks_overlapping(
         environment_id=environment.id,

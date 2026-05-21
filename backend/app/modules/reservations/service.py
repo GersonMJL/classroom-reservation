@@ -78,6 +78,7 @@ class ReservationService:
             )
 
         resource_ids = [r.resource_id for r in payload.resources]
+        required_support = [s.support_type for s in payload.support]
         report = conflict_checker.check_reservation(
             repository=self.repository,
             environment=environment,
@@ -87,19 +88,28 @@ class ReservationService:
             resource_ids=resource_ids,
             requester_id=payload.requester_id,
             requester_role_ids=[ur.role_id for ur in current_user.user_roles],
+            required_support=required_support,
         )
-        _raise_if_conflicts(report)
+        _raise_if_conflicts(report, soft_types=frozenset({"SUPPORT_UNAVAILABLE"}))
 
+        has_support_conflict = any(
+            c.type == "SUPPORT_UNAVAILABLE" for c in report.conflicts
+        )
         initial_status = (
             ReservationStatus.APPROVED
             if environment.criticality == EnvironmentCriticality.COMMON
             and not environment.requires_approval
+            and not has_support_conflict
             else ReservationStatus.PENDING_APPROVAL
         )
         initial_reason = (
             "Auto-aprovada (ambiente comum, sem conflitos)"
             if initial_status is ReservationStatus.APPROVED
-            else "Criação da reserva"
+            else (
+                "Aguardando confirmação de suporte"
+                if has_support_conflict
+                else "Criação da reserva"
+            )
         )
 
         reservation = Reservation(
@@ -164,6 +174,11 @@ class ReservationService:
             [{"resource_id": r.resource_id} for r in reservation.resources],
         )
         resource_ids = [r["resource_id"] for r in new_resources]
+        new_support = data.get(
+            "support",
+            [{"support_type": s.support_type} for s in reservation.support],
+        )
+        new_support_types = [s["support_type"] for s in new_support]
 
         needs_conflict_check = any(
             key in data
@@ -173,6 +188,7 @@ class ReservationService:
                 "end_time",
                 "participant_count",
                 "resources",
+                "support",
             )
         )
         if needs_conflict_check:
@@ -191,9 +207,10 @@ class ReservationService:
                 resource_ids=resource_ids,
                 requester_id=reservation.requester_id,
                 requester_role_ids=[ur.role_id for ur in current_user.user_roles],
+                required_support=new_support_types,
                 exclude_id=reservation.id,
             )
-            _raise_if_conflicts(report)
+            _raise_if_conflicts(report, soft_types=frozenset({"SUPPORT_UNAVAILABLE"}))
 
         for field_name in (
             "environment_id",
@@ -294,16 +311,19 @@ def _history_entry(
     )
 
 
-def _raise_if_conflicts(report: conflict_checker.ConflictReport) -> None:
-    if not report.has_conflicts:
+def _raise_if_conflicts(
+    report: conflict_checker.ConflictReport,
+    *,
+    soft_types: frozenset[str] = frozenset(),
+) -> None:
+    hard_conflicts = [c for c in report.conflicts if c.type not in soft_types]
+    if not hard_conflicts:
         return
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail={
             "message": "Conflitos impedem a criação/edição da reserva",
-            "conflicts": [
-                {"type": c.type, "detail": c.detail} for c in report.conflicts
-            ],
+            "conflicts": [{"type": c.type, "detail": c.detail} for c in hard_conflicts],
         },
     )
 

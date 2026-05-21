@@ -776,6 +776,11 @@ export type ReservationType =
   | "COMPOSITE_PARENT"
   | "COMPOSITE_CHILD";
 
+export interface RecurrenceSpec {
+  weekdays: number[];
+  occurrences: number;
+}
+
 export type SupportType =
   | "IT_SUPPORT"
   | "AUDIOVISUAL"
@@ -831,6 +836,7 @@ export interface ReservationCreate {
   participant_count: number;
   accept_terms: boolean;
   type?: ReservationType;
+  recurrence?: RecurrenceSpec | null;
   resources?: ReservationResourceCreate[];
   support?: ReservationSupportCreate[];
 }
@@ -1073,6 +1079,80 @@ export const reservationApi = {
       throw new Error(detail);
     }
     return response.json() as Promise<Reservation>;
+  },
+};
+
+export interface CompositeItemInput {
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  participant_count: number;
+  purpose: string;
+  resources: ReservationResourceCreate[];
+  support: { support_type: string; responsible_staff_id?: number | null }[];
+  critical: boolean;
+}
+
+export interface CompositeReservationCreate {
+  name: string;
+  description?: string;
+  responsible_id: number;
+  accept_terms: boolean;
+  items: CompositeItemInput[];
+}
+
+export interface CompositeItem {
+  id: number;
+  reservation_id: number;
+  critical: boolean;
+  order: number;
+}
+
+export interface CompositeReservation {
+  id: number;
+  name: string;
+  description: string | null;
+  items: CompositeItem[];
+}
+
+export const compositeApi = {
+  async create(payload: CompositeReservationCreate): Promise<CompositeReservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/compostas`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao criar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
+  async cancelItem(
+    compositeId: number,
+    reservationId: number,
+    reason: string,
+  ): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/compostas/${compositeId}/itens/${reservationId}/cancelar`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao cancelar item da composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
   },
 };
 

@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.shared.enums import IncidentSeverity
 
 
 class Incident(Base):
@@ -11,7 +12,7 @@ class Incident(Base):
 
     reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
     description: Mapped[str] = mapped_column(String(1000), nullable=False)
-    severity: Mapped[str] = mapped_column(String(64), nullable=False)
+    severity: Mapped[IncidentSeverity] = mapped_column(SAEnum(IncidentSeverity, name="incident_severity"), nullable=False)
     reported_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

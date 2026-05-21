@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.shared.enums import AppealStatus, PenaltyStatus, PenaltyType
 
 
 class Penalty(Base):
@@ -11,9 +12,9 @@ class Penalty(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     reservation_id: Mapped[int] = mapped_column(ForeignKey("reservations.id"), nullable=False)
-    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    type: Mapped[PenaltyType] = mapped_column(SAEnum(PenaltyType, name="penalty_type"), nullable=False)
     description: Mapped[str] = mapped_column(String(1000), nullable=False)
-    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[PenaltyStatus] = mapped_column(SAEnum(PenaltyStatus, name="penalty_status"), nullable=False)
     duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     start_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -41,7 +42,7 @@ class Appeal(Base):
     penalty_id: Mapped[int] = mapped_column(
         ForeignKey("penalties.id"), nullable=False
     )
-    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[AppealStatus] = mapped_column(SAEnum(AppealStatus, name="appeal_status"), nullable=False)
     resolution_notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     penalty = relationship("Penalty", back_populates="appeals")

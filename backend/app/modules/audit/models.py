@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.shared.enums import AuditAction
 
 
 class ReservationVersion(Base):
@@ -27,7 +28,7 @@ class AuditRecord(Base):
 
     entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
     target_id: Mapped[int] = mapped_column(nullable=False)
-    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[AuditAction] = mapped_column(SAEnum(AuditAction, name="audit_action"), nullable=False)
     performed_by: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False
     )

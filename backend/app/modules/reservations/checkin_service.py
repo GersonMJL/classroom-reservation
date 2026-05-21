@@ -9,41 +9,58 @@ from app.modules.reservations.repository import ReservationRepository
 from app.modules.users.models import User
 from app.shared.enums import AuditAction, ReservationStatus
 
+_ENTITY_TYPE = "reservation"
+
 
 class CheckinService:
     def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
         self.repository = repository
         self.audit = audit
 
+    def get_reservation(self, reservation_id: int) -> Reservation | None:
+        return self.repository.get_by_id(reservation_id)
+
     def checkin(self, reservation: Reservation, user: User) -> Reservation:
-        self._require_self_or_responsible(reservation, user)
-        self._transition(
-            reservation, ReservationStatus.IN_USE, user, "Check-in realizado"
+        return self._execute(
+            reservation,
+            user,
+            target=ReservationStatus.IN_USE,
+            reason="Check-in realizado",
+            timestamp_field="checkin_at",
+            audit_action=AuditAction.CHECKIN,
         )
-        reservation.checkin_at = datetime.now(UTC)
-        saved = self.repository.save(reservation)
-        self.audit.record(
-            entity_type="reservation",
-            target_id=saved.id,
-            action=AuditAction.CHECKIN,
-            performed_by=user.id,
-            after={"checkin_at": saved.checkin_at.isoformat()},
-        )
-        return saved
 
     def checkout(self, reservation: Reservation, user: User) -> Reservation:
-        self._require_self_or_responsible(reservation, user)
-        self._transition(
-            reservation, ReservationStatus.COMPLETED, user, "Check-out realizado"
+        return self._execute(
+            reservation,
+            user,
+            target=ReservationStatus.COMPLETED,
+            reason="Check-out realizado",
+            timestamp_field="checkout_at",
+            audit_action=AuditAction.CHECKOUT,
         )
-        reservation.checkout_at = datetime.now(UTC)
+
+    def _execute(
+        self,
+        reservation: Reservation,
+        user: User,
+        *,
+        target: ReservationStatus,
+        reason: str,
+        timestamp_field: str,
+        audit_action: AuditAction,
+    ) -> Reservation:
+        self._require_self_or_responsible(reservation, user)
+        now = datetime.now(UTC)
+        self._transition(reservation, target, user, reason, now)
+        setattr(reservation, timestamp_field, now)
         saved = self.repository.save(reservation)
         self.audit.record(
-            entity_type="reservation",
+            entity_type=_ENTITY_TYPE,
             target_id=saved.id,
-            action=AuditAction.CHECKOUT,
+            action=audit_action,
             performed_by=user.id,
-            after={"checkout_at": saved.checkout_at.isoformat()},
+            after={timestamp_field: getattr(saved, timestamp_field).isoformat()},
         )
         return saved
 
@@ -53,6 +70,7 @@ class CheckinService:
         target: ReservationStatus,
         user: User,
         reason: str,
+        now: datetime,
     ) -> None:
         current = ReservationStatus(reservation.status)
         try:
@@ -66,7 +84,7 @@ class CheckinService:
             ReservationStatusHistory(
                 previous_status=current,
                 new_status=target,
-                changed_at=datetime.now(UTC),
+                changed_at=now,
                 reason=reason,
                 user_id=user.id,
             )

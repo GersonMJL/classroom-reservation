@@ -178,10 +178,9 @@ def reject_reservation(
 def checkin_reservation(
     reservation_id: int,
     service: CheckinService = Depends(get_checkin_service),
-    res_service: ReservationService = Depends(get_reservation_service),
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    reservation = res_service.get_reservation(reservation_id)
+    reservation = service.get_reservation(reservation_id)
     if reservation is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -194,10 +193,9 @@ def checkin_reservation(
 def checkout_reservation(
     reservation_id: int,
     service: CheckinService = Depends(get_checkin_service),
-    res_service: ReservationService = Depends(get_reservation_service),
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    reservation = res_service.get_reservation(reservation_id)
+    reservation = service.get_reservation(reservation_id)
     if reservation is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

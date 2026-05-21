@@ -1,8 +1,12 @@
 """Validação centralizada de conflitos e restrições para criação/edição de reservas.
 
-Fora de escopo nesta versão (Fase 2): qualificação do solicitante,
-fechamento institucional (CalendarBlock CLOSURE) e disponibilidade de
-equipe de suporte. Marcados com ``# TODO`` para fases posteriores.
+Bloqueios de calendário (``CalendarBlock``) de qualquer tipo exceto ``BUFFER``
+agora geram conflito ``CALENDAR_BLOCK``. ``BUFFER`` é excluído para que a
+edição de uma reserva não colida com seus próprios buffers gerados.
+
+Ainda fora de escopo nesta versão: qualificação do solicitante e
+disponibilidade de equipe de suporte. Marcados com ``# TODO`` para fases
+posteriores.
 """
 
 from dataclasses import dataclass, field

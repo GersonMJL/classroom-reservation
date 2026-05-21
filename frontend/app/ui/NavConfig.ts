@@ -1,5 +1,5 @@
 // frontend/app/ui/NavConfig.ts
-export type Role = "admin" | "manager" | "technician" | "user";
+export type Role = "admin" | "manager" | "technician" | "requester";
 
 export type NavItem = {
   path: string;

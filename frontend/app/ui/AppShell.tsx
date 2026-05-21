@@ -9,6 +9,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router";
 import { filterNavForRoles } from "./NavConfig";
 import { NavItem } from "./NavItem";
+import { tokens } from "./tokens";
 
 type Props = {
   isAuthenticated: boolean;
@@ -18,7 +19,7 @@ type Props = {
 
 export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
   const theme  = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const items = filterNavForRoles(roles, isAuthenticated);
@@ -40,10 +41,10 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
             <MenuIcon />
           </IconButton>
         ) : (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
             {items.map((it) => <NavItem key={it.path} path={it.path} label={it.label} />)}
             {isAuthenticated ? (
-              <Button variant="outlined" color="inherit" onClick={onLogout} sx={{ borderColor: "rgba(23,50,45,0.28)" }}>Sair</Button>
+              <Button variant="outlined" color="inherit" onClick={onLogout} sx={{ borderColor: tokens.color.border.strong }}>Sair</Button>
             ) : (
               <>
                 <Button color="inherit" href="/login">Entrar</Button>
@@ -61,9 +62,13 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
             </Box>
             <List>
               {items.map((it) => (
-                <ListItemButton key={it.path} onClick={() => { navigate(it.path); setOpen(false); }} sx={{ minHeight: 48, borderRadius: 1 }}>
-                  <ListItemText primary={it.label} />
-                </ListItemButton>
+                <NavItem
+                  key={it.path}
+                  path={it.path}
+                  label={it.label}
+                  onNavigate={() => setOpen(false)}
+                  sx={{ width: "100%", justifyContent: "flex-start", borderRadius: 1, minHeight: 48 }}
+                />
               ))}
               {isAuthenticated && (
                 <ListItemButton onClick={() => { onLogout(); setOpen(false); }} sx={{ minHeight: 48, color: "error.main" }}>

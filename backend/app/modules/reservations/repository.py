@@ -4,9 +4,13 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.modules.reservations.models import Reservation, ReservationResource
+from app.modules.reservations.models import (
+    CalendarBlock,
+    Reservation,
+    ReservationResource,
+)
 from app.modules.reservations.state_machine import BLOCKING_STATUSES
-from app.shared.enums import ReservationStatus
+from app.shared.enums import CalendarBlockType, ReservationStatus
 
 
 def _eager_options() -> tuple:
@@ -112,6 +116,25 @@ class ReservationRepository:
         if exclude_id is not None:
             query = query.where(Reservation.id != exclude_id)
         return list(self.db.execute(query).scalars().unique().all())
+
+    def get_calendar_blocks_overlapping(
+        self,
+        *,
+        environment_id: int,
+        start: datetime,
+        end: datetime,
+        exclude_types: Iterable[CalendarBlockType] = (),
+    ) -> list[CalendarBlock]:
+        query = (
+            select(CalendarBlock)
+            .where(CalendarBlock.environment_id == environment_id)
+            .where(CalendarBlock.start_time < end)
+            .where(CalendarBlock.end_time > start)
+        )
+        excluded = list(exclude_types)
+        if excluded:
+            query = query.where(~CalendarBlock.type.in_(excluded))
+        return list(self.db.execute(query).scalars().all())
 
     def add(self, reservation: Reservation) -> Reservation:
         self.db.add(reservation)

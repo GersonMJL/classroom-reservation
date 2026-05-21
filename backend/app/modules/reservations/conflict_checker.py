@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from app.modules.environments.models import Environment
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
+from app.shared.enums import CalendarBlockType
 
 ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV
 
@@ -94,8 +95,20 @@ def check_reservation(
             )
 
     # TODO Fase posterior: qualificações do solicitante (EnvironmentRequirement)
-    # TODO Fase posterior: CalendarBlock CLOSURE / HOLIDAY / ADMIN_BLOCK
     # TODO Fase posterior: disponibilidade de equipe de suporte
+
+    blocks = repository.get_calendar_blocks_overlapping(
+        environment_id=environment.id,
+        start=start,
+        end=end,
+        exclude_types=(CalendarBlockType.BUFFER,),
+    )
+    for block in blocks:
+        report.add(
+            "CALENDAR_BLOCK",
+            f"Bloqueio {block.type} de {block.start_time:%d/%m/%Y %H:%M} "
+            f"a {block.end_time:%H:%M}",
+        )
 
     return report
 

@@ -51,6 +51,15 @@ class ReservationBase(BaseModel):
 class ReservationCreate(ReservationBase):
     resources: list[ReservationResourceCreate] = Field(default_factory=list)
     support: list[ReservationSupportCreate] = Field(default_factory=list)
+    accept_terms: bool = Field(default=False)
+
+    @model_validator(mode="after")
+    def _require_terms(self) -> "ReservationCreate":
+        if not self.accept_terms:
+            raise ValueError(
+                "Aceite dos termos de responsabilidade é obrigatório (regra 6.4)"
+            )
+        return self
 
 
 class ReservationUpdate(BaseModel):
@@ -89,6 +98,7 @@ class ReservationRead(BaseModel):
     participant_count: int
     checkin_at: datetime | None = None
     checkout_at: datetime | None = None
+    terms_accepted_at: datetime | None = None
     resources: list[ReservationResourceRead] = Field(default_factory=list)
     support: list[ReservationSupportRead] = Field(default_factory=list)
 

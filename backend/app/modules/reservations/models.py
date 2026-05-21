@@ -51,6 +51,9 @@ class Reservation(Base):
     checkout_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     recurrence_rule: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     parent_reservation = relationship(

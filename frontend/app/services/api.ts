@@ -807,6 +807,7 @@ export interface Reservation {
   participant_count: number;
   checkin_at: string | null;
   checkout_at: string | null;
+  terms_accepted_at?: string | null;
   resources: ReservationResourceRead[];
   support: ReservationSupportRead[];
 }
@@ -828,6 +829,7 @@ export interface ReservationCreate {
   end_time: string;
   purpose: string;
   participant_count: number;
+  accept_terms: boolean;
   type?: ReservationType;
   resources?: ReservationResourceCreate[];
   support?: ReservationSupportCreate[];

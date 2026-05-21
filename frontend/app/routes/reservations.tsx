@@ -7,6 +7,7 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Container,
@@ -15,6 +16,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Paper,
@@ -98,6 +100,7 @@ interface FormState {
   purpose: string;
   participant_count: number;
   resource_ids: number[];
+  acceptTerms: boolean;
 }
 
 const buildInitialForm = (): FormState => {
@@ -115,6 +118,7 @@ const buildInitialForm = (): FormState => {
     purpose: "",
     participant_count: 1,
     resource_ids: [],
+    acceptTerms: false,
   };
 };
 
@@ -263,6 +267,7 @@ export default function ReservationsPage() {
       purpose: reservation.purpose,
       participant_count: reservation.participant_count,
       resource_ids: reservation.resources.map((r) => r.resource_id),
+      acceptTerms: false,
     });
     setFormError("");
     setFormConflicts([]);
@@ -284,6 +289,8 @@ export default function ReservationsPage() {
       return "Datas inválidas";
     if (!form.end_time.isAfter(form.start_time))
       return "O término deve ser depois do início";
+    if (editingId === null && !form.acceptTerms)
+      return "Aceite os termos de responsabilidade para continuar";
     return null;
   };
 
@@ -310,6 +317,7 @@ export default function ReservationsPage() {
         end_time: form.end_time.toISOString(),
         purpose: form.purpose.trim(),
         participant_count: form.participant_count,
+        accept_terms: form.acceptTerms,
         resources: form.resource_ids.map((id) => ({ resource_id: id })),
         support: [],
       };
@@ -758,6 +766,20 @@ export default function ReservationsPage() {
               <TextField {...params} label="Recursos" placeholder="Adicionar recurso" />
             )}
           />
+
+          {editingId === null && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={form.acceptTerms}
+                  onChange={(e) =>
+                    setForm({ ...form, acceptTerms: e.target.checked })
+                  }
+                />
+              }
+              label="Aceito os termos de responsabilidade pelo uso do ambiente."
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeFormDialog}>Cancelar</Button>

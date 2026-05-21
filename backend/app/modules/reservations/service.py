@@ -124,6 +124,7 @@ class ReservationService:
             purpose=payload.purpose,
             participant_count=payload.participant_count,
         )
+        reservation.terms_accepted_at = datetime.now(UTC)
         reservation.resources = _build_resources(payload.resources)
         reservation.support = _build_support(payload.support)
         reservation.status_history = [

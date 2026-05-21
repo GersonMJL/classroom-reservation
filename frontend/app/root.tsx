@@ -369,6 +369,28 @@ export default function App() {
                 Bloqueios
               </Button>
             )}
+            {isAuthenticated && (
+              <Button
+                variant={location.pathname.startsWith("/penalidades") ? "contained" : "text"}
+                color={location.pathname.startsWith("/penalidades") ? "primary" : "inherit"}
+                onClick={() => navigate("/penalidades")}
+                sx={{
+                  color: location.pathname.startsWith("/penalidades")
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  backgroundColor: location.pathname.startsWith("/penalidades")
+                    ? "primary.main"
+                    : alpha("#1f6f5f", 0.08),
+                  "&:hover": {
+                    backgroundColor: location.pathname.startsWith("/penalidades")
+                      ? "primary.dark"
+                      : alpha("#1f6f5f", 0.14),
+                  },
+                }}
+              >
+                Penalidades
+              </Button>
+            )}
             {isAuthenticated ? (
               <Button
                 variant="outlined"

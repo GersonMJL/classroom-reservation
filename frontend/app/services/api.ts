@@ -1343,3 +1343,107 @@ export const getTokenRoles = (): string[] => {
     ? payload.roles.filter((role): role is string => typeof role === "string")
     : [];
 };
+
+// ========== Penalidades & Recursos (Governance) ==========
+
+export type PenaltyType =
+  | "NO_SHOW"
+  | "LATE_CANCELLATION"
+  | "DAMAGE"
+  | "MISUSE"
+  | "OVERTIME"
+  | "SAFETY_VIOLATION";
+
+export type PenaltyStatus =
+  | "PENDING"
+  | "APPLIED"
+  | "WAIVED"
+  | "UNDER_APPEAL"
+  | "RESOLVED";
+
+export type AppealStatus = "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED";
+
+export interface Penalty {
+  id: number;
+  user_id: number;
+  reservation_id: number;
+  type: PenaltyType;
+  status: PenaltyStatus;
+  description: string;
+  duration_days: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  applied_by: number | null;
+}
+
+export interface PenaltyManualCreate {
+  user_id: number;
+  reservation_id: number;
+  type: PenaltyType;
+  description: string;
+  duration_days?: number;
+}
+
+export interface Appeal {
+  id: number;
+  penalty_id: number;
+  status: AppealStatus;
+  resolution_notes: string | null;
+}
+
+const _governanceError = async (response: Response, fallback: string): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const penaltyApi = {
+  async list(filters: { user_id?: number; skip?: number; limit?: number } = {}): Promise<Penalty[]> {
+    const params = new URLSearchParams();
+    if (filters.user_id !== undefined) params.set("user_id", String(filters.user_id));
+    if (filters.skip !== undefined) params.set("skip", String(filters.skip));
+    if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+    const url = `${API_BASE_URL}/governance/penalidades${params.toString() ? `?${params}` : ""}`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao listar penalidades"));
+    return response.json() as Promise<Penalty[]>;
+  },
+  async createManual(payload: PenaltyManualCreate): Promise<Penalty> {
+    const response = await fetch(`${API_BASE_URL}/governance/penalidades`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao criar penalidade"));
+    return response.json() as Promise<Penalty>;
+  },
+};
+
+export const appealApi = {
+  async submit(penalty_id: number, justification: string): Promise<Appeal> {
+    const response = await fetch(`${API_BASE_URL}/governance/appeals`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ penalty_id, justification }),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao submeter recurso"));
+    return response.json() as Promise<Appeal>;
+  },
+  async resolve(appealId: number, approve: boolean, resolution_notes: string): Promise<Appeal> {
+    const response = await fetch(`${API_BASE_URL}/governance/appeals/${appealId}/resolver`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ approve, resolution_notes }),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao resolver recurso"));
+    return response.json() as Promise<Appeal>;
+  },
+};

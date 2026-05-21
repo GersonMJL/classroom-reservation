@@ -18,7 +18,7 @@ from app.modules.reservations.schemas import (
     ReservationUpdate,
 )
 from app.modules.users.models import User
-from app.shared.enums import ReservationStatus, ReservationType
+from app.shared.enums import EnvironmentCriticality, ReservationStatus, ReservationType
 
 
 class ReservationService:
@@ -81,13 +81,25 @@ class ReservationService:
         )
         _raise_if_conflicts(report)
 
+        initial_status = (
+            ReservationStatus.APPROVED
+            if environment.criticality == EnvironmentCriticality.COMMON
+            and not environment.requires_approval
+            else ReservationStatus.PENDING_APPROVAL
+        )
+        initial_reason = (
+            "Auto-aprovada (ambiente comum, sem conflitos)"
+            if initial_status is ReservationStatus.APPROVED
+            else "Criação da reserva"
+        )
+
         reservation = Reservation(
             environment_id=payload.environment_id,
             requester_id=payload.requester_id,
             responsible_id=payload.responsible_id,
             start_time=payload.start_time,
             end_time=payload.end_time,
-            status=ReservationStatus.PENDING_APPROVAL,
+            status=initial_status,
             type=ReservationType.SIMPLE,
             purpose=payload.purpose,
             participant_count=payload.participant_count,
@@ -97,9 +109,9 @@ class ReservationService:
         reservation.status_history = [
             _history_entry(
                 previous=None,
-                new=ReservationStatus.PENDING_APPROVAL,
+                new=initial_status,
                 user_id=current_user.id,
-                reason="Criação da reserva",
+                reason=initial_reason,
             )
         ]
         return self.repository.add(reservation)

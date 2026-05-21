@@ -12,8 +12,9 @@ from app.modules.environments.schemas import (
     CalendarBlockRead,
     CalendarBlockUpdate,
 )
+from app.modules.reservations import buffer_manager
 from app.modules.users.models import User
-from app.shared.enums import UserRole
+from app.shared.enums import CalendarBlockType, UserRole
 
 router = APIRouter(prefix="/api/v1/calendar-blocks", tags=["calendar-blocks"])
 
@@ -76,3 +77,33 @@ def delete_block(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bloqueio não encontrado"
         )
     service.delete(block)
+
+
+@router.post("/{block_id}/liberar", response_model=CalendarBlockRead)
+def release_block_early(
+    block_id: int,
+    service: CalendarBlockService = Depends(get_service),
+    current_user: User = Depends(
+        require_roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TECHNICIAN)
+    ),
+    db: Session = Depends(get_db),
+) -> Any:
+    block = service.get(block_id)
+    if block is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Bloqueio não encontrado"
+        )
+    if CalendarBlockType(block.type) is not CalendarBlockType.BUFFER:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Somente buffers podem ser liberados antecipadamente",
+        )
+    buffer_manager.release_buffer_early(
+        buffer_block=block,
+        session=db,
+        released_by_user_id=current_user.id,
+        notes=None,
+    )
+    db.commit()
+    db.refresh(block)
+    return block

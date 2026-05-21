@@ -1044,6 +1044,68 @@ export const reservationApi = {
   },
 };
 
+export type AuditAction =
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "APPROVE"
+  | "REJECT"
+  | "CANCEL"
+  | "CHECKIN"
+  | "CHECKOUT"
+  | "ASSIGN_RESOURCE"
+  | "REMOVE_RESOURCE";
+
+export interface AuditRecord {
+  id: number;
+  entity_type: string;
+  target_id: number;
+  action: AuditAction;
+  performed_by: number;
+  performed_at: string;
+  before_state: string | null;
+  after_state: string | null;
+}
+
+export interface AuditListFilters {
+  entity_type?: string;
+  target_id?: number;
+  action?: AuditAction;
+  start?: string;
+  end?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export const auditApi = {
+  async list(filters: AuditListFilters = {}): Promise<AuditRecord[]> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === "") return;
+      params.set(k, String(v));
+    });
+    const response = await fetch(
+      `${API_BASE_URL}/audit-records${params.toString() ? `?${params}` : ""}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthTokens();
+        throw new Error("Sua sessão expirou. Faça login novamente.");
+      }
+      let message = "Falha ao consultar auditoria";
+      try {
+        const body = (await response.json()) as { detail?: string };
+        if (typeof body.detail === "string") message = body.detail;
+      } catch {
+        // ignore parse failure
+      }
+      throw new Error(message);
+    }
+    return response.json() as Promise<AuditRecord[]>;
+  },
+};
+
 export const getTokenRoles = (): string[] => {
   if (!isBrowser) {
     return [];

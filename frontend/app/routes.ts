@@ -12,5 +12,6 @@ export default [
   route("qualifications", "routes/qualifications.tsx"),
   route("reservas", "routes/reservations.tsx"),
   route("aprovacoes", "routes/approvals.tsx"),
+  route("auditoria", "routes/audit.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

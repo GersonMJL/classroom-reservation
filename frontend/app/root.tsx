@@ -324,6 +324,28 @@ export default function App() {
                 Aprovações
               </Button>
             )}
+            {(isAdmin || isManager) && (
+              <Button
+                variant={location.pathname.startsWith("/auditoria") ? "contained" : "text"}
+                color={location.pathname.startsWith("/auditoria") ? "primary" : "inherit"}
+                onClick={() => navigate("/auditoria")}
+                sx={{
+                  color: location.pathname.startsWith("/auditoria")
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  backgroundColor: location.pathname.startsWith("/auditoria")
+                    ? "primary.main"
+                    : alpha("#1f6f5f", 0.08),
+                  "&:hover": {
+                    backgroundColor: location.pathname.startsWith("/auditoria")
+                      ? "primary.dark"
+                      : alpha("#1f6f5f", 0.14),
+                  },
+                }}
+              >
+                Auditoria
+              </Button>
+            )}
             {isAuthenticated ? (
               <Button
                 variant="outlined"

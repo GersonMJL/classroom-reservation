@@ -130,3 +130,54 @@ class ReservationCancel(BaseModel):
 
 class ReservationDecision(BaseModel):
     comments: str | None = Field(default=None, max_length=1000)
+
+
+class CompositeItemCreate(BaseModel):
+    environment_id: int = Field(gt=0)
+    start_time: datetime
+    end_time: datetime
+    participant_count: int = Field(ge=1)
+    purpose: str = Field(min_length=1, max_length=128)
+    resources: list[ReservationResourceCreate] = Field(default_factory=list)
+    support: list[ReservationSupportCreate] = Field(default_factory=list)
+    critical: bool = False
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "CompositeItemCreate":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time deve ser maior que start_time")
+        return self
+
+
+class CompositeReservationCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    responsible_id: int = Field(gt=0)
+    accept_terms: bool = Field(default=False)
+    items: list[CompositeItemCreate] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _require_terms(self) -> "CompositeReservationCreate":
+        if not self.accept_terms:
+            raise ValueError(
+                "Aceite dos termos de responsabilidade é obrigatório (regra 6.4)"
+            )
+        return self
+
+
+class CompositeItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    reservation_id: int
+    critical: bool
+    order: int
+
+
+class CompositeReservationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None = None
+    items: list[CompositeItemRead] = Field(default_factory=list)

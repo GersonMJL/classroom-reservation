@@ -11,8 +11,11 @@ from app.modules.audit.audit_service import build_audit_service
 from app.modules.reservations.approval_service import ApprovalService
 from app.modules.reservations.noshow_job import mark_noshows
 from app.modules.reservations.checkin_service import CheckinService
+from app.modules.reservations.composite_service import CompositeService
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.reservations.schemas import (
+    CompositeReservationCreate,
+    CompositeReservationRead,
     ReservationCancel,
     ReservationCreate,
     ReservationDecision,
@@ -42,6 +45,13 @@ def get_approval_service(db: Session = Depends(get_db)) -> ApprovalService:
 
 def get_checkin_service(db: Session = Depends(get_db)) -> CheckinService:
     return CheckinService(
+        repository=ReservationRepository(db=db),
+        audit=build_audit_service(db),
+    )
+
+
+def get_composite_service(db: Session = Depends(get_db)) -> CompositeService:
+    return CompositeService(
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
     )
@@ -211,3 +221,31 @@ def run_noshow_job(
     _: User = Depends(require_roles(UserRole.ADMIN)),
 ) -> dict:
     return {"updated_ids": mark_noshows(db)}
+
+
+@router.post(
+    "/compostas",
+    response_model=CompositeReservationRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_composite(
+    payload: CompositeReservationCreate,
+    service: CompositeService = Depends(get_composite_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    return service.create(payload, current_user)
+
+
+@router.get("/compostas/{composite_id}", response_model=CompositeReservationRead)
+def get_composite(
+    composite_id: int,
+    service: CompositeService = Depends(get_composite_service),
+    _: User = Depends(get_current_user),
+) -> Any:
+    composite = service.get(composite_id)
+    if composite is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reserva composta não encontrada",
+        )
+    return composite

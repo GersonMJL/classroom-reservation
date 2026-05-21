@@ -249,3 +249,19 @@ def get_composite(
             detail="Reserva composta não encontrada",
         )
     return composite
+
+
+@router.post(
+    "/compostas/{composite_id}/itens/{reservation_id}/cancelar",
+    response_model=CompositeReservationRead,
+)
+def cancel_composite_item(
+    composite_id: int,
+    reservation_id: int,
+    payload: ReservationCancel,
+    service: CompositeService = Depends(get_composite_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    return service.cancel_item(
+        composite_id, reservation_id, payload.reason, current_user
+    )

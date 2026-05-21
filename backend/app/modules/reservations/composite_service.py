@@ -133,3 +133,103 @@ class CompositeService:
             after={"items": [i.reservation_id for i in composite.items]},
         )
         return composite
+
+    def cancel_item(
+        self,
+        composite_id: int,
+        reservation_id: int,
+        reason: str,
+        current_user: User,
+    ) -> CompositeReservation:
+        """Cancela um item da composta e, se for crítico, força os demais
+        para PENDING_APPROVAL (revisão obrigatória — UC07 E1)."""
+        composite = self.repository.db.get(CompositeReservation, composite_id)
+        if composite is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reserva composta não encontrada",
+            )
+        target_item = next(
+            (i for i in composite.items if i.reservation_id == reservation_id),
+            None,
+        )
+        if target_item is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item não pertence à reserva composta",
+            )
+
+        target_res = self.repository.db.get(Reservation, reservation_id)
+        if target_res is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reserva não encontrada",
+            )
+
+        from app.modules.reservations import state_machine
+
+        now = datetime.now(UTC)
+        current = ReservationStatus(target_res.status)
+        try:
+            state_machine.assert_transition(current, ReservationStatus.CANCELLED)
+        except state_machine.InvalidTransitionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+            ) from exc
+
+        target_res.status = ReservationStatus.CANCELLED
+        target_res.status_history.append(
+            ReservationStatusHistory(
+                previous_status=current,
+                new_status=ReservationStatus.CANCELLED,
+                changed_at=now,
+                reason=reason,
+                user_id=current_user.id,
+            )
+        )
+        self.audit.record(
+            entity_type="reservation",
+            target_id=target_res.id,
+            action=AuditAction.CANCEL,
+            performed_by=current_user.id,
+            before={"status": current.value},
+            after={"status": ReservationStatus.CANCELLED.value},
+        )
+
+        if target_item.critical:
+            for item in composite.items:
+                if item.reservation_id == reservation_id:
+                    continue
+                other = self.repository.db.get(Reservation, item.reservation_id)
+                if other is None:
+                    continue
+                other_status = ReservationStatus(other.status)
+                if other_status in (
+                    ReservationStatus.APPROVED,
+                    ReservationStatus.PENDING_APPROVAL,
+                ):
+                    other.status = ReservationStatus.PENDING_APPROVAL
+                    other.status_history.append(
+                        ReservationStatusHistory(
+                            previous_status=other_status,
+                            new_status=ReservationStatus.PENDING_APPROVAL,
+                            changed_at=now,
+                            reason=(
+                                f"Revisão obrigatória: item crítico "
+                                f"#{reservation_id} cancelado"
+                            ),
+                            user_id=current_user.id,
+                        )
+                    )
+                    self.audit.record(
+                        entity_type="reservation",
+                        target_id=other.id,
+                        action=AuditAction.UPDATE,
+                        performed_by=current_user.id,
+                        before={"status": other_status.value},
+                        after={"status": ReservationStatus.PENDING_APPROVAL.value},
+                    )
+
+        self.repository.db.commit()
+        self.repository.db.refresh(composite)
+        return composite

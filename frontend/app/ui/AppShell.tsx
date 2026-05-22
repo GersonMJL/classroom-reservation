@@ -81,6 +81,14 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
               <IconButton aria-label="Fechar menu" onClick={() => setOpen(false)}><CloseIcon /></IconButton>
             </Box>
             <List>
+              {isAuthenticated && (
+                <ListItemButton
+                  onClick={() => { setPaletteOpen(true); setOpen(false); }}
+                  sx={{ minHeight: 48, borderRadius: 1 }}
+                >
+                  <ListItemText primary="Buscar páginas" />
+                </ListItemButton>
+              )}
               {items.map((it) => (
                 <NavItem
                   key={it.path}

@@ -48,6 +48,7 @@ export function CommandPalette({ open, onClose, isAuthenticated, roles }: Props)
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      aria-label="Paleta de comandos"
       slotProps={{ paper: { sx: { borderRadius: 3, mt: 8, alignSelf: "flex-start" } } }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -62,7 +63,7 @@ export function CommandPalette({ open, onClose, isAuthenticated, roles }: Props)
           inputProps={{ "aria-label": "Buscar página" }}
         />
       </Box>
-      <List sx={{ maxHeight: 320, overflow: "auto", py: 0 }}>
+      <List role="listbox" aria-label="Sugestões" sx={{ maxHeight: 320, overflow: "auto", py: 0 }}>
         {filtered.length === 0 && (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Typography>Nada encontrado.</Typography>
@@ -71,6 +72,8 @@ export function CommandPalette({ open, onClose, isAuthenticated, roles }: Props)
         {filtered.map((c, idx) => (
           <ListItemButton
             key={c.path}
+            role="option"
+            aria-selected={idx === highlight}
             selected={idx === highlight}
             onMouseEnter={() => setHighlight(idx)}
             onClick={() => { navigate(c.path); onClose(); }}

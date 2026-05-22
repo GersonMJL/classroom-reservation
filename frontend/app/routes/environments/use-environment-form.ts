@@ -89,23 +89,33 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
   const handleSaveEnvironment = async () => {
     if (!formData.name.trim()) {
-      setError("Nome do ambiente e obrigatorio");
+      const msg = "Nome do ambiente e obrigatorio";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (!formData.type.trim()) {
-      setError("Tipo de ambiente é obrigatório");
+      const msg = "Tipo de ambiente é obrigatório";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (formData.location_id <= 0) {
-      setError("Selecione uma localização válida");
+      const msg = "Selecione uma localização válida";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (formData.capacity <= 0) {
-      setError("Capacidade deve ser maior que 0");
+      const msg = "Capacidade deve ser maior que 0";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (!formData.operating_hours.trim()) {
-      setError("Horario de funcionamento e obrigatorio");
+      const msg = "Horario de funcionamento e obrigatorio";
+      toast.error(msg);
+      setError(msg);
       return;
     }
 

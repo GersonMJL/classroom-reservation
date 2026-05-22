@@ -45,7 +45,9 @@ export function useEnvironmentsData() {
       setEnvironments(data);
       setCurrentPage(page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar ambientes");
+      const msg = err instanceof Error ? err.message : "Falha ao carregar ambientes";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export function useEnvironmentsData() {
       try {
         await environmentApi.deleteRoom(environmentId);
         toast.success("Ambiente excluído.");
-        loadEnvironments();
+        await loadEnvironments();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Falha ao excluir ambiente";
         setError(msg);
@@ -74,7 +76,9 @@ export function useEnvironmentsData() {
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
-      setError("Informe um valor para pesquisa");
+      const msg = "Informe um valor para pesquisa";
+      toast.error(msg);
+      setError(msg);
       return;
     }
 
@@ -84,14 +88,18 @@ export function useEnvironmentsData() {
       if (searchType === "capacity") {
         const capacity = parseInt(searchValue, 10);
         if (isNaN(capacity) || capacity <= 0) {
-          setError("Informe um número de capacidade válido");
+          const msg = "Informe um número de capacidade válido";
+          toast.error(msg);
+          setError(msg);
           return;
         }
         results = await environmentApi.searchByCapacity(capacity);
       } else if (searchType === "location_id") {
         const locationId = parseInt(searchValue, 10);
         if (isNaN(locationId) || locationId <= 0) {
-          setError("Informe um ID de localizacao valido");
+          const msg = "Informe um ID de localizacao valido";
+          toast.error(msg);
+          setError(msg);
           return;
         }
         results = await environmentApi.searchByLocation(locationId);
@@ -115,7 +123,9 @@ export function useEnvironmentsData() {
       setOpenSearchDialog(false);
       setSearchValue("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha na pesquisa");
+      const msg = err instanceof Error ? err.message : "Falha na pesquisa";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,7 @@ function Probe() {
 describe("useToast", () => {
   it("exibe e remove toast após interação", async () => {
     render(<ToastProvider><Probe /></ToastProvider>);
-    act(() => { screen.getByText("fire").click(); });
+    await act(async () => { screen.getByText("fire").click(); });
     expect(await screen.findByRole("status")).toHaveTextContent("Salvo com sucesso");
   });
 });

@@ -25,6 +25,7 @@ export default function EnvironmentsManagement() {
         formData,
         locations,
         loadingLocations,
+        submitting,
         setSearchType,
         setSearchValue,
         setFormData,
@@ -85,6 +86,7 @@ export default function EnvironmentsManagement() {
                 formData={formData}
                 locations={locations}
                 loadingLocations={loadingLocations}
+                submitting={submitting}
                 setFormData={setFormData}
                 onClose={closeEnvironmentDialog}
                 onSave={handleSaveEnvironment}

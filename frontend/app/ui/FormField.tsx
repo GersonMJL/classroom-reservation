@@ -3,12 +3,12 @@ import type { TextFieldProps } from "@mui/material";
 
 type Props = Omit<TextFieldProps, "error" | "helperText"> & { helper?: string; error?: string };
 
-export function FormField({ helper, error, ...props }: Props) {
+export function FormField({ helper, error, slotProps: callerSlotProps, ...props }: Props) {
   return (
     <TextField
       fullWidth
       margin="dense"
-      InputLabelProps={{ shrink: true }}
+      slotProps={{ inputLabel: { shrink: true }, ...(callerSlotProps ?? {}) }}
       helperText={error || helper}
       error={Boolean(error)}
       {...props}

@@ -27,6 +27,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
   const [formData, setFormData] = useState<EnvironmentCreate>(initialFormData);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const loadLocations = async () => {
     setLoadingLocations(true);
@@ -121,7 +122,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       if (isEditMode && editingEnvironmentId !== null) {
         await environmentApi.updateRoom(editingEnvironmentId, formData);
@@ -133,6 +134,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
       closeEnvironmentDialog();
       setError("");
+      setLoading(true);
       await loadEnvironments();
     } catch (err) {
       const msg = err instanceof Error
@@ -141,6 +143,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       setError(msg);
       toast.error(msg);
     } finally {
+      setSubmitting(false);
       setLoading(false);
     }
   };
@@ -151,6 +154,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     formData,
     locations,
     loadingLocations,
+    submitting,
     setFormData,
     openCreateDialog,
     openEditDialog,

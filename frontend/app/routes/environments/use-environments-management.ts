@@ -24,6 +24,7 @@ export function useEnvironmentsManagement() {
     formData: form.formData,
     locations: form.locations,
     loadingLocations: form.loadingLocations,
+    submitting: form.submitting,
     setError: data.setError,
     setSearchType: data.setSearchType,
     setSearchValue: data.setSearchValue,

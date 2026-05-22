@@ -38,7 +38,14 @@ export function FormDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth={maxWidth} fullWidth>
+    <Dialog
+      open={open}
+      onClose={submitting ? undefined : onClose}
+      disableEscapeKeyDown={submitting}
+      fullScreen={fullScreen}
+      maxWidth={maxWidth}
+      fullWidth
+    >
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box component="span" sx={{ fontWeight: 700 }}>{title}</Box>
         <IconButton aria-label="Fechar" onClick={onClose} disabled={submitting}>

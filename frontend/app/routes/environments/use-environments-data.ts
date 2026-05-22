@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { environmentApi, hasValidAccessToken } from "../../services/api";
 import type { Environment } from "../../services/api";
+import { useToast } from "../../ui/useToast";
 import type { EnvironmentSearchType } from "./types";
 
 export function useEnvironmentsData() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,9 +60,12 @@ export function useEnvironmentsData() {
       setLoading(true);
       try {
         await environmentApi.deleteRoom(environmentId);
+        toast.success("Ambiente excluído.");
         loadEnvironments();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha ao excluir ambiente");
+        const msg = err instanceof Error ? err.message : "Falha ao excluir ambiente";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }

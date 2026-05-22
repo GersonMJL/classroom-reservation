@@ -1,5 +1,4 @@
 import {
-    Alert,
     Button,
     Container,
 } from "@mui/material";
@@ -15,7 +14,6 @@ export default function EnvironmentsManagement() {
     const {
         environments,
         loading,
-        error,
         openEnvironmentDialog,
         openSearchDialog,
         searchType,
@@ -27,7 +25,6 @@ export default function EnvironmentsManagement() {
         formData,
         locations,
         loadingLocations,
-        setError,
         setSearchType,
         setSearchValue,
         setFormData,
@@ -67,12 +64,6 @@ export default function EnvironmentsManagement() {
                     </>
                 }
             />
-
-            {error && (
-                <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
-                    {error}
-                </Alert>
-            )}
 
             <PageSection padded={false}>
                 <EnvironmentsTable

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { environmentApi, locationApi } from "../../services/api";
 import type { Environment, EnvironmentCreate, Location } from "../../services/api";
+import { useToast } from "../../ui/useToast";
 
 const initialFormData: EnvironmentCreate = {
   name: "",
@@ -19,6 +20,7 @@ type UseEnvironmentFormArgs = {
 };
 
 export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: UseEnvironmentFormArgs) {
+  const toast = useToast();
   const [openEnvironmentDialog, setOpenEnvironmentDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEnvironmentId, setEditingEnvironmentId] = useState<number | null>(null);
@@ -111,19 +113,21 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     try {
       if (isEditMode && editingEnvironmentId !== null) {
         await environmentApi.updateRoom(editingEnvironmentId, formData);
+        toast.success("Ambiente atualizado.");
       } else {
         await environmentApi.createRoom(formData);
+        toast.success("Ambiente salvo.");
       }
 
       closeEnvironmentDialog();
       setError("");
       await loadEnvironments();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : `Falha ao ${isEditMode ? "atualizar" : "criar"} ambiente`
-      );
+      const msg = err instanceof Error
+        ? err.message
+        : `Falha ao ${isEditMode ? "atualizar" : "criar"} ambiente`;
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import { AppShell } from "./ui/AppShell";
+import { ToastProvider } from "./ui/useToast";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
@@ -116,23 +117,25 @@ export default function App() {
 
   return (
     <ThemeProvider theme={lightTheme}>
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-      <CssBaseline />
-      <Box id="app-root">
-        {!isHomeRoute && (
-          <AppShell
-            isAuthenticated={isAuthenticated}
-            roles={isBrowser ? getTokenRoles() : []}
-            onLogout={handleLogout}
-          />
-        )}
+      <ToastProvider>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+        <CssBaseline />
+        <Box id="app-root">
+          {!isHomeRoute && (
+            <AppShell
+              isAuthenticated={isAuthenticated}
+              roles={isBrowser ? getTokenRoles() : []}
+              onLogout={handleLogout}
+            />
+          )}
 
-        <Box component="main" className="page-enter" sx={{ pb: 5 }}>
-          {!isHomeRoute && <Toolbar sx={{ minHeight: 80 }} />}
-          <Outlet />
+          <Box component="main" className="page-enter" sx={{ pb: 5 }}>
+            {!isHomeRoute && <Toolbar sx={{ minHeight: 80 }} />}
+            <Outlet />
+          </Box>
         </Box>
-      </Box>
-      </LocalizationProvider>
+        </LocalizationProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

@@ -6,7 +6,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
-    plan: free
     envVars:
       # Set these in the Render dashboard — do NOT commit real values.
       - key: DATABASE_URL
@@ -22,7 +21,6 @@ services:
     env: static
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/build/client
-    plan: free
     routes:
       # Rewrite all paths to index.html so React Router handles client-side navigation
       - type: rewrite

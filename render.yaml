@@ -1,0 +1,34 @@
+services:
+  # ── Backend (FastAPI, Docker) ─────────────────────────────────────────────
+  - name: classroom-backend
+    type: web
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      # Set these in the Render dashboard — do NOT commit real values.
+      - key: DATABASE_URL
+        sync: false          # Neon.tech connection string (with ?sslmode=require)
+      - key: SECRET_KEY
+        sync: false          # Run: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: CORS_ORIGINS
+        sync: false          # JSON array: ["https://classroom-frontend.onrender.com"]
+
+  # ── Frontend (React Router SPA, Static Site) ──────────────────────────────
+  - name: classroom-frontend
+    type: web
+    env: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/build/client
+    plan: free
+    routes:
+      # Rewrite all paths to index.html so React Router handles client-side navigation
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Set after the backend service is created and you know its URL.
+      - key: VITE_API_BASE_URL
+        sync: false          # e.g. https://classroom-backend.onrender.com/api/v1

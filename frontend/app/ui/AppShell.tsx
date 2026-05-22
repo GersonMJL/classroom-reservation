@@ -1,15 +1,17 @@
 // frontend/app/ui/AppShell.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AppBar, Box, Button, Drawer, IconButton, List, ListItemButton, ListItemText,
   Toolbar, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router";
 import { filterNavForRoles } from "./NavConfig";
 import { NavItem } from "./NavItem";
 import { tokens } from "./tokens";
+import { CommandPalette } from "./CommandPalette";
 
 type Props = {
   isAuthenticated: boolean;
@@ -22,9 +24,22 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const items = filterNavForRoles(roles, isAuthenticated);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
+    <>
     <AppBar position="fixed" color="default" elevation={0}>
       <Toolbar sx={{ gap: 1, minHeight: 74, px: { xs: 1, md: 2 } }}>
         <Typography
@@ -43,6 +58,11 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
         ) : (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
             {items.map((it) => <NavItem key={it.path} path={it.path} label={it.label} />)}
+            {isAuthenticated && (
+              <Button variant="text" startIcon={<SearchIcon />} onClick={() => setPaletteOpen(true)} sx={{ color: "text.secondary" }}>
+                Buscar <Box component="kbd" sx={{ ml: 1, px: 0.75, py: 0.25, borderRadius: 1, border: "1px solid", borderColor: "divider", fontSize: 12 }}>⌘K</Box>
+              </Button>
+            )}
             {isAuthenticated ? (
               <Button variant="outlined" color="inherit" onClick={onLogout} sx={{ borderColor: tokens.color.border.strong }}>Sair</Button>
             ) : (
@@ -80,5 +100,7 @@ export function AppShell({ isAuthenticated, roles, onLogout }: Props) {
         </Drawer>
       </Toolbar>
     </AppBar>
+    <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} isAuthenticated={isAuthenticated} roles={roles} />
+    </>
   );
 }

@@ -1,6 +1,7 @@
 export * from "./tokens";
 export * from "./theme";
 export * from "./AppShell";
+export * from "./CommandPalette";
 export * from "./NavItem";
 export * from "./NavConfig";
 export * from "./PageHeader";

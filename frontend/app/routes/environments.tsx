@@ -1,13 +1,10 @@
 import {
-    Box,
     Button,
     Container,
-    Alert,
-    Stack,
-    Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import { PageHeader, PageSection } from "~/ui";
 import { EnvironmentFormDialog } from "~/routes/environments/environment-form-dialog";
 import { EnvironmentsTable } from "~/routes/environments/environments-table";
 import { SearchDialog } from "~/routes/environments/search-dialog";
@@ -17,7 +14,6 @@ export default function EnvironmentsManagement() {
     const {
         environments,
         loading,
-        error,
         openEnvironmentDialog,
         openSearchDialog,
         searchType,
@@ -29,7 +25,7 @@ export default function EnvironmentsManagement() {
         formData,
         locations,
         loadingLocations,
-        setError,
+        submitting,
         setSearchType,
         setSearchValue,
         setFormData,
@@ -45,44 +41,32 @@ export default function EnvironmentsManagement() {
 
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
-            <Box sx={{ mb: 3 }}>
-                <Typography
-                    variant="h4"
-                    component="h1"
-                    sx={{ fontWeight: 700, mb: 2 }}
-                >
-                    Gestão de Ambientes
-                </Typography>
-
-                {error && (
-                    <Alert
-                        severity="error"
-                        onClose={() => setError("")}
-                        sx={{ mb: 2 }}
-                    >
-                        {error}
-                    </Alert>
-                )}
-
-                <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                    {isAdmin && (
+            <PageHeader
+                title="Gestão de Ambientes"
+                description="Cadastre, edite e pesquise ambientes disponíveis para reserva."
+                actions={
+                    <>
                         <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={openCreateDialog}
+                            startIcon={<SearchIcon />}
+                            variant="outlined"
+                            onClick={() => setOpenSearchDialog(true)}
                         >
-                            Novo Ambiente
+                            Buscar
                         </Button>
-                    )}
-                    <Button
-                        variant="outlined"
-                        startIcon={<SearchIcon />}
-                        onClick={() => setOpenSearchDialog(true)}
-                    >
-                        Pesquisar
-                    </Button>
-                </Stack>
+                        {isAdmin && (
+                            <Button
+                                startIcon={<AddIcon />}
+                                variant="contained"
+                                onClick={openCreateDialog}
+                            >
+                                Novo ambiente
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
+            <PageSection padded={false}>
                 <EnvironmentsTable
                     environments={environments}
                     loading={loading}
@@ -92,8 +76,9 @@ export default function EnvironmentsManagement() {
                     onEditEnvironment={openEditDialog}
                     onDeleteEnvironment={handleDeleteEnvironment}
                     onPageChange={loadEnvironments}
+                    onOpenCreate={openCreateDialog}
                 />
-            </Box>
+            </PageSection>
 
             <EnvironmentFormDialog
                 open={openEnvironmentDialog}
@@ -101,6 +86,7 @@ export default function EnvironmentsManagement() {
                 formData={formData}
                 locations={locations}
                 loadingLocations={loadingLocations}
+                submitting={submitting}
                 setFormData={setFormData}
                 onClose={closeEnvironmentDialog}
                 onSave={handleSaveEnvironment}

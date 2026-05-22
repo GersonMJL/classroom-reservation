@@ -7,6 +7,7 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Container,
@@ -14,13 +15,19 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
+  FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import type { ChipProps } from "@mui/material";
@@ -28,6 +35,10 @@ import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { PickerDay } from "@mui/x-date-pickers/PickerDay";
@@ -36,14 +47,18 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import {
   clearAuthTokens,
+  compositeApi,
   environmentApi,
   hasValidAccessToken,
+  incidentApi,
   reservationApi,
   ReservationConflictError,
   resourceApi,
   userApi,
 } from "../services/api";
 import type {
+  CompositeReservationCreate,
+  IncidentSeverity,
   Reservation,
   ReservationConflictDetail,
   ReservationCreate,
@@ -96,7 +111,33 @@ interface FormState {
   purpose: string;
   participant_count: number;
   resource_ids: number[];
+  acceptTerms: boolean;
+  recurring: boolean;
+  recurrenceWeekdays: number[];
+  recurrenceOccurrences: number;
 }
+
+interface CompositeItemDraft {
+  environment_id: number | "";
+  start_time: Dayjs;
+  end_time: Dayjs;
+  participant_count: number;
+  purpose: string;
+  resource_ids: number[];
+  critical: boolean;
+}
+
+const buildEmptyCompositeItem = (base: Dayjs): CompositeItemDraft => ({
+  environment_id: "",
+  start_time: base.hour(9).minute(0).second(0).millisecond(0),
+  end_time: base.hour(11).minute(0).second(0).millisecond(0),
+  participant_count: 1,
+  purpose: "",
+  resource_ids: [],
+  critical: false,
+});
+
+const WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const buildInitialForm = (): FormState => {
   const start = dayjs()
@@ -113,6 +154,10 @@ const buildInitialForm = (): FormState => {
     purpose: "",
     participant_count: 1,
     resource_ids: [],
+    acceptTerms: false,
+    recurring: false,
+    recurrenceWeekdays: [],
+    recurrenceOccurrences: 4,
   };
 };
 
@@ -143,6 +188,33 @@ export default function ReservationsPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  const [incidentTarget, setIncidentTarget] = useState<Reservation | null>(null);
+  const [incidentDescription, setIncidentDescription] = useState("");
+  const [incidentSeverity, setIncidentSeverity] = useState<IncidentSeverity>("LOW");
+  const [incidentSubmitting, setIncidentSubmitting] = useState(false);
+
+  const [compositeOpen, setCompositeOpen] = useState(false);
+  const [compositeForm, setCompositeForm] = useState<{
+    name: string;
+    description: string;
+    responsible_id: number | "";
+    accept_terms: boolean;
+    items: CompositeItemDraft[];
+  }>({
+    name: "",
+    description: "",
+    responsible_id: "",
+    accept_terms: false,
+    items: [],
+  });
+  const [compositeSubmitting, setCompositeSubmitting] = useState(false);
+  const [compositeError, setCompositeError] = useState("");
+
+  const isStaff =
+    currentUser?.roles.includes("admin") ||
+    currentUser?.roles.includes("manager") ||
+    currentUser?.roles.includes("technician");
+
   const handleAuthError = (message: string): boolean => {
     if (
       message.includes("Sua sessão expirou") ||
@@ -154,6 +226,40 @@ export default function ReservationsPage() {
       return true;
     }
     return false;
+  };
+
+  const openIncidentDialog = (reservation: Reservation) => {
+    setIncidentTarget(reservation);
+    setIncidentDescription("");
+    setIncidentSeverity("LOW");
+  };
+
+  const closeIncidentDialog = () => {
+    if (incidentSubmitting) return;
+    setIncidentTarget(null);
+    setIncidentDescription("");
+    setIncidentSeverity("LOW");
+  };
+
+  const handleIncidentSubmit = async () => {
+    if (!incidentTarget || !incidentDescription.trim()) return;
+    setIncidentSubmitting(true);
+    setError("");
+    try {
+      await incidentApi.create({
+        reservation_id: incidentTarget.id,
+        description: incidentDescription.trim(),
+        severity: incidentSeverity,
+      });
+      setSuccessMessage("Incidente registrado com sucesso.");
+      closeIncidentDialog();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Falha ao registrar incidente";
+      if (!handleAuthError(message)) setError(message);
+    } finally {
+      setIncidentSubmitting(false);
+    }
   };
 
   const loadReservations = async (month: Dayjs) => {
@@ -261,6 +367,10 @@ export default function ReservationsPage() {
       purpose: reservation.purpose,
       participant_count: reservation.participant_count,
       resource_ids: reservation.resources.map((r) => r.resource_id),
+      acceptTerms: false,
+      recurring: false,
+      recurrenceWeekdays: [],
+      recurrenceOccurrences: 4,
     });
     setFormError("");
     setFormConflicts([]);
@@ -282,6 +392,14 @@ export default function ReservationsPage() {
       return "Datas inválidas";
     if (!form.end_time.isAfter(form.start_time))
       return "O término deve ser depois do início";
+    if (editingId === null && !form.acceptTerms)
+      return "Aceite os termos de responsabilidade para continuar";
+    if (editingId === null && form.recurring) {
+      if (form.recurrenceWeekdays.length === 0)
+        return "Selecione ao menos um dia da semana";
+      if (form.recurrenceOccurrences < 1 || form.recurrenceOccurrences > 52)
+        return "Ocorrências deve estar entre 1 e 52";
+    }
     return null;
   };
 
@@ -308,8 +426,18 @@ export default function ReservationsPage() {
         end_time: form.end_time.toISOString(),
         purpose: form.purpose.trim(),
         participant_count: form.participant_count,
+        accept_terms: form.acceptTerms,
         resources: form.resource_ids.map((id) => ({ resource_id: id })),
         support: [],
+        ...(editingId === null && form.recurring
+          ? {
+              type: "RECURRING" as const,
+              recurrence: {
+                weekdays: form.recurrenceWeekdays,
+                occurrences: form.recurrenceOccurrences,
+              },
+            }
+          : {}),
       };
 
       if (editingId !== null) {
@@ -382,6 +510,93 @@ export default function ReservationsPage() {
     }
   };
 
+  const openCompositeDialog = () => {
+    const base = dayjs().add(1, "day");
+    setCompositeForm({
+      name: "",
+      description: "",
+      responsible_id: currentUser?.id ?? "",
+      accept_terms: false,
+      items: [buildEmptyCompositeItem(base), buildEmptyCompositeItem(base)],
+    });
+    setCompositeError("");
+    setCompositeOpen(true);
+  };
+
+  const closeCompositeDialog = () => {
+    setCompositeOpen(false);
+    setCompositeError("");
+  };
+
+  const handleCompositeSubmit = async () => {
+    if (!compositeForm.name.trim()) {
+      setCompositeError("Informe o nome da reserva composta");
+      return;
+    }
+    if (compositeForm.responsible_id === "") {
+      setCompositeError("Selecione o responsável");
+      return;
+    }
+    if (!compositeForm.accept_terms) {
+      setCompositeError("Aceite os termos de responsabilidade para continuar");
+      return;
+    }
+    if (compositeForm.items.length < 2) {
+      setCompositeError("A reserva composta deve ter ao menos 2 itens");
+      return;
+    }
+    for (let i = 0; i < compositeForm.items.length; i++) {
+      const item = compositeForm.items[i];
+      if (item.environment_id === "") {
+        setCompositeError(`Item ${i + 1}: selecione o ambiente`);
+        return;
+      }
+      if (!item.purpose.trim()) {
+        setCompositeError(`Item ${i + 1}: informe a finalidade`);
+        return;
+      }
+      if (!item.start_time.isValid() || !item.end_time.isValid()) {
+        setCompositeError(`Item ${i + 1}: datas inválidas`);
+        return;
+      }
+      if (!item.end_time.isAfter(item.start_time)) {
+        setCompositeError(`Item ${i + 1}: o término deve ser depois do início`);
+        return;
+      }
+    }
+
+    setCompositeSubmitting(true);
+    setCompositeError("");
+    try {
+      const payload: CompositeReservationCreate = {
+        name: compositeForm.name.trim(),
+        description: compositeForm.description.trim() || undefined,
+        responsible_id: Number(compositeForm.responsible_id),
+        accept_terms: compositeForm.accept_terms,
+        items: compositeForm.items.map((item) => ({
+          environment_id: Number(item.environment_id),
+          start_time: item.start_time.toISOString(),
+          end_time: item.end_time.toISOString(),
+          participant_count: item.participant_count,
+          purpose: item.purpose.trim(),
+          resources: item.resource_ids.map((id) => ({ resource_id: id })),
+          support: [],
+          critical: item.critical,
+        })),
+      };
+      await compositeApi.create(payload);
+      await loadReservations(visibleMonth);
+      setSuccessMessage("Reserva composta criada com sucesso");
+      closeCompositeDialog();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Falha ao criar reserva composta";
+      if (!handleAuthError(message)) setCompositeError(message);
+    } finally {
+      setCompositeSubmitting(false);
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box
@@ -410,6 +625,14 @@ export default function ReservationsPage() {
             disabled={!currentUser}
           >
             Nova reserva
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={openCompositeDialog}
+            disabled={!currentUser}
+          >
+            Nova composta
           </Button>
           <Button
             variant="outlined"
@@ -567,6 +790,80 @@ export default function ReservationsPage() {
                             Cancelar
                           </Button>
                         )}
+                        {reservation.status === "APPROVED" &&
+                          currentUser &&
+                          (currentUser.id === reservation.requester_id ||
+                            currentUser.id === reservation.responsible_id) && (
+                            <Button
+                              size="small"
+                              color="primary"
+                              startIcon={<LoginIcon />}
+                              onClick={async () => {
+                                try {
+                                  const updated = await reservationApi.checkin(
+                                    reservation.id
+                                  );
+                                  setReservations((prev) =>
+                                    prev.map((r) =>
+                                      r.id === updated.id ? updated : r
+                                    )
+                                  );
+                                  setSuccessMessage("Check-in registrado");
+                                } catch (err) {
+                                  const message =
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao registrar check-in";
+                                  if (!handleAuthError(message))
+                                    setError(message);
+                                }
+                              }}
+                            >
+                              Check-in
+                            </Button>
+                          )}
+                        {reservation.status === "IN_USE" &&
+                          currentUser &&
+                          (currentUser.id === reservation.requester_id ||
+                            currentUser.id === reservation.responsible_id) && (
+                            <Button
+                              size="small"
+                              color="primary"
+                              startIcon={<LogoutIcon />}
+                              onClick={async () => {
+                                try {
+                                  const updated = await reservationApi.checkout(
+                                    reservation.id
+                                  );
+                                  setReservations((prev) =>
+                                    prev.map((r) =>
+                                      r.id === updated.id ? updated : r
+                                    )
+                                  );
+                                  setSuccessMessage("Check-out registrado");
+                                } catch (err) {
+                                  const message =
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao registrar check-out";
+                                  if (!handleAuthError(message))
+                                    setError(message);
+                                }
+                              }}
+                            >
+                              Check-out
+                            </Button>
+                          )}
+                        {isStaff && (
+                          <Button
+                            size="small"
+                            color="warning"
+                            startIcon={<ReportProblemIcon />}
+                            onClick={() => openIncidentDialog(reservation)}
+                          >
+                            Incidente
+                          </Button>
+                        )}
                       </Stack>
                     </Stack>
                   </Paper>
@@ -692,6 +989,71 @@ export default function ReservationsPage() {
               <TextField {...params} label="Recursos" placeholder="Adicionar recurso" />
             )}
           />
+
+          {editingId === null && (
+            <>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={form.recurring}
+                    onChange={(e) =>
+                      setForm({ ...form, recurring: e.target.checked })
+                    }
+                  />
+                }
+                label="Recorrência semanal"
+              />
+              {form.recurring && (
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Dias da semana
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={form.recurrenceWeekdays}
+                      onChange={(_, value: number[]) =>
+                        setForm({ ...form, recurrenceWeekdays: value })
+                      }
+                      size="small"
+                    >
+                      {WEEKDAY_LABELS.map((label, idx) => (
+                        <ToggleButton key={idx} value={idx}>
+                          {label}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  </Box>
+                  <TextField
+                    type="number"
+                    label="Ocorrências"
+                    value={form.recurrenceOccurrences}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        recurrenceOccurrences: Math.max(
+                          1,
+                          Math.min(52, Number(e.target.value) || 1)
+                        ),
+                      })
+                    }
+                    slotProps={{ htmlInput: { min: 1, max: 52 } }}
+                    sx={{ width: 160 }}
+                  />
+                </Stack>
+              )}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={form.acceptTerms}
+                    onChange={(e) =>
+                      setForm({ ...form, acceptTerms: e.target.checked })
+                    }
+                  />
+                }
+                label="Aceito os termos de responsabilidade pelo uso do ambiente."
+              />
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeFormDialog}>Cancelar</Button>
@@ -743,6 +1105,331 @@ export default function ReservationsPage() {
             disabled={cancelling}
           >
             Confirmar cancelamento
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={compositeOpen}
+        onClose={closeCompositeDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Nova reserva composta</DialogTitle>
+        <DialogContent
+          sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}
+        >
+          {compositeError && (
+            <Alert severity="error">{compositeError}</Alert>
+          )}
+
+          <TextField
+            fullWidth
+            label="Nome da reserva composta"
+            value={compositeForm.name}
+            onChange={(e) =>
+              setCompositeForm({ ...compositeForm, name: e.target.value })
+            }
+            slotProps={{ htmlInput: { maxLength: 128 } }}
+          />
+
+          <TextField
+            fullWidth
+            label="Descrição (opcional)"
+            value={compositeForm.description}
+            onChange={(e) =>
+              setCompositeForm({
+                ...compositeForm,
+                description: e.target.value,
+              })
+            }
+            multiline
+            minRows={2}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel id="composite-responsible-label">Responsável</InputLabel>
+            <Select
+              labelId="composite-responsible-label"
+              label="Responsável"
+              value={compositeForm.responsible_id}
+              onChange={(e) =>
+                setCompositeForm({
+                  ...compositeForm,
+                  responsible_id: Number(e.target.value),
+                })
+              }
+            >
+              {users.map((u) => (
+                <MenuItem key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Divider />
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Itens da reserva composta
+          </Typography>
+
+          {compositeForm.items.map((item, idx) => (
+            <Paper key={idx} variant="outlined" sx={{ p: 2 }}>
+              <Stack spacing={2}>
+                <Stack
+                  direction="row"
+                  sx={{ justifyContent: "space-between", alignItems: "center" }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Item {idx + 1}
+                  </Typography>
+                  {compositeForm.items.length > 2 && (
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() =>
+                        setCompositeForm({
+                          ...compositeForm,
+                          items: compositeForm.items.filter((_, i) => i !== idx),
+                        })
+                      }
+                      aria-label="Remover item"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Stack>
+
+                <FormControl fullWidth>
+                  <InputLabel id={`composite-env-label-${idx}`}>Ambiente</InputLabel>
+                  <Select
+                    labelId={`composite-env-label-${idx}`}
+                    label="Ambiente"
+                    value={item.environment_id}
+                    onChange={(e) => {
+                      const updated = [...compositeForm.items];
+                      updated[idx] = {
+                        ...updated[idx],
+                        environment_id: Number(e.target.value),
+                      };
+                      setCompositeForm({ ...compositeForm, items: updated });
+                    }}
+                  >
+                    {environments.map((env) => (
+                      <MenuItem key={env.id} value={env.id}>
+                        {env.name} · cap. {env.capacity}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <DateTimePicker
+                    label="Início"
+                    value={item.start_time}
+                    onChange={(value) => {
+                      if (!value) return;
+                      const updated = [...compositeForm.items];
+                      updated[idx] = { ...updated[idx], start_time: value };
+                      setCompositeForm({ ...compositeForm, items: updated });
+                    }}
+                    sx={{ flex: 1 }}
+                  />
+                  <DateTimePicker
+                    label="Término"
+                    value={item.end_time}
+                    onChange={(value) => {
+                      if (!value) return;
+                      const updated = [...compositeForm.items];
+                      updated[idx] = { ...updated[idx], end_time: value };
+                      setCompositeForm({ ...compositeForm, items: updated });
+                    }}
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+
+                <TextField
+                  fullWidth
+                  label="Finalidade"
+                  value={item.purpose}
+                  onChange={(e) => {
+                    const updated = [...compositeForm.items];
+                    updated[idx] = { ...updated[idx], purpose: e.target.value };
+                    setCompositeForm({ ...compositeForm, items: updated });
+                  }}
+                  slotProps={{ htmlInput: { maxLength: 128 } }}
+                />
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Participantes"
+                  value={item.participant_count}
+                  onChange={(e) => {
+                    const updated = [...compositeForm.items];
+                    updated[idx] = {
+                      ...updated[idx],
+                      participant_count: Math.max(1, Number(e.target.value) || 1),
+                    };
+                    setCompositeForm({ ...compositeForm, items: updated });
+                  }}
+                  slotProps={{ htmlInput: { min: 1 } }}
+                />
+
+                <Autocomplete
+                  multiple
+                  options={resources}
+                  getOptionLabel={(option) => `${option.name} · ${option.type}`}
+                  value={resources.filter((r) =>
+                    item.resource_ids.includes(r.id)
+                  )}
+                  onChange={(_, value) => {
+                    const updated = [...compositeForm.items];
+                    updated[idx] = {
+                      ...updated[idx],
+                      resource_ids: value.map((v) => v.id),
+                    };
+                    setCompositeForm({ ...compositeForm, items: updated });
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Recursos"
+                      placeholder="Adicionar recurso"
+                    />
+                  )}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={item.critical}
+                      onChange={(e) => {
+                        const updated = [...compositeForm.items];
+                        updated[idx] = {
+                          ...updated[idx],
+                          critical: e.target.checked,
+                        };
+                        setCompositeForm({ ...compositeForm, items: updated });
+                      }}
+                    />
+                  }
+                  label="Item crítico"
+                />
+              </Stack>
+            </Paper>
+          ))}
+
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              const base = dayjs().add(1, "day");
+              setCompositeForm({
+                ...compositeForm,
+                items: [
+                  ...compositeForm.items,
+                  buildEmptyCompositeItem(base),
+                ],
+              });
+            }}
+          >
+            Adicionar item
+          </Button>
+
+          <Divider />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={compositeForm.accept_terms}
+                onChange={(e) =>
+                  setCompositeForm({
+                    ...compositeForm,
+                    accept_terms: e.target.checked,
+                  })
+                }
+              />
+            }
+            label="Aceito os termos de responsabilidade pelo uso dos ambientes."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCompositeDialog}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleCompositeSubmit}
+            disabled={compositeSubmitting}
+          >
+            Criar composta
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Incident Dialog */}
+      <Dialog
+        open={incidentTarget !== null}
+        onClose={closeIncidentDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Registrar incidente</DialogTitle>
+        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          {incidentTarget && (
+            <Typography variant="body2" color="text.secondary">
+              Reserva #{incidentTarget.id} —{" "}
+              {environmentById.get(incidentTarget.environment_id)?.name ?? "Ambiente"}
+              {" · "}
+              {dayjs(incidentTarget.start_time).format("DD/MM/YYYY HH:mm")}
+            </Typography>
+          )}
+          <FormControl fullWidth required>
+            <InputLabel id="incident-severity-dlg-label">Severidade *</InputLabel>
+            <Select
+              labelId="incident-severity-dlg-label"
+              label="Severidade *"
+              value={incidentSeverity}
+              onChange={(e) =>
+                setIncidentSeverity(e.target.value as IncidentSeverity)
+              }
+            >
+              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as IncidentSeverity[]).map((s) => {
+                const labels: Record<IncidentSeverity, string> = {
+                  LOW: "Baixa",
+                  MEDIUM: "Média",
+                  HIGH: "Alta",
+                  CRITICAL: "Crítica",
+                };
+                return (
+                  <MenuItem key={s} value={s}>
+                    {labels[s]}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Descrição *"
+            multiline
+            rows={4}
+            value={incidentDescription}
+            onChange={(e) => setIncidentDescription(e.target.value)}
+            fullWidth
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeIncidentDialog} disabled={incidentSubmitting} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={handleIncidentSubmit}
+            disabled={incidentSubmitting || !incidentDescription.trim()}
+          >
+            {incidentSubmitting ? "Aguarde..." : "Registrar"}
           </Button>
         </DialogActions>
       </Dialog>

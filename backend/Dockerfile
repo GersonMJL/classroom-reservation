@@ -13,4 +13,8 @@ RUN uv sync --frozen --no-cache
 
 COPY . .
 
-CMD ["/opt/venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN chmod +x /app/start.sh
+
+EXPOSE 8000
+
+CMD ["/app/start.sh"]

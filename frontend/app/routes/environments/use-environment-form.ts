@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { environmentApi, locationApi } from "../../services/api";
 import type { Environment, EnvironmentCreate, Location } from "../../services/api";
+import { useToast } from "../../ui/useToast";
 
 const initialFormData: EnvironmentCreate = {
   name: "",
@@ -19,12 +20,14 @@ type UseEnvironmentFormArgs = {
 };
 
 export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: UseEnvironmentFormArgs) {
+  const toast = useToast();
   const [openEnvironmentDialog, setOpenEnvironmentDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEnvironmentId, setEditingEnvironmentId] = useState<number | null>(null);
   const [formData, setFormData] = useState<EnvironmentCreate>(initialFormData);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const loadLocations = async () => {
     setLoadingLocations(true);
@@ -37,7 +40,9 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
         ));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar localizações");
+      const msg = err instanceof Error ? err.message : "Falha ao carregar localizações";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoadingLocations(false);
     }
@@ -87,44 +92,58 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
   const handleSaveEnvironment = async () => {
     if (!formData.name.trim()) {
-      setError("Nome do ambiente e obrigatorio");
+      const msg = "Nome do ambiente é obrigatório";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (!formData.type.trim()) {
-      setError("Tipo de ambiente é obrigatório");
+      const msg = "Tipo de ambiente é obrigatório";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (formData.location_id <= 0) {
-      setError("Selecione uma localização válida");
+      const msg = "Selecione uma localização válida";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (formData.capacity <= 0) {
-      setError("Capacidade deve ser maior que 0");
+      const msg = "Capacidade deve ser maior que 0";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     if (!formData.operating_hours.trim()) {
-      setError("Horario de funcionamento e obrigatorio");
+      const msg = "Horário de funcionamento é obrigatório";
+      toast.error(msg);
+      setError(msg);
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       if (isEditMode && editingEnvironmentId !== null) {
         await environmentApi.updateRoom(editingEnvironmentId, formData);
+        toast.success("Ambiente atualizado.");
       } else {
         await environmentApi.createRoom(formData);
+        toast.success("Ambiente salvo.");
       }
 
       closeEnvironmentDialog();
       setError("");
+      setLoading(true);
       await loadEnvironments();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : `Falha ao ${isEditMode ? "atualizar" : "criar"} ambiente`
-      );
+      const msg = err instanceof Error
+        ? err.message
+        : `Falha ao ${isEditMode ? "atualizar" : "criar"} ambiente`;
+      setError(msg);
+      toast.error(msg);
     } finally {
+      setSubmitting(false);
       setLoading(false);
     }
   };
@@ -135,6 +154,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     formData,
     locations,
     loadingLocations,
+    submitting,
     setFormData,
     openCreateDialog,
     openEditDialog,

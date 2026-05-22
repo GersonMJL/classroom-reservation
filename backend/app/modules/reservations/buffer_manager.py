@@ -5,7 +5,7 @@ Em Fase 2 esta função existe mas não é chamada — reservas nascem em
 efetivamente aprovada (Fase 3, fluxo de aprovação).
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -82,3 +82,23 @@ def _ensure_block(
     )
     session.add(block)
     return block
+
+
+def release_buffer_early(
+    *,
+    buffer_block: CalendarBlock,
+    session: Session,
+    released_by_user_id: int,
+    notes: str | None,
+) -> CalendarBlock:
+    """Encurta o CalendarBlock BUFFER para o instante atual.
+
+    Idempotente: se ``now`` já passou de ``end_time`` ou ainda não chegou ao
+    ``start_time``, retorna o bloco inalterado.
+    """
+    now = datetime.now(buffer_block.start_time.tzinfo)
+    if now <= buffer_block.start_time or now >= buffer_block.end_time:
+        return buffer_block
+    buffer_block.end_time = now
+    session.flush()
+    return buffer_block

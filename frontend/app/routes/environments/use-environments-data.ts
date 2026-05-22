@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { environmentApi, hasValidAccessToken } from "../../services/api";
 import type { Environment } from "../../services/api";
+import { useToast } from "../../ui/useToast";
 import type { EnvironmentSearchType } from "./types";
 
 export function useEnvironmentsData() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +45,9 @@ export function useEnvironmentsData() {
       setEnvironments(data);
       setCurrentPage(page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar ambientes");
+      const msg = err instanceof Error ? err.message : "Falha ao carregar ambientes";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -58,9 +62,12 @@ export function useEnvironmentsData() {
       setLoading(true);
       try {
         await environmentApi.deleteRoom(environmentId);
-        loadEnvironments();
+        toast.success("Ambiente excluído.");
+        await loadEnvironments();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha ao excluir ambiente");
+        const msg = err instanceof Error ? err.message : "Falha ao excluir ambiente";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -69,27 +76,42 @@ export function useEnvironmentsData() {
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
-      setError("Informe um valor para pesquisa");
+      const msg = "Informe um valor para pesquisa";
+      toast.error(msg);
+      setError(msg);
       return;
+    }
+
+    let parsedCapacity: number | undefined;
+    let parsedLocationId: number | undefined;
+
+    if (searchType === "capacity") {
+      const capacity = parseInt(searchValue, 10);
+      if (isNaN(capacity) || capacity <= 0) {
+        const msg = "Informe um número de capacidade válido";
+        toast.error(msg);
+        setError(msg);
+        return;
+      }
+      parsedCapacity = capacity;
+    } else if (searchType === "location_id") {
+      const locationId = parseInt(searchValue, 10);
+      if (isNaN(locationId) || locationId <= 0) {
+        const msg = "Informe um ID de localização válido";
+        toast.error(msg);
+        setError(msg);
+        return;
+      }
+      parsedLocationId = locationId;
     }
 
     setLoading(true);
     try {
       let results: Environment[] = [];
       if (searchType === "capacity") {
-        const capacity = parseInt(searchValue, 10);
-        if (isNaN(capacity) || capacity <= 0) {
-          setError("Informe um número de capacidade válido");
-          return;
-        }
-        results = await environmentApi.searchByCapacity(capacity);
+        results = await environmentApi.searchByCapacity(parsedCapacity!);
       } else if (searchType === "location_id") {
-        const locationId = parseInt(searchValue, 10);
-        if (isNaN(locationId) || locationId <= 0) {
-          setError("Informe um ID de localizacao valido");
-          return;
-        }
-        results = await environmentApi.searchByLocation(locationId);
+        results = await environmentApi.searchByLocation(parsedLocationId!);
       } else {
         const all = await environmentApi.getAllRooms(0, 500);
         const normalized = searchValue.trim().toUpperCase();
@@ -110,7 +132,9 @@ export function useEnvironmentsData() {
       setOpenSearchDialog(false);
       setSearchValue("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha na pesquisa");
+      const msg = err instanceof Error ? err.message : "Falha na pesquisa";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }

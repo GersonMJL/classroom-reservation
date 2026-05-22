@@ -29,6 +29,13 @@ class ReservationSupportRead(BaseModel):
     responsible_staff_id: int | None = None
 
 
+class RecurrenceSpec(BaseModel):
+    """Recorrência semanal simples: dias da semana (0=segunda) e número de ocorrências."""
+
+    weekdays: list[int] = Field(min_length=1)
+    occurrences: int = Field(gt=0, le=52)
+
+
 class ReservationBase(BaseModel):
     environment_id: int = Field(gt=0)
     requester_id: int = Field(gt=0)
@@ -43,14 +50,37 @@ class ReservationBase(BaseModel):
     def _validate_window_and_type(self) -> "ReservationBase":
         if self.end_time <= self.start_time:
             raise ValueError("end_time deve ser maior que start_time")
-        if self.type is not ReservationType.SIMPLE:
-            raise ValueError("Apenas reservas do tipo SIMPLE são aceitas nesta versão")
+        if self.type in (
+            ReservationType.COMPOSITE_PARENT,
+            ReservationType.COMPOSITE_CHILD,
+        ):
+            raise ValueError(
+                "Reservas compostas devem ser criadas via /api/v1/reservas/compostas"
+            )
         return self
 
 
 class ReservationCreate(ReservationBase):
     resources: list[ReservationResourceCreate] = Field(default_factory=list)
     support: list[ReservationSupportCreate] = Field(default_factory=list)
+    accept_terms: bool = Field(default=False)
+    recurrence: RecurrenceSpec | None = None
+
+    @model_validator(mode="after")
+    def _require_terms(self) -> "ReservationCreate":
+        if not self.accept_terms:
+            raise ValueError(
+                "Aceite dos termos de responsabilidade é obrigatório (regra 6.4)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_recurrence(self) -> "ReservationCreate":
+        if self.recurrence is not None and self.type is not ReservationType.RECURRING:
+            raise ValueError("recurrence requer type=RECURRING")
+        if self.type is ReservationType.RECURRING and self.recurrence is None:
+            raise ValueError("type=RECURRING requer recurrence")
+        return self
 
 
 class ReservationUpdate(BaseModel):
@@ -89,9 +119,65 @@ class ReservationRead(BaseModel):
     participant_count: int
     checkin_at: datetime | None = None
     checkout_at: datetime | None = None
+    terms_accepted_at: datetime | None = None
     resources: list[ReservationResourceRead] = Field(default_factory=list)
     support: list[ReservationSupportRead] = Field(default_factory=list)
 
 
 class ReservationCancel(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
+
+
+class ReservationDecision(BaseModel):
+    comments: str | None = Field(default=None, max_length=1000)
+
+
+class CompositeItemCreate(BaseModel):
+    environment_id: int = Field(gt=0)
+    start_time: datetime
+    end_time: datetime
+    participant_count: int = Field(ge=1)
+    purpose: str = Field(min_length=1, max_length=128)
+    resources: list[ReservationResourceCreate] = Field(default_factory=list)
+    support: list[ReservationSupportCreate] = Field(default_factory=list)
+    critical: bool = False
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "CompositeItemCreate":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time deve ser maior que start_time")
+        return self
+
+
+class CompositeReservationCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    responsible_id: int = Field(gt=0)
+    accept_terms: bool = Field(default=False)
+    items: list[CompositeItemCreate] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _require_terms(self) -> "CompositeReservationCreate":
+        if not self.accept_terms:
+            raise ValueError(
+                "Aceite dos termos de responsabilidade é obrigatório (regra 6.4)"
+            )
+        return self
+
+
+class CompositeItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    reservation_id: int
+    critical: bool
+    order: int
+
+
+class CompositeReservationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None = None
+    items: list[CompositeItemRead] = Field(default_factory=list)

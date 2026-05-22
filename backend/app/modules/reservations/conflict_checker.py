@@ -1,18 +1,27 @@
 """Validação centralizada de conflitos e restrições para criação/edição de reservas.
 
-Fora de escopo nesta versão (Fase 2): qualificação do solicitante,
-fechamento institucional (CalendarBlock CLOSURE) e disponibilidade de
-equipe de suporte. Marcados com ``# TODO`` para fases posteriores.
+Bloqueios de calendário (``CalendarBlock``) de qualquer tipo exceto ``BUFFER``
+geram conflito ``CALENDAR_BLOCK``. ``BUFFER`` é excluído para que a
+edição de uma reserva não colida com seus próprios buffers gerados.
+
+Qualificação do solicitante gera ``QUALIFICATION``.
+Disponibilidade de equipe de suporte gera ``SUPPORT_UNAVAILABLE`` (conflito suave;
+não bloqueia criação mas força status PENDING_APPROVAL).
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from sqlalchemy import select
+
 from app.modules.environments.models import Environment
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
+from app.shared.enums import CalendarBlockType, SupportType
 
-ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV
+ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV | QUALIFICATION | SUPPORT_UNAVAILABLE | CALENDAR_BLOCK
+
+SUPPORT_UNAVAILABLE = "SUPPORT_UNAVAILABLE"
 
 
 @dataclass(frozen=True)
@@ -41,7 +50,9 @@ def check_reservation(
     end: datetime,
     participant_count: int,
     resource_ids: list[int],
+    requester_id: int,
     requester_role_ids: list[int] | None = None,
+    required_support: list[SupportType] | None = None,
     exclude_id: int | None = None,
     now: datetime | None = None,
 ) -> ConflictReport:
@@ -93,9 +104,51 @@ def check_reservation(
                 f"({clash.start_time:%d/%m/%Y %H:%M} – {clash.end_time:%H:%M})",
             )
 
-    # TODO Fase posterior: qualificações do solicitante (EnvironmentRequirement)
-    # TODO Fase posterior: CalendarBlock CLOSURE / HOLIDAY / ADMIN_BLOCK
-    # TODO Fase posterior: disponibilidade de equipe de suporte
+    required_qual_ids = [r.qualification_id for r in environment.requirements]
+    if required_qual_ids:
+        from app.modules.qualifications.models import UserQualification
+
+        held = (
+            repository.db.execute(
+                select(UserQualification.qualification_id)
+                .where(UserQualification.user_id == requester_id)
+                .where(UserQualification.qualification_id.in_(required_qual_ids))
+            )
+            .scalars()
+            .all()
+        )
+        missing = set(required_qual_ids) - set(held)
+        if missing:
+            report.add(
+                "QUALIFICATION",
+                f"Solicitante não possui qualificações exigidas: {sorted(missing)}",
+            )
+
+    if required_support:
+        # One DB round-trip covers all requested types: the current schema does not
+        # differentiate technicians by support_type, so availability is all-or-nothing.
+        technician_available = repository.has_technician_available(
+            support_type=required_support[0], start=start, end=end
+        )
+        if not technician_available:
+            for support_type in required_support:
+                report.add(
+                    SUPPORT_UNAVAILABLE,
+                    f"Sem técnico disponível para {support_type.value}",
+                )
+
+    blocks = repository.get_calendar_blocks_overlapping(
+        environment_id=environment.id,
+        start=start,
+        end=end,
+        exclude_types=(CalendarBlockType.BUFFER,),
+    )
+    for block in blocks:
+        report.add(
+            "CALENDAR_BLOCK",
+            f"Bloqueio {block.type} de {block.start_time:%d/%m/%Y %H:%M} "
+            f"a {block.end_time:%H:%M}",
+        )
 
     return report
 

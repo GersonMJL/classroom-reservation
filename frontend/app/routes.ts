@@ -11,5 +11,10 @@ export default [
   route("organizational-units", "routes/organizational-units.tsx"),
   route("qualifications", "routes/qualifications.tsx"),
   route("reservas", "routes/reservations.tsx"),
+  route("aprovacoes", "routes/approvals.tsx"),
+  route("auditoria", "routes/audit.tsx"),
+  route("bloqueios", "routes/calendar-blocks.tsx"),
+  route("penalidades", "routes/penalties.tsx"),
+  route("incidentes", "routes/incidents.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

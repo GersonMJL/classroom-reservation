@@ -1,5 +1,6 @@
 // API configuration and utilities
-const API_BASE_URL = "http://localhost:8000/api/v1";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export interface RoomResourceAssignment {
   resource_id: number;
@@ -776,6 +777,11 @@ export type ReservationType =
   | "COMPOSITE_PARENT"
   | "COMPOSITE_CHILD";
 
+export interface RecurrenceSpec {
+  weekdays: number[];
+  occurrences: number;
+}
+
 export type SupportType =
   | "IT_SUPPORT"
   | "AUDIOVISUAL"
@@ -807,6 +813,7 @@ export interface Reservation {
   participant_count: number;
   checkin_at: string | null;
   checkout_at: string | null;
+  terms_accepted_at?: string | null;
   resources: ReservationResourceRead[];
   support: ReservationSupportRead[];
 }
@@ -828,7 +835,9 @@ export interface ReservationCreate {
   end_time: string;
   purpose: string;
   participant_count: number;
+  accept_terms: boolean;
   type?: ReservationType;
+  recurrence?: RecurrenceSpec | null;
   resources?: ReservationResourceCreate[];
   support?: ReservationSupportCreate[];
 }
@@ -893,6 +902,10 @@ const parseReservationError = async (
     return fallbackMessage;
   }
 };
+
+export interface ReservationDecisionInput {
+  comments?: string;
+}
 
 export interface ReservationListParams {
   skip?: number;
@@ -991,6 +1004,325 @@ export const reservationApi = {
     }
     return response.json() as Promise<Reservation>;
   },
+
+  async listPending(skip = 0, limit = 100): Promise<Reservation[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/pendentes/lista?skip=${skip}&limit=${limit}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao listar reservas pendentes"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation[]>;
+  },
+
+  async approve(id: number, comments?: string): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/aprovar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comments } satisfies ReservationDecisionInput),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao aprovar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async reject(id: number, comments: string): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/rejeitar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comments } satisfies ReservationDecisionInput),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao rejeitar reserva"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async checkin(id: number): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/checkin`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao registrar check-in"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+
+  async checkout(id: number): Promise<Reservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/${id}/checkout`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao registrar check-out"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Reservation>;
+  },
+};
+
+export interface CompositeItemInput {
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  participant_count: number;
+  purpose: string;
+  resources: ReservationResourceCreate[];
+  support: { support_type: string; responsible_staff_id?: number | null }[];
+  critical: boolean;
+}
+
+export interface CompositeReservationCreate {
+  name: string;
+  description?: string;
+  responsible_id: number;
+  accept_terms: boolean;
+  items: CompositeItemInput[];
+}
+
+export interface CompositeItem {
+  id: number;
+  reservation_id: number;
+  critical: boolean;
+  order: number;
+}
+
+export interface CompositeReservation {
+  id: number;
+  name: string;
+  description: string | null;
+  items: CompositeItem[];
+}
+
+export const compositeApi = {
+  async create(payload: CompositeReservationCreate): Promise<CompositeReservation> {
+    const response = await fetch(`${API_BASE_URL}/reservas/compostas`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao criar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
+  async cancelItem(
+    compositeId: number,
+    reservationId: number,
+    reason: string,
+  ): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/compostas/${compositeId}/itens/${reservationId}/cancelar`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao cancelar item da composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+};
+
+export type AuditAction =
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "APPROVE"
+  | "REJECT"
+  | "CANCEL"
+  | "CHECKIN"
+  | "CHECKOUT"
+  | "ASSIGN_RESOURCE"
+  | "REMOVE_RESOURCE";
+
+export interface AuditRecord {
+  id: number;
+  entity_type: string;
+  target_id: number;
+  action: AuditAction;
+  performed_by: number;
+  performed_at: string;
+  before_state: string | null;
+  after_state: string | null;
+}
+
+export interface AuditListFilters {
+  entity_type?: string;
+  target_id?: number;
+  action?: AuditAction;
+  start?: string;
+  end?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export const auditApi = {
+  async list(filters: AuditListFilters = {}): Promise<AuditRecord[]> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === "") return;
+      params.set(k, String(v));
+    });
+    const response = await fetch(
+      `${API_BASE_URL}/audit-records${params.toString() ? `?${params}` : ""}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthTokens();
+        throw new Error("Sua sessão expirou. Faça login novamente.");
+      }
+      let message = "Falha ao consultar auditoria";
+      try {
+        const body = (await response.json()) as { detail?: string };
+        if (typeof body.detail === "string") message = body.detail;
+      } catch {
+        // ignore parse failure
+      }
+      throw new Error(message);
+    }
+    return response.json() as Promise<AuditRecord[]>;
+  },
+};
+
+export type CalendarBlockType =
+  | "ADMIN_BLOCK"
+  | "MAINTENANCE"
+  | "RECURRING_EVENT"
+  | "BUFFER"
+  | "HOLIDAY"
+  | "CLOSURE";
+
+export type CalendarBlockPriority = "CRITICAL" | "HIGH" | "NORMAL" | "LOW";
+
+export interface CalendarBlock {
+  id: number;
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  type: CalendarBlockType;
+  priority: string;
+}
+
+export interface CalendarBlockCreate {
+  environment_id: number;
+  start_time: string;
+  end_time: string;
+  type: CalendarBlockType;
+  priority?: string;
+}
+
+export type CalendarBlockUpdate = Partial<CalendarBlockCreate>;
+
+const _calendarBlockError = async (
+  response: Response,
+  fallback: string
+): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const calendarBlockApi = {
+  async list(environmentId?: number): Promise<CalendarBlock[]> {
+    const url = new URL(`${API_BASE_URL}/calendar-blocks`);
+    if (environmentId !== undefined) {
+      url.searchParams.set("environment_id", String(environmentId));
+    }
+    url.searchParams.set("limit", "500");
+    const response = await fetch(url.toString(), { headers: getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao listar bloqueios"));
+    }
+    return response.json() as Promise<CalendarBlock[]>;
+  },
+
+  async create(payload: CalendarBlockCreate): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao criar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
+
+  async update(id: number, payload: CalendarBlockUpdate): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao atualizar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
+
+  async remove(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao remover bloqueio"));
+    }
+  },
+
+  async releaseEarly(id: number): Promise<CalendarBlock> {
+    const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}/liberar`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(await _calendarBlockError(response, "Falha ao liberar bloqueio"));
+    }
+    return response.json() as Promise<CalendarBlock>;
+  },
 };
 
 export const getTokenRoles = (): string[] => {
@@ -1011,4 +1343,162 @@ export const getTokenRoles = (): string[] => {
   return Array.isArray(payload.roles)
     ? payload.roles.filter((role): role is string => typeof role === "string")
     : [];
+};
+
+// ========== Penalidades & Recursos (Governance) ==========
+
+export type PenaltyType =
+  | "NO_SHOW"
+  | "LATE_CANCELLATION"
+  | "DAMAGE"
+  | "MISUSE"
+  | "OVERTIME"
+  | "SAFETY_VIOLATION";
+
+export type PenaltyStatus =
+  | "PENDING"
+  | "APPLIED"
+  | "WAIVED"
+  | "UNDER_APPEAL"
+  | "RESOLVED";
+
+export type AppealStatus = "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED";
+
+export interface Penalty {
+  id: number;
+  user_id: number;
+  reservation_id: number;
+  type: PenaltyType;
+  status: PenaltyStatus;
+  description: string;
+  duration_days: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  applied_by: number | null;
+}
+
+export interface PenaltyManualCreate {
+  user_id: number;
+  reservation_id: number;
+  type: PenaltyType;
+  description: string;
+  duration_days?: number;
+}
+
+export interface Appeal {
+  id: number;
+  penalty_id: number;
+  status: AppealStatus;
+  resolution_notes: string | null;
+}
+
+const _governanceError = async (response: Response, fallback: string): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const penaltyApi = {
+  async list(filters: { user_id?: number; skip?: number; limit?: number } = {}): Promise<Penalty[]> {
+    const params = new URLSearchParams();
+    if (filters.user_id !== undefined) params.set("user_id", String(filters.user_id));
+    if (filters.skip !== undefined) params.set("skip", String(filters.skip));
+    if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+    const url = `${API_BASE_URL}/governance/penalidades${params.toString() ? `?${params}` : ""}`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao listar penalidades"));
+    return response.json() as Promise<Penalty[]>;
+  },
+  async createManual(payload: PenaltyManualCreate): Promise<Penalty> {
+    const response = await fetch(`${API_BASE_URL}/governance/penalidades`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao criar penalidade"));
+    return response.json() as Promise<Penalty>;
+  },
+};
+
+export const appealApi = {
+  async submit(penalty_id: number, justification: string): Promise<Appeal> {
+    const response = await fetch(`${API_BASE_URL}/governance/appeals`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ penalty_id, justification }),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao submeter recurso"));
+    return response.json() as Promise<Appeal>;
+  },
+  async resolve(appealId: number, approve: boolean, resolution_notes: string): Promise<Appeal> {
+    const response = await fetch(`${API_BASE_URL}/governance/appeals/${appealId}/resolver`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ approve, resolution_notes }),
+    });
+    if (!response.ok) throw new Error(await _governanceError(response, "Falha ao resolver recurso"));
+    return response.json() as Promise<Appeal>;
+  },
+};
+
+// ========== Incidentes (Operations) ==========
+
+export type IncidentSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface Incident {
+  id: number;
+  reservation_id: number;
+  description: string;
+  severity: IncidentSeverity;
+  reported_at: string;
+}
+
+export interface IncidentCreate {
+  reservation_id: number;
+  description: string;
+  severity: IncidentSeverity;
+}
+
+const _opsError = async (response: Response, fallback: string): Promise<string> => {
+  if (response.status === 401) {
+    clearAuthTokens();
+    return "Sua sessão expirou. Faça login novamente.";
+  }
+  try {
+    const body = (await response.json()) as { detail?: string };
+    if (typeof body.detail === "string") return body.detail;
+  } catch {
+    // ignore
+  }
+  return fallback;
+};
+
+export const incidentApi = {
+  async list(reservationId?: number): Promise<Incident[]> {
+    const params = new URLSearchParams();
+    params.set("limit", "200");
+    if (reservationId !== undefined) params.set("reservation_id", String(reservationId));
+    const response = await fetch(`${API_BASE_URL}/operations/incidentes?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error(await _opsError(response, "Falha ao listar incidentes"));
+    return response.json() as Promise<Incident[]>;
+  },
+  async create(payload: IncidentCreate): Promise<Incident> {
+    const response = await fetch(`${API_BASE_URL}/operations/incidentes`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(await _opsError(response, "Falha ao registrar incidente"));
+    return response.json() as Promise<Incident>;
+  },
 };

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { API_BASE_URL } from "../services/api";
 import {
   Avatar,
   Box,
@@ -73,7 +74,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/v1/users/register", {
+      const response = await fetch(`${API_BASE_URL}/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

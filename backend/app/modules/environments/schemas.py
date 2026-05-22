@@ -1,6 +1,8 @@
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
 
-from app.shared.enums import EnvironmentCriticality, EnvironmentType
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.shared.enums import CalendarBlockType, EnvironmentCriticality, EnvironmentType
 
 
 class EnvironmentBase(BaseModel):
@@ -13,6 +15,7 @@ class EnvironmentBase(BaseModel):
     requires_approval: bool = False
     buffer_before_min: int = Field(default=0, ge=0)
     buffer_after_min: int = Field(default=0, ge=0)
+    noshow_tolerance_min: int = Field(default=15, ge=0)
     active: bool = True
 
 
@@ -30,6 +33,7 @@ class EnvironmentUpdate(BaseModel):
     requires_approval: bool | None = None
     buffer_before_min: int | None = Field(default=None, ge=0)
     buffer_after_min: int | None = Field(default=None, ge=0)
+    noshow_tolerance_min: int | None = Field(default=None, ge=0)
     active: bool | None = None
 
 
@@ -51,6 +55,37 @@ class ReservationPolicyCreate(ReservationPolicyBase):
 
 
 class ReservationPolicyRead(ReservationPolicyBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class CalendarBlockBase(BaseModel):
+    environment_id: int = Field(gt=0)
+    start_time: datetime
+    end_time: datetime
+    type: CalendarBlockType
+    priority: str = Field(default="NORMAL", max_length=64)
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "CalendarBlockBase":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time deve ser maior que start_time")
+        return self
+
+
+class CalendarBlockCreate(CalendarBlockBase):
+    pass
+
+
+class CalendarBlockUpdate(BaseModel):
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    type: CalendarBlockType | None = None
+    priority: str | None = Field(default=None, max_length=64)
+
+
+class CalendarBlockRead(CalendarBlockBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

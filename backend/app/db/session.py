@@ -8,7 +8,12 @@ from app.core.config import get_settings
 settings = get_settings()
 
 engine = create_engine(
-    settings.database_url, echo=settings.sqlalchemy_echo, future=True
+    settings.database_url,
+    echo=settings.sqlalchemy_echo,
+    future=True,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=5,
 )
 session_factory = sessionmaker(
     bind=engine, autoflush=False, autocommit=False, expire_on_commit=False

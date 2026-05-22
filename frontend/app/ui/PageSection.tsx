@@ -12,7 +12,7 @@ export function PageSection({ title, description, children, padded = true }: Pro
   return (
     <Paper
       elevation={0}
-      sx={{ p: padded ? { xs: 2, md: 3 } : 0, mb: 3, borderRadius: 2, overflow: "hidden" }}
+      sx={{ p: padded ? { xs: 2, md: 3 } : 0, mb: 3, overflow: "hidden" }}
     >
       {(title || description) && (
         <Box sx={{ mb: 2 }}>

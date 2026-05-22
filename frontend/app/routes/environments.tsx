@@ -75,6 +75,7 @@ export default function EnvironmentsManagement() {
                     onEditEnvironment={openEditDialog}
                     onDeleteEnvironment={handleDeleteEnvironment}
                     onPageChange={loadEnvironments}
+                    onOpenCreate={openCreateDialog}
                 />
             </PageSection>
 

@@ -1,6 +1,7 @@
 import { Box, Button, Chip, Pagination, Stack } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import type { Environment } from "../../services/api";
 import { DataTable, type Column } from "~/ui";
 
@@ -13,6 +14,7 @@ type EnvironmentsTableProps = {
   onEditEnvironment: (environment: Environment) => void;
   onDeleteEnvironment: (environmentId: number) => void;
   onPageChange: (page: number) => void;
+  onOpenCreate?: () => void;
 };
 
 export function EnvironmentsTable({
@@ -24,6 +26,7 @@ export function EnvironmentsTable({
   onEditEnvironment,
   onDeleteEnvironment,
   onPageChange,
+  onOpenCreate,
 }: EnvironmentsTableProps) {
   const columns: Column<Environment>[] = [
     { key: "name", header: "Nome", cell: (e) => <span style={{ fontWeight: 500 }}>{e.name}</span> },
@@ -82,6 +85,13 @@ export function EnvironmentsTable({
         getRowKey={(e) => e.id}
         emptyTitle="Nenhum ambiente cadastrado"
         emptyDescription="Crie o primeiro ambiente para começar a permitir reservas."
+        emptyAction={
+          isAdmin && onOpenCreate ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onOpenCreate}>
+              Novo ambiente
+            </Button>
+          ) : null
+        }
       />
 
       {!loading && environments.length > 0 && (

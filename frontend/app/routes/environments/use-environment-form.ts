@@ -39,7 +39,9 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
         ));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar localizações");
+      const msg = err instanceof Error ? err.message : "Falha ao carregar localizações";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setLoadingLocations(false);
     }
@@ -89,7 +91,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
   const handleSaveEnvironment = async () => {
     if (!formData.name.trim()) {
-      const msg = "Nome do ambiente e obrigatorio";
+      const msg = "Nome do ambiente é obrigatório";
       toast.error(msg);
       setError(msg);
       return;
@@ -113,7 +115,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       return;
     }
     if (!formData.operating_hours.trim()) {
-      const msg = "Horario de funcionamento e obrigatorio";
+      const msg = "Horário de funcionamento é obrigatório";
       toast.error(msg);
       setError(msg);
       return;

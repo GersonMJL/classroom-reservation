@@ -82,27 +82,36 @@ export function useEnvironmentsData() {
       return;
     }
 
+    let parsedCapacity: number | undefined;
+    let parsedLocationId: number | undefined;
+
+    if (searchType === "capacity") {
+      const capacity = parseInt(searchValue, 10);
+      if (isNaN(capacity) || capacity <= 0) {
+        const msg = "Informe um número de capacidade válido";
+        toast.error(msg);
+        setError(msg);
+        return;
+      }
+      parsedCapacity = capacity;
+    } else if (searchType === "location_id") {
+      const locationId = parseInt(searchValue, 10);
+      if (isNaN(locationId) || locationId <= 0) {
+        const msg = "Informe um ID de localização válido";
+        toast.error(msg);
+        setError(msg);
+        return;
+      }
+      parsedLocationId = locationId;
+    }
+
     setLoading(true);
     try {
       let results: Environment[] = [];
       if (searchType === "capacity") {
-        const capacity = parseInt(searchValue, 10);
-        if (isNaN(capacity) || capacity <= 0) {
-          const msg = "Informe um número de capacidade válido";
-          toast.error(msg);
-          setError(msg);
-          return;
-        }
-        results = await environmentApi.searchByCapacity(capacity);
+        results = await environmentApi.searchByCapacity(parsedCapacity!);
       } else if (searchType === "location_id") {
-        const locationId = parseInt(searchValue, 10);
-        if (isNaN(locationId) || locationId <= 0) {
-          const msg = "Informe um ID de localizacao valido";
-          toast.error(msg);
-          setError(msg);
-          return;
-        }
-        results = await environmentApi.searchByLocation(locationId);
+        results = await environmentApi.searchByLocation(parsedLocationId!);
       } else {
         const all = await environmentApi.getAllRooms(0, 500);
         const normalized = searchValue.trim().toUpperCase();

@@ -36,6 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         autoHideDuration={4000}
         onClose={() => setState((s) => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        aria-live="polite"
+        aria-atomic="true"
       >
         <Alert
           role="status"

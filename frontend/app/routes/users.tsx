@@ -38,14 +38,16 @@ import {
 } from "../services/api";
 import type { User } from "../services/api";
 
-const AVAILABLE_ROLES = ["user", "admin"];
+const AVAILABLE_ROLES = ["admin", "manager", "technician", "requester"];
 
 const roleLabelMap: Record<string, string> = {
-  user: "Usuário",
-  admin: "Administrador",
+  admin:      "Administrador",
+  manager:    "Gestor",
+  technician: "Técnico",
+  requester:  "Solicitante",
 };
 
-const getRoleLabel = (role: string) => roleLabelMap[role] || role;
+const getRoleLabel = (role: string) => roleLabelMap[role] ?? role;
 
 export default function UsersManagement() {
   const navigate = useNavigate();
@@ -66,7 +68,7 @@ export default function UsersManagement() {
     email: "",
     password: "",
     confirmPassword: "",
-    roles: ["user"] as string[],
+    roles: ["requester"] as string[],
   });
 
   const hasAdminRole = useMemo(() => {
@@ -146,7 +148,7 @@ export default function UsersManagement() {
 
   const openRoleDialog = (user: User) => {
     setSelectedUser(user);
-    setRoleDraft(user.roles.length > 0 ? user.roles : ["user"]);
+    setRoleDraft(user.roles.length > 0 ? user.roles : ["requester"]);
     setIsRoleDialogOpen(true);
   };
 
@@ -162,7 +164,7 @@ export default function UsersManagement() {
       email: "",
       password: "",
       confirmPassword: "",
-      roles: ["user"],
+      roles: ["requester"],
     });
     setIsCreateDialogOpen(true);
   };
@@ -437,7 +439,7 @@ export default function UsersManagement() {
                 const nextValue = event.target.value;
                 const nextRoles =
                   typeof nextValue === "string" ? nextValue.split(",") : nextValue;
-                setRoleDraft(nextRoles.length > 0 ? nextRoles : ["user"]);
+                setRoleDraft(nextRoles.length > 0 ? nextRoles : ["requester"]);
               }}
               renderValue={(selected) => (selected as string[]).map(getRoleLabel).join(", ")}
             >
@@ -512,7 +514,7 @@ export default function UsersManagement() {
                   typeof nextValue === "string" ? nextValue.split(",") : nextValue;
                 setCreateForm((prev) => ({
                   ...prev,
-                  roles: nextRoles.length > 0 ? nextRoles : ["user"],
+                  roles: nextRoles.length > 0 ? nextRoles : ["requester"],
                 }));
               }}
               renderValue={(selected) => (selected as string[]).map(getRoleLabel).join(", ")}

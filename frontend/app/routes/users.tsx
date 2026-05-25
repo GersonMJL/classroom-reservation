@@ -26,10 +26,8 @@ import {
   userApi,
 } from "../services/api";
 import type { User } from "../services/api";
-import { ConfirmDialog } from "../ui/ConfirmDialog";
-import { useToast } from "../ui/useToast";
-import { PageHeader, PageSection, DataTable, StatusChip } from "../ui";
-import type { Column } from "../ui/DataTable";
+import { ConfirmDialog, useToast, PageHeader, PageSection, DataTable, StatusChip } from "~/ui";
+import type { Column } from "~/ui/DataTable";
 
 const AVAILABLE_ROLES = ["admin", "manager", "technician", "requester"];
 
@@ -202,6 +200,11 @@ export default function UsersManagement() {
   const handleSaveRoles = async () => {
     if (!selectedUser) return;
 
+    if (roleDraft.length === 0) {
+      toast.error("Pelo menos um perfil é obrigatório");
+      return;
+    }
+
     if (selectedUser.id === currentUserId && !roleDraft.includes("admin")) {
       toast.error("Você não pode remover o próprio perfil de administrador.");
       return;
@@ -318,7 +321,7 @@ export default function UsersManagement() {
         </Stack>
       ),
     },
-  ], [loading, openRoleDialog, openDeleteConfirm]);
+  ], [loading]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

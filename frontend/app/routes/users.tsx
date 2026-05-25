@@ -386,7 +386,7 @@ export default function UsersManagement() {
                 const nextValue = event.target.value;
                 const nextRoles =
                   typeof nextValue === "string" ? nextValue.split(",") : nextValue;
-                setRoleDraft(nextRoles.length > 0 ? nextRoles : ["requester"]);
+                setRoleDraft(nextRoles);
               }}
               renderValue={(selected) => (selected as string[]).map(getRoleLabel).join(", ")}
             >
@@ -397,6 +397,11 @@ export default function UsersManagement() {
               ))}
             </Select>
           </FormControl>
+          {roleDraft.length === 0 && (
+            <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
+              Pelo menos um perfil é obrigatório.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeRoleDialog}>Cancelar</Button>
@@ -461,7 +466,7 @@ export default function UsersManagement() {
                   typeof nextValue === "string" ? nextValue.split(",") : nextValue;
                 setCreateForm((prev) => ({
                   ...prev,
-                  roles: nextRoles.length > 0 ? nextRoles : ["requester"],
+                  roles: nextRoles,
                 }));
               }}
               renderValue={(selected) => (selected as string[]).map(getRoleLabel).join(", ")}
@@ -473,6 +478,11 @@ export default function UsersManagement() {
               ))}
             </Select>
           </FormControl>
+          {createForm.roles.length === 0 && (
+            <Typography variant="caption" color="error">
+              Pelo menos um perfil é obrigatório.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeCreateDialog}>Cancelar</Button>

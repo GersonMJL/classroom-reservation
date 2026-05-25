@@ -37,6 +37,7 @@ import {
   userApi,
 } from "../services/api";
 import type { User } from "../services/api";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 const AVAILABLE_ROLES = ["admin", "manager", "technician", "requester"];
 
@@ -63,6 +64,7 @@ export default function UsersManagement() {
   const [roleDraft, setRoleDraft] = useState<string[]>([]);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
@@ -264,26 +266,27 @@ export default function UsersManagement() {
     }
   };
 
-  const handleDeleteUser = async (user: User) => {
+  const openDeleteConfirm = (user: User) => {
     if (user.id === currentUserId) {
       setError("Você não pode excluir sua própria conta de administrador.");
       return;
     }
+    setDeleteTarget(user);
+  };
 
-    const confirmed = window.confirm(
-      `Excluir o usuário ${user.email}? Esta ação não pode ser desfeita.`
-    );
-    if (!confirmed) {
-      return;
-    }
+  const closeDeleteConfirm = () => setDeleteTarget(null);
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
 
     setLoading(true);
     setError("");
     setSuccessMessage("");
     try {
-      await userApi.deleteUser(user.id);
-      setUsers((prev) => prev.filter((item) => item.id !== user.id));
-      setSuccessMessage(`Usuário ${user.email} excluído`);
+      await userApi.deleteUser(deleteTarget.id);
+      setUsers((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+      setSuccessMessage(`Usuário ${deleteTarget.email} excluído`);
+      setDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao excluir usuário");
     } finally {
@@ -401,8 +404,8 @@ export default function UsersManagement() {
                         size="small"
                         color="error"
                         startIcon={<DeleteIcon />}
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={loading || user.id === currentUserId}
+                        onClick={() => openDeleteConfirm(user)}
+                        disabled={loading}
                       >
                         Excluir
                       </Button>
@@ -534,6 +537,16 @@ export default function UsersManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Excluir usuário"
+        description={`Excluir o usuário ${deleteTarget?.email}? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        destructive
+        onConfirm={handleDeleteUser}
+        onCancel={closeDeleteConfirm}
+      />
     </Container>
   );
 }

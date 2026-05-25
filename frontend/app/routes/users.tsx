@@ -122,18 +122,19 @@ export default function UsersManagement() {
 
   const filteredUsers = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase();
-    if (!normalizedSearch) {
-      return users;
-    }
+    if (!normalizedSearch) return users;
 
     return users.filter((user) => {
       const name = user.name.toLowerCase();
       const email = user.email.toLowerCase();
-      const roleText = user.roles.join(" ").toLowerCase();
       return (
         name.includes(normalizedSearch)
         || email.includes(normalizedSearch)
-        || roleText.includes(normalizedSearch)
+        || user.roles.some(
+            (role) =>
+              role.toLowerCase().includes(normalizedSearch)
+              || getRoleLabel(role).toLowerCase().includes(normalizedSearch)
+          )
       );
     });
   }, [users, searchValue]);

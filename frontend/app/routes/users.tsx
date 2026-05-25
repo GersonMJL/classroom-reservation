@@ -38,6 +38,7 @@ import {
 } from "../services/api";
 import type { User } from "../services/api";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { useToast } from "../ui/useToast";
 
 const AVAILABLE_ROLES = ["admin", "manager", "technician", "requester"];
 
@@ -52,10 +53,9 @@ const getRoleLabel = (role: string) => roleLabelMap[role] ?? role;
 
 export default function UsersManagement() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
@@ -80,7 +80,6 @@ export default function UsersManagement() {
 
   const loadUsers = async () => {
     setLoading(true);
-    setError("");
     try {
       const [allUsers, me] = await Promise.all([
         userApi.getAllUsers(0, 200),
@@ -110,7 +109,7 @@ export default function UsersManagement() {
         return;
       }
 
-      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -179,45 +178,17 @@ export default function UsersManagement() {
     const email = createForm.email.trim();
     const name = createForm.name.trim();
 
-    if (!name) {
-      setError("Nome é obrigatório");
-      return;
-    }
-
-    if (!email) {
-      setError("E-mail é obrigatório");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Informe um endereço de e-mail válido");
-      return;
-    }
-
-    if (!createForm.password) {
-      setError("Senha é obrigatória");
-      return;
-    }
-
-    if (createForm.password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-
-    if (createForm.password !== createForm.confirmPassword) {
-      setError("As senhas não coincidem");
-      return;
-    }
+    if (!name) { toast.error("Nome é obrigatório"); return; }
+    if (!email) { toast.error("E-mail é obrigatório"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Informe um endereço de e-mail válido"); return; }
+    if (!createForm.password) { toast.error("Senha é obrigatória"); return; }
+    if (createForm.password.length < 6) { toast.error("A senha deve ter pelo menos 6 caracteres"); return; }
+    if (createForm.password !== createForm.confirmPassword) { toast.error("As senhas não coincidem"); return; }
 
     const normalizedRoles = Array.from(new Set(createForm.roles));
-    if (normalizedRoles.length === 0) {
-      setError("Pelo menos um perfil é obrigatório");
-      return;
-    }
+    if (normalizedRoles.length === 0) { toast.error("Pelo menos um perfil é obrigatório"); return; }
 
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
     try {
       const created = await userApi.createUser({
         name,
@@ -226,30 +197,25 @@ export default function UsersManagement() {
         active: true,
         roles: normalizedRoles,
       });
-
       setUsers((prev) => [...prev, created].sort((a, b) => a.id - b.id));
-      setSuccessMessage(`Usuário ${created.email} criado`);
+      toast.success(`Usuário ${created.email} criado`);
       closeCreateDialog();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao criar usuário");
+      toast.error(err instanceof Error ? err.message : "Falha ao criar usuário");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSaveRoles = async () => {
-    if (!selectedUser) {
-      return;
-    }
+    if (!selectedUser) return;
 
     if (selectedUser.id === currentUserId && !roleDraft.includes("admin")) {
-      setError("Você não pode remover o próprio perfil de administrador.");
+      toast.error("Você não pode remover o próprio perfil de administrador.");
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
     try {
       const updated = await userApi.updateUserRoles(selectedUser.id, {
         roles: Array.from(new Set(roleDraft)),
@@ -257,10 +223,10 @@ export default function UsersManagement() {
       setUsers((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item))
       );
-      setSuccessMessage(`Perfis atualizados para ${updated.email}`);
+      toast.success(`Perfis atualizados para ${updated.email}`);
       closeRoleDialog();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao atualizar perfis do usuário");
+      toast.error(err instanceof Error ? err.message : "Falha ao atualizar perfis do usuário");
     } finally {
       setLoading(false);
     }
@@ -268,7 +234,7 @@ export default function UsersManagement() {
 
   const openDeleteConfirm = (user: User) => {
     if (user.id === currentUserId) {
-      setError("Você não pode excluir sua própria conta de administrador.");
+      toast.error("Você não pode excluir sua própria conta de administrador.");
       return;
     }
     setDeleteTarget(user);
@@ -280,15 +246,13 @@ export default function UsersManagement() {
     if (!deleteTarget) return;
 
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
     try {
       await userApi.deleteUser(deleteTarget.id);
       setUsers((prev) => prev.filter((item) => item.id !== deleteTarget.id));
-      setSuccessMessage(`Usuário ${deleteTarget.email} excluído`);
+      toast.success(`Usuário ${deleteTarget.email} excluído`);
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao excluir usuário");
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir usuário");
     } finally {
       setLoading(false);
     }
@@ -324,18 +288,6 @@ export default function UsersManagement() {
           </Button>
         </Stack>
       </Box>
-
-      {error && (
-        <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {successMessage && (
-        <Alert severity="success" onClose={() => setSuccessMessage("")} sx={{ mb: 2 }}>
-          {successMessage}
-        </Alert>
-      )}
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <TextField

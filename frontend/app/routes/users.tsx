@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
-  Alert,
-  Box,
   Button,
-  Chip,
-  CircularProgress,
   Container,
   Dialog,
   DialogActions,
@@ -14,15 +10,8 @@ import {
   FormControl,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -39,6 +28,8 @@ import {
 import type { User } from "../services/api";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/useToast";
+import { PageHeader, PageSection, DataTable, StatusChip } from "../ui";
+import type { Column } from "../ui/DataTable";
 
 const AVAILABLE_ROLES = ["admin", "manager", "technician", "requester"];
 
@@ -258,38 +249,104 @@ export default function UsersManagement() {
     }
   };
 
-  return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-            Administração de Usuários
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gerencie perfis de usuários e remova contas.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
+  const columns = useMemo<Column<User>[]>(() => [
+    {
+      key: "id",
+      header: "ID",
+      width: 60,
+      cell: (u) => u.id,
+    },
+    {
+      key: "name",
+      header: "Nome",
+      cell: (u) => u.name,
+    },
+    {
+      key: "email",
+      header: "E-mail",
+      cell: (u) => u.email,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (u) => (
+        <StatusChip
+          tone={u.active ? "success" : "neutral"}
+          label={u.active ? "Ativo" : "Inativo"}
+        />
+      ),
+    },
+    {
+      key: "roles",
+      header: "Perfis",
+      cell: (u) => (
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap" }}>
+          {u.roles.map((role) => (
+            <StatusChip
+              key={role}
+              tone={role === "admin" ? "warning" : "neutral"}
+              label={getRoleLabel(role)}
+            />
+          ))}
+        </Stack>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      align: "center",
+      cell: (u) => (
+        <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateDialog}
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => openRoleDialog(u)}
             disabled={loading}
           >
-            Criar Usuário
+            Perfis
           </Button>
           <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadUsers}
+            size="small"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => openDeleteConfirm(u)}
             disabled={loading}
           >
-            Atualizar
+            Excluir
           </Button>
         </Stack>
-      </Box>
+      ),
+    },
+  ], [loading, openRoleDialog, openDeleteConfirm]);
 
-      <Paper sx={{ p: 2, mb: 2 }}>
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <PageHeader
+        title="Administração de Usuários"
+        description="Gerencie perfis de usuários e remova contas."
+        actions={
+          <>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={openCreateDialog}
+              disabled={loading}
+            >
+              Criar Usuário
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadUsers}
+              disabled={loading}
+            >
+              Atualizar
+            </Button>
+          </>
+        }
+      />
+
+      <PageSection padded>
         <TextField
           fullWidth
           size="small"
@@ -298,84 +355,18 @@ export default function UsersManagement() {
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Pesquise por nome, e-mail ou perfil"
         />
-      </Paper>
+      </PageSection>
 
-      {loading && users.length === 0 ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                <TableCell>ID</TableCell>
-                <TableCell>Nome</TableCell>
-                <TableCell>E-mail</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Perfis</TableCell>
-                <TableCell align="center">Ações</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={user.active ? "Ativo" : "Inativo"}
-                      color={user.active ? "success" : "default"}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.75}>
-                      {user.roles.map((role) => (
-                        <Chip
-                          key={`${user.id}-${role}`}
-                          size="small"
-                          label={getRoleLabel(role)}
-                          color={role === "admin" ? "primary" : "default"}
-                        />
-                      ))}
-                    </Stack>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
-                      <Button
-                        size="small"
-                        startIcon={<EditIcon />}
-                        onClick={() => openRoleDialog(user)}
-                        disabled={loading}
-                      >
-                        Perfis
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => openDeleteConfirm(user)}
-                        disabled={loading}
-                      >
-                        Excluir
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Alert severity="info">Nenhum usuário encontrado para este filtro.</Alert>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      <PageSection padded={false}>
+        <DataTable
+          columns={columns}
+          rows={filteredUsers}
+          loading={loading}
+          getRowKey={(u) => u.id}
+          emptyTitle="Nenhum usuário encontrado"
+          emptyDescription="Tente ajustar o filtro de pesquisa."
+        />
+      </PageSection>
 
       <Dialog open={isRoleDialogOpen} onClose={closeRoleDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Atualizar Perfis</DialogTitle>

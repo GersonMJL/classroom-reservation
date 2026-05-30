@@ -33,7 +33,13 @@ import type {
   User,
 } from "../../services/api";
 import { ReservationConflictError, reservationApi } from "../../services/api";
-import { MIN_TIME, MAX_TIME, WEEKDAY_LABELS } from "./constants";
+import {
+  MIN_TIME,
+  MAX_TIME,
+  WEEKDAY_LABELS,
+  toIdOrEmpty,
+  dateOrInvalid,
+} from "./constants";
 
 interface FormState {
   environment_id: number | "";
@@ -243,7 +249,9 @@ export function ReservationFormDialog({
           <DateTimePicker
             label="Início"
             value={form.start_time}
-            onChange={(value) => value && setForm({ ...form, start_time: value })}
+            onChange={(value) =>
+              setForm((prev) => ({ ...prev, start_time: dateOrInvalid(value) }))
+            }
             minTime={MIN_TIME}
             maxTime={MAX_TIME}
             sx={{ flex: 1 }}
@@ -251,7 +259,9 @@ export function ReservationFormDialog({
           <DateTimePicker
             label="Término"
             value={form.end_time}
-            onChange={(value) => value && setForm({ ...form, end_time: value })}
+            onChange={(value) =>
+              setForm((prev) => ({ ...prev, end_time: dateOrInvalid(value) }))
+            }
             minTime={MIN_TIME}
             maxTime={MAX_TIME}
             sx={{ flex: 1 }}
@@ -265,7 +275,10 @@ export function ReservationFormDialog({
             label="Ambiente"
             value={form.environment_id}
             onChange={(e) =>
-              setForm({ ...form, environment_id: Number(e.target.value) })
+              setForm((prev) => ({
+                ...prev,
+                environment_id: toIdOrEmpty(e.target.value),
+              }))
             }
           >
             {environments.map((env) => (
@@ -283,7 +296,10 @@ export function ReservationFormDialog({
             label="Responsável"
             value={form.responsible_id}
             onChange={(e) =>
-              setForm({ ...form, responsible_id: Number(e.target.value) })
+              setForm((prev) => ({
+                ...prev,
+                responsible_id: toIdOrEmpty(e.target.value),
+              }))
             }
           >
             {users.map((u) => (

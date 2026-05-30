@@ -77,3 +77,8 @@ def test_guard_blocks_when_restricted():
         guard.assert_allowed(user_id=1, now=NOW)
     assert exc.value.status_code == 403
     assert "restrição" in exc.value.detail.lower()
+
+
+def test_penalty_ending_exactly_now_does_not_restrict():
+    p = _penalty(status=PenaltyStatus.APPLIED, end_offset_days=0)
+    assert active_restriction([p], NOW) is None

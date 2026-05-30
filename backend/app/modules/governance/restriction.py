@@ -39,11 +39,7 @@ class RestrictionGuard:
         penalties = self.repository.list_active_for_user(user_id=user_id, now=now)
         blocking = active_restriction(penalties, now)
         if blocking is not None:
-            until = (
-                blocking.end_date.strftime("%d/%m/%Y")
-                if blocking.end_date is not None
-                else "—"
-            )
+            until = blocking.end_date.strftime("%d/%m/%Y")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(

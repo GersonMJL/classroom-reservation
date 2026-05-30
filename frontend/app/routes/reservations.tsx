@@ -139,6 +139,9 @@ const buildEmptyCompositeItem = (base: Dayjs): CompositeItemDraft => ({
 
 const WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
+const MIN_TIME = dayjs().hour(7).minute(0).second(0);
+const MAX_TIME = dayjs().hour(22).minute(0).second(0);
+
 const buildInitialForm = (): FormState => {
   const start = dayjs()
     .add(1, "day")
@@ -910,6 +913,8 @@ export default function ReservationsPage() {
               onChange={(value) =>
                 value && setForm({ ...form, start_time: value })
               }
+              minTime={MIN_TIME}
+              maxTime={MAX_TIME}
               sx={{ flex: 1 }}
             />
             <DateTimePicker
@@ -918,6 +923,8 @@ export default function ReservationsPage() {
               onChange={(value) =>
                 value && setForm({ ...form, end_time: value })
               }
+              minTime={MIN_TIME}
+              maxTime={MAX_TIME}
               sx={{ flex: 1 }}
             />
           </Stack>
@@ -1238,6 +1245,8 @@ export default function ReservationsPage() {
                       updated[idx] = { ...updated[idx], start_time: value };
                       setCompositeForm({ ...compositeForm, items: updated });
                     }}
+                    minTime={MIN_TIME}
+                    maxTime={MAX_TIME}
                     sx={{ flex: 1 }}
                   />
                   <DateTimePicker
@@ -1249,6 +1258,8 @@ export default function ReservationsPage() {
                       updated[idx] = { ...updated[idx], end_time: value };
                       setCompositeForm({ ...compositeForm, items: updated });
                     }}
+                    minTime={MIN_TIME}
+                    maxTime={MAX_TIME}
                     sx={{ flex: 1 }}
                   />
                 </Stack>

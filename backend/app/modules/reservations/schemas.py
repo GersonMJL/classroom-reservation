@@ -1,8 +1,32 @@
-from datetime import datetime
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.shared.enums import ReservationStatus, ReservationType, SupportType
+
+_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+_OPEN = time(7, 0)  # 07:00 local
+_CLOSE = time(22, 0)  # 22:00 local
+
+
+def _local_time(dt: datetime) -> time:
+    """Retorna o horário local de Brasília para um datetime (aware ou naive)."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(_TIMEZONE).time()
+    return dt.time()
+
+
+def _assert_operating_hours(start: datetime, end: datetime) -> None:
+    """Levanta ValueError se start ou end estiver fora de 07:00–22:00 BRT."""
+    if _local_time(start) < _OPEN:
+        raise ValueError(
+            "O início da reserva deve ser a partir das 07:00 (horário de Brasília)"
+        )
+    if _local_time(end) > _CLOSE:
+        raise ValueError(
+            "O término da reserva deve ser até as 22:00 (horário de Brasília)"
+        )
 
 
 class ReservationResourceCreate(BaseModel):
@@ -50,6 +74,7 @@ class ReservationBase(BaseModel):
     def _validate_window_and_type(self) -> "ReservationBase":
         if self.end_time <= self.start_time:
             raise ValueError("end_time deve ser maior que start_time")
+        _assert_operating_hours(self.start_time, self.end_time)
         if self.type in (
             ReservationType.COMPOSITE_PARENT,
             ReservationType.COMPOSITE_CHILD,
@@ -101,6 +126,14 @@ class ReservationUpdate(BaseModel):
             and self.end_time <= self.start_time
         ):
             raise ValueError("end_time deve ser maior que start_time")
+        if self.start_time is not None and _local_time(self.start_time) < _OPEN:
+            raise ValueError(
+                "O início da reserva deve ser a partir das 07:00 (horário de Brasília)"
+            )
+        if self.end_time is not None and _local_time(self.end_time) > _CLOSE:
+            raise ValueError(
+                "O término da reserva deve ser até as 22:00 (horário de Brasília)"
+            )
         return self
 
 
@@ -146,6 +179,7 @@ class CompositeItemCreate(BaseModel):
     def _validate_window(self) -> "CompositeItemCreate":
         if self.end_time <= self.start_time:
             raise ValueError("end_time deve ser maior que start_time")
+        _assert_operating_hours(self.start_time, self.end_time)
         return self
 
 

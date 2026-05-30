@@ -19,6 +19,7 @@ import {
   EDITABLE_STATUSES,
   STATUS_COLOR,
   STATUS_LABEL,
+  formatPurpose,
 } from "./constants";
 
 interface ReservationCardProps {
@@ -114,7 +115,7 @@ export function ReservationCard({
             {reservation.participant_count === 1 ? "" : "s"}
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5 }}>
-            {reservation.purpose}
+            {formatPurpose(reservation.purpose)}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>

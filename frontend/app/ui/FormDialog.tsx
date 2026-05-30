@@ -52,7 +52,7 @@ export function FormDialog({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers>{children}</DialogContent>
+      <DialogContent dividers sx={{ pt: 3 }}>{children}</DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} disabled={submitting}>Cancelar</Button>
         {onSubmit && (

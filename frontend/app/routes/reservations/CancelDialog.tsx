@@ -83,7 +83,10 @@ export function CancelDialog({
               minRows={3}
               label="Motivo do cancelamento"
               value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
+              onChange={(e) => {
+                setCancelReason(e.target.value);
+                if (error) setError("");
+              }}
               slotProps={{ htmlInput: { maxLength: 500 } }}
             />
           </Stack>

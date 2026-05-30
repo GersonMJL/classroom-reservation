@@ -85,6 +85,7 @@ export function CompositeDialog({
   const [compositeError, setCompositeError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Intentionally depends only on [open]: form resets when dialog opens, not on every currentUser change.
   useEffect(() => {
     if (open) {
       const base = dayjs().add(1, "day");

@@ -98,6 +98,7 @@ export function ReservationFormDialog({
   const [formConflicts, setFormConflicts] = useState<ReservationConflictDetail[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Intentionally depends only on [open]: form resets when dialog opens, not on every selectedDate/currentUser change.
   useEffect(() => {
     if (!open) return;
     setFormError("");

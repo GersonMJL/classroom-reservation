@@ -28,6 +28,7 @@ import type {
   Reservation,
   ReservationConflictDetail,
   ReservationCreate,
+  ReservationPurpose,
   Resource,
   Room,
   User,
@@ -39,6 +40,8 @@ import {
   WEEKDAY_LABELS,
   toIdOrEmpty,
   dateOrInvalid,
+  RESERVATION_PURPOSE_OPTIONS,
+  toPurposeValue,
 } from "./constants";
 
 interface FormState {
@@ -46,7 +49,7 @@ interface FormState {
   responsible_id: number | "";
   start_time: Dayjs;
   end_time: Dayjs;
-  purpose: string;
+  purpose: ReservationPurpose | "";
   participant_count: number;
   resource_ids: number[];
   acceptTerms: boolean;
@@ -115,7 +118,7 @@ export function ReservationFormDialog({
         responsible_id: editingReservation.responsible_id,
         start_time: dayjs(editingReservation.start_time),
         end_time: dayjs(editingReservation.end_time),
-        purpose: editingReservation.purpose,
+        purpose: toPurposeValue(editingReservation.purpose),
         participant_count: editingReservation.participant_count,
         resource_ids: editingReservation.resources.map((r) => r.resource_id),
         acceptTerms: false,
@@ -145,7 +148,7 @@ export function ReservationFormDialog({
   const validate = (): string | null => {
     if (form.environment_id === "") return "Selecione um ambiente";
     if (form.responsible_id === "") return "Selecione um responsável";
-    if (!form.purpose.trim()) return "Informe a finalidade da reserva";
+    if (form.purpose === "") return "Selecione a finalidade da reserva";
     if (form.participant_count < 1) return "Número de participantes inválido";
     if (!form.start_time.isValid() || !form.end_time.isValid())
       return "Datas inválidas";
@@ -178,7 +181,7 @@ export function ReservationFormDialog({
         responsible_id: Number(form.responsible_id),
         start_time: form.start_time.toISOString(),
         end_time: form.end_time.toISOString(),
-        purpose: form.purpose.trim(),
+        purpose: form.purpose as ReservationPurpose,
         participant_count: form.participant_count,
         accept_terms: form.acceptTerms,
         resources: form.resource_ids.map((id) => ({ resource_id: id })),
@@ -310,14 +313,26 @@ export function ReservationFormDialog({
           </Select>
         </FormControl>
 
-        <TextField
-          fullWidth
-          label="Finalidade"
-          value={form.purpose}
-          onChange={(e) => setForm((prev) => ({ ...prev, purpose: e.target.value }))}
-          placeholder="Ex.: Aula de Banco de Dados"
-          slotProps={{ htmlInput: { maxLength: 128 } }}
-        />
+        <FormControl fullWidth>
+          <InputLabel id="purpose-label">Finalidade</InputLabel>
+          <Select
+            labelId="purpose-label"
+            label="Finalidade"
+            value={form.purpose}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                purpose: e.target.value as ReservationPurpose,
+              }))
+            }
+          >
+            {RESERVATION_PURPOSE_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <TextField
           fullWidth

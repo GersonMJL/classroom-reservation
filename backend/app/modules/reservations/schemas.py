@@ -3,7 +3,12 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.shared.enums import ReservationStatus, ReservationType, SupportType
+from app.shared.enums import (
+    ReservationPurpose,
+    ReservationStatus,
+    ReservationType,
+    SupportType,
+)
 
 _TIMEZONE = ZoneInfo("America/Sao_Paulo")
 _OPEN = time(7, 0)  # 07:00 local
@@ -66,7 +71,7 @@ class ReservationBase(BaseModel):
     responsible_id: int = Field(gt=0)
     start_time: datetime
     end_time: datetime
-    purpose: str = Field(min_length=1, max_length=128)
+    purpose: ReservationPurpose
     participant_count: int = Field(ge=1)
     type: ReservationType = ReservationType.SIMPLE
 
@@ -113,7 +118,7 @@ class ReservationUpdate(BaseModel):
     responsible_id: int | None = Field(default=None, gt=0)
     start_time: datetime | None = None
     end_time: datetime | None = None
-    purpose: str | None = Field(default=None, min_length=1, max_length=128)
+    purpose: ReservationPurpose | None = None
     participant_count: int | None = Field(default=None, ge=1)
     resources: list[ReservationResourceCreate] | None = None
     support: list[ReservationSupportCreate] | None = None
@@ -148,7 +153,7 @@ class ReservationRead(BaseModel):
     end_time: datetime
     status: ReservationStatus
     type: ReservationType
-    purpose: str
+    purpose: ReservationPurpose
     participant_count: int
     checkin_at: datetime | None = None
     checkout_at: datetime | None = None
@@ -170,7 +175,7 @@ class CompositeItemCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     participant_count: int = Field(ge=1)
-    purpose: str = Field(min_length=1, max_length=128)
+    purpose: ReservationPurpose
     resources: list[ReservationResourceCreate] = Field(default_factory=list)
     support: list[ReservationSupportCreate] = Field(default_factory=list)
     critical: bool = False

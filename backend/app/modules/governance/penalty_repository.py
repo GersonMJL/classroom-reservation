@@ -49,6 +49,16 @@ class PenaltyRepository:
         )
         return len(list(self.db.execute(query).scalars().all()))
 
+    def list_active_for_user(self, *, user_id: int, now: datetime) -> list[Penalty]:
+        query = (
+            select(Penalty)
+            .where(Penalty.user_id == user_id)
+            .where(
+                Penalty.status.in_([PenaltyStatus.APPLIED, PenaltyStatus.UNDER_APPEAL])
+            )
+        )
+        return list(self.db.execute(query).scalars().all())
+
     def get_appeal(self, id: int) -> Appeal | None:
         return self.db.get(Appeal, id)
 

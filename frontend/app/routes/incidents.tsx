@@ -197,10 +197,10 @@ export default function IncidentsPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">
+          <Typography variant="h4" color="text.primary" sx={{ fontWeight: 700 }}>
             Incidentes
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Ocorrências registradas em reservas
           </Typography>
         </Box>

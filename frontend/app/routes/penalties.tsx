@@ -256,10 +256,10 @@ export default function PenaltiesPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">
+          <Typography variant="h4" color="text.primary" sx={{ fontWeight: 700 }}>
             Penalidades
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Sanções aplicadas e recursos administrativos
           </Typography>
         </Box>
@@ -493,7 +493,7 @@ export default function PenaltiesPage() {
               }
               fullWidth
               required
-              inputProps={{ min: 1 }}
+              slotProps={{ htmlInput: { min: 1 } }}
             />
             <FormControl fullWidth required>
               <InputLabel id="penalty-type-label">Tipo *</InputLabel>
@@ -541,7 +541,7 @@ export default function PenaltiesPage() {
                 }));
               }}
               fullWidth
-              inputProps={{ min: 1 }}
+              slotProps={{ htmlInput: { min: 1 } }}
               helperText="Opcional"
             />
           </Box>

@@ -333,10 +333,10 @@ export default function CalendarBlocksPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">
+          <Typography variant="h4" color="text.primary" sx={{ fontWeight: 700 }}>
             Bloqueios
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Bloqueios administrativos de calendário
           </Typography>
         </Box>
@@ -379,11 +379,7 @@ export default function CalendarBlocksPage() {
           <Select
             label="Ambiente"
             value={filterEnvId}
-            onChange={(e) =>
-              handleFilterChange(
-                e.target.value === "" ? "" : (e.target.value as number)
-              )
-            }
+            onChange={(e) => handleFilterChange(e.target.value as number | "")}
           >
             <MenuItem value="">Todos</MenuItem>
             {environments.map((env) => (
@@ -609,7 +605,7 @@ export default function CalendarBlocksPage() {
             Tem certeza que deseja excluir este bloqueio? Esta ação não pode ser desfeita.
           </Typography>
           {deleteTarget && (
-            <Typography variant="body2" color="text.secondary" mt={1}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {TYPE_LABEL[deleteTarget.type]} —{" "}
               {getEnvironmentName(deleteTarget.environment_id)} —{" "}
               {formatDateTime(deleteTarget.start_time)}
@@ -644,7 +640,7 @@ export default function CalendarBlocksPage() {
             Deseja liberar este bloqueio de buffer antes do término previsto?
           </Typography>
           {releaseTarget && (
-            <Typography variant="body2" color="text.secondary" mt={1}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {getEnvironmentName(releaseTarget.environment_id)} —{" "}
               {formatDateTime(releaseTarget.start_time)} até{" "}
               {formatEnd(releaseTarget.start_time, releaseTarget.end_time)}

@@ -171,10 +171,10 @@ export default function ApprovalsPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">
+          <Typography variant="h4" color="text.primary" sx={{ fontWeight: 700 }}>
             Aprovações
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Reservas aguardando decisão administrativa
           </Typography>
         </Box>

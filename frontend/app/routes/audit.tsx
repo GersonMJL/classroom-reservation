@@ -202,10 +202,10 @@ export default function AuditPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">
+          <Typography variant="h4" color="text.primary" sx={{ fontWeight: 700 }}>
             Auditoria
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Histórico de ações realizadas no sistema
           </Typography>
         </Box>
@@ -244,7 +244,7 @@ export default function AuditPage() {
             onChange={(e) =>
               setFilters((f) => ({ ...f, target_id: e.target.value }))
             }
-            inputProps={{ min: 1 }}
+            slotProps={{ htmlInput: { min: 1 } }}
           />
           <Select
             size="small"
@@ -400,10 +400,8 @@ export default function AuditPage() {
               <Box sx={{ flex: 1, minWidth: 240 }}>
                 <Typography
                   variant="caption"
-                  fontWeight={700}
                   color="text.secondary"
-                  display="block"
-                  mb={0.5}
+                  sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
                 >
                   Estado anterior
                 </Typography>
@@ -427,10 +425,8 @@ export default function AuditPage() {
               <Box sx={{ flex: 1, minWidth: 240 }}>
                 <Typography
                   variant="caption"
-                  fontWeight={700}
                   color="text.secondary"
-                  display="block"
-                  mb={0.5}
+                  sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
                 >
                   Estado posterior
                 </Typography>

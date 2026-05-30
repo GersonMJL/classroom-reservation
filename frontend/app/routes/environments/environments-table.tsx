@@ -57,7 +57,7 @@ export function EnvironmentsTable({
             width: 160,
             align: "center" as const,
             cell: (e: Environment) => (
-              <Stack direction="row" spacing={1} justifyContent="center">
+              <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                 <Button size="small" startIcon={<EditIcon />} onClick={() => onEditEnvironment(e)}>
                   Editar
                 </Button>

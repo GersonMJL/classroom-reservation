@@ -41,7 +41,6 @@ export function FormDialog({
     <Dialog
       open={open}
       onClose={submitting ? undefined : onClose}
-      disableEscapeKeyDown={submitting}
       fullScreen={fullScreen}
       maxWidth={maxWidth}
       fullWidth

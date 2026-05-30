@@ -374,7 +374,7 @@ export default function UsersManagement() {
 
       <Dialog open={isRoleDialogOpen} onClose={closeRoleDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Atualizar Perfis</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent sx={{ pt: 3 }}>
           <Typography variant="body2" sx={{ mb: 2 }}>
             {selectedUser ? `Usuário: ${selectedUser.email}` : "Selecione os perfis"}
           </Typography>
@@ -416,7 +416,7 @@ export default function UsersManagement() {
 
       <Dialog open={isCreateDialogOpen} onClose={closeCreateDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Criar Usuário</DialogTitle>
-        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             label="Nome Completo"
             value={createForm.name}

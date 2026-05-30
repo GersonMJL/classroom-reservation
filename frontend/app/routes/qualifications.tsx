@@ -276,7 +276,7 @@ export default function QualificationsManagement() {
 
       <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? "Editar Qualificação" : "Nova Qualificação"}</DialogTitle>
-        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             autoFocus
             fullWidth

@@ -274,7 +274,7 @@ export default function OrganizationalUnitsManagement() {
 
       <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? "Editar Unidade" : "Nova Unidade Organizacional"}</DialogTitle>
-        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             autoFocus
             fullWidth

@@ -16,6 +16,7 @@ from app.shared.enums import (
     ApprovalStatus,
     BufferType,
     CalendarBlockType,
+    ReservationPurpose,
     ReservationStatus,
     ReservationType,
     SupportType,
@@ -44,7 +45,9 @@ class Reservation(Base):
         SAEnum(ReservationType, name="reservation_type"), nullable=False
     )
     participant_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    purpose: Mapped[str] = mapped_column(String(128), nullable=False)
+    purpose: Mapped[str] = mapped_column(
+        SAEnum(ReservationPurpose, name="reservation_purpose"), nullable=False
+    )
     checkin_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

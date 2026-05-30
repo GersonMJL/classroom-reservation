@@ -24,16 +24,28 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { type Dayjs } from "dayjs";
-import type { CompositeReservationCreate, Resource, Room, User } from "../../services/api";
+import type {
+  CompositeReservationCreate,
+  ReservationPurpose,
+  Resource,
+  Room,
+  User,
+} from "../../services/api";
 import { compositeApi } from "../../services/api";
-import { MIN_TIME, MAX_TIME, toIdOrEmpty, dateOrInvalid } from "./constants";
+import {
+  MIN_TIME,
+  MAX_TIME,
+  toIdOrEmpty,
+  dateOrInvalid,
+  RESERVATION_PURPOSE_OPTIONS,
+} from "./constants";
 
 interface CompositeItemDraft {
   environment_id: number | "";
   start_time: Dayjs;
   end_time: Dayjs;
   participant_count: number;
-  purpose: string;
+  purpose: ReservationPurpose | "";
   resource_ids: number[];
   critical: boolean;
 }
@@ -123,8 +135,8 @@ export function CompositeDialog({
         setCompositeError(`Item ${i + 1}: selecione o ambiente`);
         return;
       }
-      if (!item.purpose.trim()) {
-        setCompositeError(`Item ${i + 1}: informe a finalidade`);
+      if (item.purpose === "") {
+        setCompositeError(`Item ${i + 1}: selecione a finalidade`);
         return;
       }
       if (!item.start_time.isValid() || !item.end_time.isValid()) {
@@ -150,7 +162,7 @@ export function CompositeDialog({
           start_time: item.start_time.toISOString(),
           end_time: item.end_time.toISOString(),
           participant_count: item.participant_count,
-          purpose: item.purpose.trim(),
+          purpose: item.purpose as ReservationPurpose,
           resources: item.resource_ids.map((id) => ({ resource_id: id })),
           support: [],
           critical: item.critical,
@@ -303,13 +315,27 @@ export function CompositeDialog({
                 />
               </Stack>
 
-              <TextField
-                fullWidth
-                label="Finalidade"
-                value={item.purpose}
-                onChange={(e) => updateItem(idx, { purpose: e.target.value })}
-                slotProps={{ htmlInput: { maxLength: 128 } }}
-              />
+              <FormControl fullWidth>
+                <InputLabel id={`composite-purpose-label-${idx}`}>
+                  Finalidade
+                </InputLabel>
+                <Select
+                  labelId={`composite-purpose-label-${idx}`}
+                  label="Finalidade"
+                  value={item.purpose}
+                  onChange={(e) =>
+                    updateItem(idx, {
+                      purpose: e.target.value as ReservationPurpose,
+                    })
+                  }
+                >
+                  {RESERVATION_PURPOSE_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <TextField
                 fullWidth

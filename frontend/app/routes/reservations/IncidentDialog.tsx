@@ -78,7 +78,7 @@ export function IncidentDialog({
     <Dialog open={reservation !== null} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Registrar incidente</DialogTitle>
       <DialogContent
-        sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}
+        sx={{ display: "flex", flexDirection: "column", gap: 2, "&.MuiDialogContent-root": { pt: 3 } }}
       >
         {reservation && (
           <Typography variant="body2" color="text.secondary">

@@ -416,7 +416,7 @@ export default function UsersManagement() {
 
       <Dialog open={isCreateDialogOpen} onClose={closeCreateDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Criar Usuário</DialogTitle>
-        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, "&.MuiDialogContent-root": { pt: 3 } }}>
           <TextField
             label="Nome Completo"
             value={createForm.name}

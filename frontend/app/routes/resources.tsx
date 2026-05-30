@@ -330,7 +330,7 @@ export default function ResourcesManagement() {
 
       <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? "Editar Recurso" : "Novo Recurso"}</DialogTitle>
-        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, "&.MuiDialogContent-root": { pt: 3 } }}>
           <TextField
             label="Nome"
             value={formData.name}

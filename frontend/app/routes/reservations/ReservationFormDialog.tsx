@@ -233,7 +233,15 @@ export function ReservationFormDialog({
         {editingReservation !== null ? "Editar reserva" : "Nova reserva"}
       </DialogTitle>
       <DialogContent
-        sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          // O MUI zera o padding-top de um DialogContent que segue um DialogTitle,
+          // o que corta a label flutuante do primeiro campo (Início/Término).
+          // O seletor abaixo tem especificidade suficiente para restaurar o espaço.
+          "&.MuiDialogContent-root": { pt: 3 },
+        }}
       >
         {formError && (
           <Alert severity={formConflicts.length ? "warning" : "error"}>

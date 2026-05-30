@@ -192,7 +192,15 @@ export function CompositeDialog({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Nova reserva composta</DialogTitle>
       <DialogContent
-        sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          // O MUI zera o padding-top de um DialogContent que segue um DialogTitle,
+          // o que cortaria a label flutuante de um campo no topo do conteúdo.
+          // O seletor abaixo tem especificidade suficiente para restaurar o espaço.
+          "&.MuiDialogContent-root": { pt: 3 },
+        }}
       >
         {compositeError && (
           <Alert severity="error">{compositeError}</Alert>

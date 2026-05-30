@@ -34,7 +34,7 @@ export function SearchDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Pesquisar Ambientes</DialogTitle>
-      <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, "&.MuiDialogContent-root": { pt: 3 } }}>
         <FormControl fullWidth>
           <InputLabel>Tipo de Pesquisa</InputLabel>
           <Select

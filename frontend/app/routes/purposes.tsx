@@ -286,7 +286,7 @@ export default function PurposesManagement() {
 
       <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? "Editar Finalidade" : "Nova Finalidade"}</DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
+        <DialogContent sx={{ "&.MuiDialogContent-root": { pt: 3 } }}>
           <TextField
             autoFocus
             fullWidth

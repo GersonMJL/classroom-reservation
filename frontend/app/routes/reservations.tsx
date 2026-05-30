@@ -679,6 +679,10 @@ export default function ReservationsPage() {
               setVisibleMonth(month);
               loadReservations(month);
             }}
+            dayOfWeekFormatter={(date) => {
+              const s = (date as Dayjs).format("ddd");
+              return s.charAt(0).toUpperCase() + s.slice(1);
+            }}
             slots={{
               day: (props: PickerDayProps) => {
                 const key = dayjs(props.day as Dayjs).format("YYYY-MM-DD");

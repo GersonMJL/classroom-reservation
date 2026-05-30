@@ -1,6 +1,6 @@
 import type { ChipProps } from "@mui/material";
 import dayjs, { type Dayjs } from "dayjs";
-import type { ReservationStatus } from "../../services/api";
+import type { ReservationPurpose, ReservationStatus } from "../../services/api";
 
 export const STATUS_LABEL: Record<ReservationStatus, string> = {
   DRAFT: "Rascunho",
@@ -53,3 +53,25 @@ export const toIdOrEmpty = (value: unknown): number | "" => {
 // Returns the picked date, or an explicitly invalid Dayjs when the field was cleared,
 // so downstream validation (isValid) rejects an emptied picker instead of keeping stale state.
 export const dateOrInvalid = (value: Dayjs | null): Dayjs => value ?? dayjs(NaN);
+
+export const RESERVATION_PURPOSE_OPTIONS: {
+  value: ReservationPurpose;
+  label: string;
+}[] = [
+  { value: "CLASS", label: "Aula" },
+  { value: "MEETING", label: "Reunião" },
+  { value: "RESEARCH", label: "Pesquisa" },
+  { value: "EVENT", label: "Evento" },
+  { value: "MAINTENANCE", label: "Manutenção" },
+  { value: "TRAINING", label: "Treinamento" },
+];
+
+// Display label for a purpose; falls back to the raw value for any legacy free-text row.
+export const formatPurpose = (purpose: string): string =>
+  RESERVATION_PURPOSE_OPTIONS.find((o) => o.value === purpose)?.label ?? purpose;
+
+// Coerces an arbitrary purpose string into a valid enum value or "" (for Select state).
+export const toPurposeValue = (purpose: string): ReservationPurpose | "" =>
+  RESERVATION_PURPOSE_OPTIONS.some((o) => o.value === purpose)
+    ? (purpose as ReservationPurpose)
+    : "";

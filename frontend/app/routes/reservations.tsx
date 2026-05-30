@@ -891,7 +891,7 @@ export default function ReservationsPage() {
           {editingId !== null ? "Editar reserva" : "Nova reserva"}
         </DialogTitle>
         <DialogContent
-          sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}
+          sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
           {formError && (
             <Alert severity={formConflicts.length ? "warning" : "error"}>
@@ -1085,7 +1085,7 @@ export default function ReservationsPage() {
         fullWidth
       >
         <DialogTitle>Cancelar reserva</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent sx={{ pt: 3 }}>
           {cancelTarget && (
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
@@ -1127,7 +1127,7 @@ export default function ReservationsPage() {
       >
         <DialogTitle>Nova reserva composta</DialogTitle>
         <DialogContent
-          sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}
+          sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
           {compositeError && (
             <Alert severity="error">{compositeError}</Alert>
@@ -1390,7 +1390,7 @@ export default function ReservationsPage() {
         fullWidth
       >
         <DialogTitle>Registrar incidente</DialogTitle>
-        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ pt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           {incidentTarget && (
             <Typography variant="body2" color="text.secondary">
               Reserva #{incidentTarget.id} —{" "}

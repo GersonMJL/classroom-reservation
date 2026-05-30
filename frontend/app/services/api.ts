@@ -777,6 +777,14 @@ export type ReservationType =
   | "COMPOSITE_PARENT"
   | "COMPOSITE_CHILD";
 
+export type ReservationPurpose =
+  | "CLASS"
+  | "MEETING"
+  | "RESEARCH"
+  | "EVENT"
+  | "MAINTENANCE"
+  | "TRAINING";
+
 export interface RecurrenceSpec {
   weekdays: number[];
   occurrences: number;
@@ -809,7 +817,7 @@ export interface Reservation {
   end_time: string;
   status: ReservationStatus;
   type: ReservationType;
-  purpose: string;
+  purpose: ReservationPurpose;
   participant_count: number;
   checkin_at: string | null;
   checkout_at: string | null;
@@ -833,7 +841,7 @@ export interface ReservationCreate {
   responsible_id: number;
   start_time: string;
   end_time: string;
-  purpose: string;
+  purpose: ReservationPurpose;
   participant_count: number;
   accept_terms: boolean;
   type?: ReservationType;
@@ -847,7 +855,7 @@ export interface ReservationUpdate {
   responsible_id?: number;
   start_time?: string;
   end_time?: string;
-  purpose?: string;
+  purpose?: ReservationPurpose;
   participant_count?: number;
   resources?: ReservationResourceCreate[];
   support?: ReservationSupportCreate[];
@@ -1088,7 +1096,7 @@ export interface CompositeItemInput {
   start_time: string;
   end_time: string;
   participant_count: number;
-  purpose: string;
+  purpose: ReservationPurpose;
   resources: ReservationResourceCreate[];
   support: { support_type: string; responsible_staff_id?: number | null }[];
   critical: boolean;

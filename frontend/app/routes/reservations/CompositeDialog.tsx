@@ -55,7 +55,7 @@ interface CompositeDialogProps {
   resources: Resource[];
   users: User[];
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: () => Promise<void>;
   onError: (message: string) => void;
 }
 
@@ -156,7 +156,7 @@ export function CompositeDialog({
         })),
       };
       await compositeApi.create(payload);
-      onCreated();
+      await onCreated();
       onClose();
     } catch (err) {
       const message =

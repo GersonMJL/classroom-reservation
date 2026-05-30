@@ -314,7 +314,7 @@ export function ReservationFormDialog({
           fullWidth
           label="Finalidade"
           value={form.purpose}
-          onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+          onChange={(e) => setForm((prev) => ({ ...prev, purpose: e.target.value }))}
           placeholder="Ex.: Aula de Banco de Dados"
           slotProps={{ htmlInput: { maxLength: 128 } }}
         />
@@ -325,10 +325,10 @@ export function ReservationFormDialog({
           label="Participantes"
           value={form.participant_count}
           onChange={(e) =>
-            setForm({
-              ...form,
+            setForm((prev) => ({
+              ...prev,
               participant_count: Math.max(1, Number(e.target.value) || 1),
-            })
+            }))
           }
           slotProps={{ htmlInput: { min: 1 } }}
         />
@@ -339,7 +339,7 @@ export function ReservationFormDialog({
           getOptionLabel={(option) => `${option.name} · ${option.type}`}
           value={resources.filter((r) => form.resource_ids.includes(r.id))}
           onChange={(_, value) =>
-            setForm({ ...form, resource_ids: value.map((v) => v.id) })
+            setForm((prev) => ({ ...prev, resource_ids: value.map((v) => v.id) }))
           }
           renderInput={(params) => (
             <TextField
@@ -357,7 +357,7 @@ export function ReservationFormDialog({
                 <Switch
                   checked={form.recurring}
                   onChange={(e) =>
-                    setForm({ ...form, recurring: e.target.checked })
+                    setForm((prev) => ({ ...prev, recurring: e.target.checked }))
                   }
                 />
               }
@@ -376,7 +376,7 @@ export function ReservationFormDialog({
                   <ToggleButtonGroup
                     value={form.recurrenceWeekdays}
                     onChange={(_, value: number[]) =>
-                      setForm({ ...form, recurrenceWeekdays: value })
+                      setForm((prev) => ({ ...prev, recurrenceWeekdays: value }))
                     }
                     size="small"
                   >
@@ -392,13 +392,13 @@ export function ReservationFormDialog({
                   label="Ocorrências"
                   value={form.recurrenceOccurrences}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
+                    setForm((prev) => ({
+                      ...prev,
                       recurrenceOccurrences: Math.max(
                         1,
                         Math.min(52, Number(e.target.value) || 1)
                       ),
-                    })
+                    }))
                   }
                   slotProps={{ htmlInput: { min: 1, max: 52 } }}
                   sx={{ width: 160 }}
@@ -410,7 +410,7 @@ export function ReservationFormDialog({
                 <Checkbox
                   checked={form.acceptTerms}
                   onChange={(e) =>
-                    setForm({ ...form, acceptTerms: e.target.checked })
+                    setForm((prev) => ({ ...prev, acceptTerms: e.target.checked }))
                   }
                 />
               }

@@ -26,4 +26,8 @@ describe("dateOrInvalid", () => {
   it("maps null to an invalid Dayjs", () => {
     expect(dateOrInvalid(null).isValid()).toBe(false);
   });
+
+  it("passes an already-invalid Dayjs through unchanged (mid-typing case)", () => {
+    expect(dateOrInvalid(dayjs("not-a-date")).isValid()).toBe(false);
+  });
 });

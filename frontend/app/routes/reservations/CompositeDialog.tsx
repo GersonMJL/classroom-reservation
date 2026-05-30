@@ -26,7 +26,7 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { type Dayjs } from "dayjs";
 import type { CompositeReservationCreate, Resource, Room, User } from "../../services/api";
 import { compositeApi } from "../../services/api";
-import { MIN_TIME, MAX_TIME } from "./constants";
+import { MIN_TIME, MAX_TIME, toIdOrEmpty, dateOrInvalid } from "./constants";
 
 interface CompositeItemDraft {
   environment_id: number | "";
@@ -169,9 +169,11 @@ export function CompositeDialog({
   };
 
   const updateItem = (idx: number, patch: Partial<CompositeItemDraft>) => {
-    const updated = [...compositeForm.items];
-    updated[idx] = { ...updated[idx], ...patch };
-    setCompositeForm({ ...compositeForm, items: updated });
+    setCompositeForm((prev) => {
+      const updated = [...prev.items];
+      updated[idx] = { ...updated[idx], ...patch };
+      return { ...prev, items: updated };
+    });
   };
 
   return (
@@ -189,7 +191,7 @@ export function CompositeDialog({
           label="Nome da reserva composta"
           value={compositeForm.name}
           onChange={(e) =>
-            setCompositeForm({ ...compositeForm, name: e.target.value })
+            setCompositeForm((prev) => ({ ...prev, name: e.target.value }))
           }
           slotProps={{ htmlInput: { maxLength: 128 } }}
         />
@@ -199,7 +201,7 @@ export function CompositeDialog({
           label="Descrição (opcional)"
           value={compositeForm.description}
           onChange={(e) =>
-            setCompositeForm({ ...compositeForm, description: e.target.value })
+            setCompositeForm((prev) => ({ ...prev, description: e.target.value }))
           }
           multiline
           minRows={2}
@@ -213,10 +215,10 @@ export function CompositeDialog({
             label="Responsável"
             value={compositeForm.responsible_id}
             onChange={(e) =>
-              setCompositeForm({
-                ...compositeForm,
-                responsible_id: Number(e.target.value),
-              })
+              setCompositeForm((prev) => ({
+                ...prev,
+                responsible_id: toIdOrEmpty(e.target.value),
+              }))
             }
           >
             {users.map((u) => (
@@ -248,10 +250,10 @@ export function CompositeDialog({
                     size="small"
                     color="error"
                     onClick={() =>
-                      setCompositeForm({
-                        ...compositeForm,
-                        items: compositeForm.items.filter((_, i) => i !== idx),
-                      })
+                      setCompositeForm((prev) => ({
+                        ...prev,
+                        items: prev.items.filter((_, i) => i !== idx),
+                      }))
                     }
                     aria-label="Remover item"
                   >
@@ -267,7 +269,7 @@ export function CompositeDialog({
                   label="Ambiente"
                   value={item.environment_id}
                   onChange={(e) =>
-                    updateItem(idx, { environment_id: Number(e.target.value) })
+                    updateItem(idx, { environment_id: toIdOrEmpty(e.target.value) })
                   }
                 >
                   {environments.map((env) => (
@@ -282,10 +284,9 @@ export function CompositeDialog({
                 <DateTimePicker
                   label="Início"
                   value={item.start_time}
-                  onChange={(value) => {
-                    if (!value) return;
-                    updateItem(idx, { start_time: value });
-                  }}
+                  onChange={(value) =>
+                    updateItem(idx, { start_time: dateOrInvalid(value) })
+                  }
                   minTime={MIN_TIME}
                   maxTime={MAX_TIME}
                   sx={{ flex: 1 }}
@@ -293,10 +294,9 @@ export function CompositeDialog({
                 <DateTimePicker
                   label="Término"
                   value={item.end_time}
-                  onChange={(value) => {
-                    if (!value) return;
-                    updateItem(idx, { end_time: value });
-                  }}
+                  onChange={(value) =>
+                    updateItem(idx, { end_time: dateOrInvalid(value) })
+                  }
                   minTime={MIN_TIME}
                   maxTime={MAX_TIME}
                   sx={{ flex: 1 }}
@@ -361,10 +361,10 @@ export function CompositeDialog({
           startIcon={<AddIcon />}
           onClick={() => {
             const base = dayjs().add(1, "day");
-            setCompositeForm({
-              ...compositeForm,
-              items: [...compositeForm.items, buildEmptyCompositeItem(base)],
-            });
+            setCompositeForm((prev) => ({
+              ...prev,
+              items: [...prev.items, buildEmptyCompositeItem(base)],
+            }));
           }}
         >
           Adicionar item
@@ -377,10 +377,10 @@ export function CompositeDialog({
             <Checkbox
               checked={compositeForm.accept_terms}
               onChange={(e) =>
-                setCompositeForm({
-                  ...compositeForm,
+                setCompositeForm((prev) => ({
+                  ...prev,
                   accept_terms: e.target.checked,
-                })
+                }))
               }
             />
           }

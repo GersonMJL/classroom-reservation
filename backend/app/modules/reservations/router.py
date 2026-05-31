@@ -8,6 +8,8 @@ from app.core.auth import get_current_user
 from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
+from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations.approval_service import ApprovalService
 from app.modules.reservations.noshow_job import mark_noshows
 from app.modules.reservations.checkin_service import CheckinService
@@ -33,6 +35,7 @@ def get_reservation_service(db: Session = Depends(get_db)) -> ReservationService
     return ReservationService(
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
+        restriction=RestrictionGuard(repository=PenaltyRepository(db=db)),
     )
 
 
@@ -54,6 +57,7 @@ def get_composite_service(db: Session = Depends(get_db)) -> CompositeService:
     return CompositeService(
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
+        restriction=RestrictionGuard(repository=PenaltyRepository(db=db)),
     )
 
 

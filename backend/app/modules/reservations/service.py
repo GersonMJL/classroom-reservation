@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
+from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
 from app.modules.reservations.recurrence import expand_weekly
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
@@ -31,9 +32,15 @@ from app.shared.enums import (
 
 
 class ReservationService:
-    def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
+    def __init__(
+        self,
+        repository: ReservationRepository,
+        audit: AuditService,
+        restriction: RestrictionGuard,
+    ) -> None:
         self.repository = repository
         self.audit = audit
+        self.restriction = restriction
 
     # ----------- consultas -----------
 
@@ -66,6 +73,7 @@ class ReservationService:
     def create_reservation(
         self, payload: ReservationCreate, current_user: User
     ) -> Reservation:
+        self.restriction.assert_allowed(user_id=payload.requester_id)
         if payload.type is ReservationType.RECURRING:
             return self._create_recurring(payload, current_user)
         if payload.type is not ReservationType.SIMPLE:

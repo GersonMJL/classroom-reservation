@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
+from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations import conflict_checker
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
 from app.modules.reservations.models import (
@@ -25,9 +26,15 @@ from app.shared.enums import (
 
 
 class CompositeService:
-    def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
+    def __init__(
+        self,
+        repository: ReservationRepository,
+        audit: AuditService,
+        restriction: RestrictionGuard,
+    ) -> None:
         self.repository = repository
         self.audit = audit
+        self.restriction = restriction
 
     def get(self, composite_id: int) -> CompositeReservation | None:
         return self.repository.db.get(CompositeReservation, composite_id)
@@ -35,6 +42,7 @@ class CompositeService:
     def create(
         self, payload: CompositeReservationCreate, current_user: User
     ) -> CompositeReservation:
+        self.restriction.assert_allowed(user_id=current_user.id)
         envs: dict[int, Environment] = {}
         # Valida TODOS os itens ANTES de criar QUALQUER reserva (UC07 E2 — atomicidade)
         for item in payload.items:

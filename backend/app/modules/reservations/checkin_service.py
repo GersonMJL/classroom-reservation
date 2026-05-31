@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.reservations import state_machine
+from app.modules.reservations.checkin_rules import checkin_window_expired
 from app.modules.reservations.models import Reservation, ReservationStatusHistory
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.users.models import User
@@ -21,6 +22,17 @@ class CheckinService:
         return self.repository.get_by_id(reservation_id)
 
     def checkin(self, reservation: Reservation, user: User) -> Reservation:
+        tolerance_min = reservation.environment.noshow_tolerance_min
+        if checkin_window_expired(
+            reservation.start_time, tolerance_min, now=datetime.now(UTC)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Janela de tolerância expirada: check-in não permitido "
+                    "(reserva sujeita a no-show)"
+                ),
+            )
         return self._execute(
             reservation,
             user,

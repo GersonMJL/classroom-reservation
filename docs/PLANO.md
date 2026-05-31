@@ -194,9 +194,12 @@ O sistema já tem os módulos base funcionando (auth, users, environments, resou
 - **Check-out**: `POST /api/v1/operacoes/checkout`
   - Muda status para `COMPLETED`
   - Dispara `buffer_manager` para BUFFER pós-reserva
-- **No-show**: job periódico ou trigger na listagem
-  - Se `APPROVED` e janela de check-in expirou → `NO_SHOW`
-  - Dispara criação de Penalty automática
+- **No-show**: job periódico automático (scheduler no lifespan do FastAPI,
+  intervalo `NOSHOW_JOB_INTERVAL_SECONDS`, padrão 300s) **e** endpoint manual
+  `POST /api/v1/reservas/jobs/no-show` para admin
+  - Se `APPROVED`, sem check-in e `start_time + tolerância` expirou → `NO_SHOW`
+  - Gera penalidade `NO_SHOW` (7 dias) e bloqueio de 30 dias na 3ª ocorrência em 30 dias
+  - O bloqueio é aplicado na criação de reservas via `RestrictionGuard`
 - **Incidents**: `POST /api/v1/operacoes/incidentes`
 
 #### 4.2 Frontend — Views Operacionais

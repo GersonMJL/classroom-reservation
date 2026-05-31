@@ -21,6 +21,9 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    noshow_job_enabled: bool = True
+    noshow_job_interval_seconds: int = 300
+
 
 @lru_cache
 def get_settings() -> Settings:

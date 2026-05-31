@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Container,
   Dialog,
@@ -30,7 +31,17 @@ import {
   reservationApi,
   userApi,
 } from "../services/api";
-import type { Reservation, Room, User } from "../services/api";
+import type {
+  EnvironmentCriticality,
+  Reservation,
+  Room,
+  User,
+} from "../services/api";
+import {
+  CRITICALITY_COLOR,
+  CRITICALITY_LABEL,
+  CRITICALITY_RANK,
+} from "./environments/constants";
 
 export default function ApprovalsPage() {
   const navigate = useNavigate();
@@ -106,6 +117,40 @@ export default function ApprovalsPage() {
 
   const getUserName = (id: number): string =>
     users.find((u) => u.id === id)?.name ?? `Usuário #${id}`;
+
+  const getEnvironmentCriticality = (
+    id: number
+  ): EnvironmentCriticality | null =>
+    environments.find((e) => e.id === id)?.criticality ?? null;
+
+  // Chip de criticidade; ambientes ainda não carregados (lookup nulo) mostram "—".
+  const renderCriticalityChip = (id: number) => {
+    const criticality = getEnvironmentCriticality(id);
+    if (!criticality) {
+      return <Chip label="—" size="small" variant="outlined" />;
+    }
+    return (
+      <Chip
+        label={CRITICALITY_LABEL[criticality]}
+        color={CRITICALITY_COLOR[criticality]}
+        size="small"
+        variant={criticality === "RESTRICTED" ? "filled" : "outlined"}
+      />
+    );
+  };
+
+  // Reservas mais críticas primeiro (RESTRICTED → CONTROLLED → COMMON); desconhecidas ao final.
+  const sortedPending = useMemo(() => {
+    const rankOf = (environmentId: number): number => {
+      const criticality = environments.find(
+        (e) => e.id === environmentId
+      )?.criticality;
+      return criticality ? CRITICALITY_RANK[criticality] : 99;
+    };
+    return [...pending].sort(
+      (a, b) => rankOf(a.environment_id) - rankOf(b.environment_id)
+    );
+  }, [pending, environments]);
 
   const openApprove = (reservation: Reservation) => {
     setDecisionTarget({ reservation, action: "approve" });
@@ -220,6 +265,7 @@ export default function ApprovalsPage() {
                 <TableRow>
                   <TableCell>Quando</TableCell>
                   <TableCell>Ambiente</TableCell>
+                  <TableCell>Criticidade</TableCell>
                   <TableCell>Solicitante</TableCell>
                   <TableCell>Finalidade</TableCell>
                   <TableCell>Participantes</TableCell>
@@ -227,7 +273,7 @@ export default function ApprovalsPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pending.map((r, index) => (
+                {sortedPending.map((r, index) => (
                   <TableRow
                     key={r.id}
                     sx={{
@@ -248,6 +294,7 @@ export default function ApprovalsPage() {
                       {dayjs(r.end_time).format("HH:mm")}
                     </TableCell>
                     <TableCell>{getEnvironmentName(r.environment_id)}</TableCell>
+                    <TableCell>{renderCriticalityChip(r.environment_id)}</TableCell>
                     <TableCell>{getUserName(r.requester_id)}</TableCell>
                     <TableCell>{r.purpose}</TableCell>
                     <TableCell>{r.participant_count}</TableCell>

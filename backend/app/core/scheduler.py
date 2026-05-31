@@ -33,7 +33,12 @@ async def run_periodic(
 
 
 def noshow_job() -> None:
-    """Job de produção: abre sessão e marca no-shows vencidos."""
+    """Job de produção: abre sessão e marca no-shows vencidos.
+
+    É síncrono e roda dentro do event loop; deve permanecer curto (uma consulta
+    indexada + updates pontuais). Se o volume crescer, mover para
+    ``asyncio.to_thread`` em ``run_periodic``.
+    """
     from app.db.session import session_factory
     from app.modules.reservations.noshow_job import mark_noshows
 

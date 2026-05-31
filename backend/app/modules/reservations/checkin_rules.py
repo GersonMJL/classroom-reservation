@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 def checkin_window_expired(
     start_time: datetime, tolerance_min: int, *, now: datetime
 ) -> bool:
-    """``True`` se ``now`` ultrapassou ``start_time + tolerance_min``."""
+    """``True`` se ``now`` ultrapassou ``start_time + tolerance_min``.
+
+    Usa ``>`` estrito: exatamente no prazo o check-in ainda é permitido. O
+    ``mark_noshows`` usa ``>=`` (marca NO_SHOW no instante do prazo); essa
+    assimetria de 1 instante é inofensiva — a máquina de estados impede
+    APPROVED→IN_USE depois que a reserva já virou NO_SHOW.
+    """
     deadline = start_time + timedelta(minutes=tolerance_min)
     return now > deadline

@@ -27,9 +27,8 @@ describe("CRITICALITY_COLOR", () => {
 });
 
 describe("CRITICALITY_RANK", () => {
-  it("ordena do mais crítico (0) para o menos crítico", () => {
-    expect(CRITICALITY_RANK.RESTRICTED).toBeLessThan(CRITICALITY_RANK.CONTROLLED);
-    expect(CRITICALITY_RANK.CONTROLLED).toBeLessThan(CRITICALITY_RANK.COMMON);
+  it("usa valores absolutos abaixo do sentinela de desconhecido (99), do mais crítico ao menos", () => {
+    expect(CRITICALITY_RANK).toEqual({ RESTRICTED: 0, CONTROLLED: 1, COMMON: 2 });
   });
 });
 

@@ -51,6 +51,7 @@ export default function ApprovalsPage() {
   const [users, setUsers] = useState<User[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [envLoading, setEnvLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -106,6 +107,8 @@ export default function ApprovalsPage() {
         const message =
           err instanceof Error ? err.message : "Falha ao carregar dados auxiliares";
         if (!handleAuthError(message)) setError(message);
+      } finally {
+        setEnvLoading(false);
       }
     };
     bootstrap();
@@ -142,10 +145,8 @@ export default function ApprovalsPage() {
   // Reservas mais críticas primeiro (RESTRICTED → CONTROLLED → COMMON); desconhecidas ao final.
   const sortedPending = useMemo(() => {
     const rankOf = (environmentId: number): number => {
-      const criticality = environments.find(
-        (e) => e.id === environmentId
-      )?.criticality;
-      return criticality ? CRITICALITY_RANK[criticality] : 99;
+      const criticality = getEnvironmentCriticality(environmentId);
+      return criticality !== null ? CRITICALITY_RANK[criticality] : 99;
     };
     return [...pending].sort(
       (a, b) => rankOf(a.environment_id) - rankOf(b.environment_id)
@@ -251,11 +252,11 @@ export default function ApprovalsPage() {
       )}
 
       {/* Content */}
-      {loading ? (
+      {loading || envLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress />
         </Box>
-      ) : pending.length === 0 ? (
+      ) : sortedPending.length === 0 ? (
         <Alert severity="info">Nenhuma reserva pendente de aprovação.</Alert>
       ) : (
         <Paper>

@@ -4,6 +4,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import type { Environment } from "../../services/api";
 import { DataTable, type Column } from "~/ui";
+import { CRITICALITY_COLOR, CRITICALITY_LABEL } from "./constants";
 
 type EnvironmentsTableProps = {
   environments: Environment[];
@@ -36,7 +37,13 @@ export function EnvironmentsTable({
     {
       key: "criticality",
       header: "Criticidade",
-      cell: (e) => <Chip label={e.criticality} size="small" color="primary" />,
+      cell: (e) => (
+        <Chip
+          label={CRITICALITY_LABEL[e.criticality]}
+          color={CRITICALITY_COLOR[e.criticality]}
+          size="small"
+        />
+      ),
     },
     { key: "operating_hours", header: "Horário", cell: (e) => e.operating_hours },
     {

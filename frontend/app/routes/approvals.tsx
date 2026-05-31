@@ -358,6 +358,12 @@ export default function ApprovalsPage() {
                 {" – "}
                 {dayjs(decisionTarget.reservation.end_time).format("HH:mm")}
               </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Criticidade:
+                </Typography>
+                {renderCriticalityChip(decisionTarget.reservation.environment_id)}
+              </Box>
               <TextField
                 label={
                   decisionTarget.action === "reject"

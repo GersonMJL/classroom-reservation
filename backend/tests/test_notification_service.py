@@ -1,5 +1,7 @@
 """Testes do NotificationService com repositório falso."""
 
+import app.db.models  # noqa: F401
+
 from app.modules.notifications.models import Notification
 from app.modules.notifications.service import NotificationService
 from app.shared.enums import NotificationType

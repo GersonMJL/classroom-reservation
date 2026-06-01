@@ -195,6 +195,9 @@ class CalendarBlock(Base):
     environment_id: Mapped[int] = mapped_column(
         ForeignKey("environments.id"), nullable=False
     )
+    reservation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reservations.id"), nullable=True
+    )
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -205,6 +208,7 @@ class CalendarBlock(Base):
     priority: Mapped[str] = mapped_column(String(64), nullable=False)
 
     environment = relationship("Environment", back_populates="calendar_blocks")
+    reservation = relationship("Reservation")
 
 
 class ReservationStatusHistory(Base):

@@ -35,9 +35,15 @@ export interface Environment {
   location_id: number;
   operating_hours: string;
   requires_approval: boolean;
+  code: string | null;
+  buffer_before_min: number;
+  buffer_after_min: number;
+  noshow_tolerance_min: number;
+  active: boolean;
 }
 
 export interface EnvironmentCreate {
+  code: string;
   name: string;
   type: EnvironmentType;
   criticality: EnvironmentCriticality;
@@ -45,6 +51,10 @@ export interface EnvironmentCreate {
   location_id: number;
   operating_hours: string;
   requires_approval: boolean;
+  buffer_before_min?: number;
+  buffer_after_min?: number;
+  noshow_tolerance_min?: number;
+  active?: boolean;
 }
 
 export type EnvironmentUpdate = Partial<EnvironmentCreate>;

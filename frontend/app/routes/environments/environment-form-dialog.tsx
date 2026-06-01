@@ -46,6 +46,13 @@ export function EnvironmentFormDialog({
       maxWidth="sm"
     >
       <FormField
+        label="Código"
+        value={formData.code}
+        onChange={(event) => setFormData({ ...formData, code: event.target.value })}
+        placeholder="Ex.: LAB-ROB-01"
+      />
+
+      <FormField
         label="Nome do ambiente"
         value={formData.name}
         onChange={(event) => setFormData({ ...formData, name: event.target.value })}
@@ -135,6 +142,43 @@ export function EnvironmentFormDialog({
         placeholder="Ex.: 08:00-18:00"
       />
 
+      <FormField
+        label="Buffer antes (min)"
+        type="number"
+        value={formData.buffer_before_min ?? 0}
+        onChange={(event) =>
+          setFormData({
+            ...formData,
+            buffer_before_min: parseInt(event.target.value, 10) || 0,
+          })
+        }
+        slotProps={{ htmlInput: { min: 0 } }}
+      />
+      <FormField
+        label="Buffer depois (min)"
+        type="number"
+        value={formData.buffer_after_min ?? 0}
+        onChange={(event) =>
+          setFormData({
+            ...formData,
+            buffer_after_min: parseInt(event.target.value, 10) || 0,
+          })
+        }
+        slotProps={{ htmlInput: { min: 0 } }}
+      />
+      <FormField
+        label="Tolerância de no-show (min)"
+        type="number"
+        value={formData.noshow_tolerance_min ?? 15}
+        onChange={(event) =>
+          setFormData({
+            ...formData,
+            noshow_tolerance_min: parseInt(event.target.value, 10) || 0,
+          })
+        }
+        slotProps={{ htmlInput: { min: 0 } }}
+      />
+
       <FormControlLabel
         control={
           <Switch
@@ -145,6 +189,18 @@ export function EnvironmentFormDialog({
           />
         }
         label="Exige aprovação"
+        sx={{ mt: 1 }}
+      />
+      <FormControlLabel
+        control={
+          <Switch
+            checked={formData.active ?? true}
+            onChange={(event) =>
+              setFormData({ ...formData, active: event.target.checked })
+            }
+          />
+        }
+        label="Ativo (desmarcar bloqueia novas reservas)"
         sx={{ mt: 1 }}
       />
     </FormDialog>

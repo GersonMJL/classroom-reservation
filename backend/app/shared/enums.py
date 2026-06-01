@@ -25,6 +25,14 @@ class ResourceType(StrEnum):
     KIT = "KIT"
 
 
+class ResourceCategory(StrEnum):
+    IT = "IT"
+    AUDIOVISUAL = "AUDIOVISUAL"
+    LABORATORY = "LABORATORY"
+    GENERAL = "GENERAL"
+    FURNITURE = "FURNITURE"
+
+
 class ResourceCheckoutStatus(StrEnum):
     CHECKED_OUT = "CHECKED_OUT"
     RETURNED = "RETURNED"

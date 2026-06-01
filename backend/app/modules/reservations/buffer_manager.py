@@ -31,6 +31,7 @@ def create_buffer_blocks(
         block = _ensure_block(
             session=session,
             environment_id=environment.id,
+            reservation_id=reservation.id,
             start=reservation.start_time - timedelta(minutes=before_min),
             end=reservation.start_time,
         )
@@ -41,6 +42,7 @@ def create_buffer_blocks(
         block = _ensure_block(
             session=session,
             environment_id=environment.id,
+            reservation_id=reservation.id,
             start=reservation.end_time,
             end=reservation.end_time + timedelta(minutes=after_min),
         )
@@ -56,6 +58,7 @@ def _ensure_block(
     *,
     session: Session,
     environment_id: int,
+    reservation_id: int,
     start,
     end,
 ) -> CalendarBlock | None:
@@ -75,6 +78,7 @@ def _ensure_block(
 
     block = CalendarBlock(
         environment_id=environment_id,
+        reservation_id=reservation_id,
         start_time=start,
         end_time=end,
         type=CalendarBlockType.BUFFER,

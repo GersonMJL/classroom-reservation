@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.modules.audit.audit_service import build_audit_service
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
@@ -14,7 +15,10 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
-    return UserService(repository=UserRepository(db=db))
+    return UserService(
+        repository=UserRepository(db=db),
+        audit=build_audit_service(db),
+    )
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -53,25 +57,25 @@ def update_user(
     user_id: int,
     payload: UserUpdate,
     service: UserService = Depends(get_user_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     user = service.get_user(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
-    return service.update_user(user, payload)
+    return service.update_user(user, payload, performed_by=current_user.id)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: int,
     service: UserService = Depends(get_user_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> None:
     user = service.get_user(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
         )
-    service.delete_user(user)
+    service.delete_user(user, performed_by=current_user.id)

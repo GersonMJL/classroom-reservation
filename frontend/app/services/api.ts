@@ -1521,6 +1521,78 @@ export const incidentApi = {
   },
 };
 
+// ========== Resource Maintenance & Transfer ==========
+
+export interface ResourceMaintenance {
+  id: number;
+  resource_id: number;
+  start_date: string;
+  end_date: string;
+  reason: string;
+}
+
+export const resourceMaintenanceApi = {
+  async list(resourceId?: number) {
+    const qs = resourceId ? `?resource_id=${resourceId}` : "";
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes${qs}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar manutenções");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<ResourceMaintenance[]>;
+  },
+
+  async create(body: {
+    resource_id: number;
+    start_date: string;
+    end_date: string;
+    reason: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao criar manutenção");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<ResourceMaintenance>;
+  },
+
+  async remove(id: number) {
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao remover manutenção");
+      throw new Error(detail);
+    }
+  },
+};
+
+export const resourceTransferApi = {
+  async transfer(resourceId: number, locationId: number) {
+    const response = await fetch(
+      `${API_BASE_URL}/resources/${resourceId}/transferir`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ location_id: locationId }),
+      }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao transferir recurso");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Resource>;
+  },
+};
+
 export type NotificationType =
   | "RESERVATION_APPROVED"
   | "RESERVATION_REJECTED"

@@ -32,11 +32,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   clearAuthTokens,
+  environmentApi,
   getTokenRoles,
   hasValidAccessToken,
   resourceApi,
+  resourceTransferApi,
 } from "../services/api";
-import type { Resource, ResourceAttachment, ResourceCreate } from "../services/api";
+import type { Environment, Resource, ResourceAttachment, ResourceCreate } from "../services/api";
 
 const emptyForm: ResourceCreate = {
   name: "",
@@ -53,6 +55,7 @@ export default function ResourcesManagement() {
   const [successMessage, setSuccessMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -91,6 +94,10 @@ export default function ResourcesManagement() {
 
     setIsAdmin(getTokenRoles().includes("admin"));
     loadResources();
+    environmentApi
+      .getAllRooms(0, 500)
+      .then(setEnvironments)
+      .catch(() => setEnvironments([]));
   }, [navigate]);
 
   const filteredResources = useMemo(() => {
@@ -148,6 +155,10 @@ export default function ResourcesManagement() {
     }
     if (!payload.type) {
       setError("Tipo do recurso é obrigatório");
+      return;
+    }
+    if (payload.attachment_type === "FIXED" && !payload.environment_id) {
+      setError("Recurso fixo exige um ambiente de instalação");
       return;
     }
 
@@ -311,6 +322,32 @@ export default function ResourcesManagement() {
                         >
                           Excluir
                         </Button>
+                        {resource.attachment_type === "MOBILE" && (
+                          <Button
+                            size="small"
+                            onClick={async () => {
+                              const input = window.prompt("ID da nova localização:");
+                              const id = Number(input);
+                              if (!id) return;
+                              try {
+                                await resourceTransferApi.transfer(resource.id, id);
+                                setSuccessMessage(
+                                  `Recurso "${resource.name}" transferido`
+                                );
+                                await loadResources();
+                              } catch (err) {
+                                setError(
+                                  err instanceof Error
+                                    ? err.message
+                                    : "Falha ao transferir recurso"
+                                );
+                              }
+                            }}
+                            disabled={loading || !resource.active}
+                          >
+                            Transferir
+                          </Button>
+                        )}
                       </Stack>
                     </TableCell>
                   )}
@@ -355,7 +392,7 @@ export default function ResourcesManagement() {
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, category: event.target.value }))
             }
-            placeholder="Ex.: AUDIOVISUAL, COMPUTING, ACCESS"
+            placeholder="Ex.: IT, AUDIOVISUAL, LABORATORY, GENERAL, FURNITURE"
             fullWidth
           />
           <FormControl fullWidth>
@@ -364,17 +401,41 @@ export default function ResourcesManagement() {
               labelId="attachment-label"
               label="Vínculo"
               value={formData.attachment_type}
-              onChange={(event) =>
+              onChange={(event) => {
+                const value = event.target.value as ResourceAttachment;
                 setFormData((prev) => ({
                   ...prev,
-                  attachment_type: event.target.value as ResourceAttachment,
-                }))
-              }
+                  attachment_type: value,
+                  environment_id: value === "MOBILE" ? null : prev.environment_id,
+                }));
+              }}
             >
               <MenuItem value="MOBILE">Móvel</MenuItem>
               <MenuItem value="FIXED">Fixo</MenuItem>
             </Select>
           </FormControl>
+          {formData.attachment_type === "FIXED" && (
+            <FormControl fullWidth>
+              <InputLabel id="env-label">Ambiente de instalação</InputLabel>
+              <Select
+                labelId="env-label"
+                label="Ambiente de instalação"
+                value={formData.environment_id ?? ""}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    environment_id: Number(event.target.value) || null,
+                  }))
+                }
+              >
+                {environments.map((env) => (
+                  <MenuItem key={env.id} value={env.id}>
+                    {env.code ? `${env.code} — ${env.name}` : env.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancelar</Button>

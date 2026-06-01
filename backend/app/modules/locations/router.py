@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.modules.audit.audit_service import build_audit_service
 from app.modules.locations.repository import LocationRepository
 from app.modules.locations.schemas import LocationCreate, LocationRead, LocationUpdate
 from app.modules.locations.service import LocationService
@@ -14,7 +15,10 @@ router = APIRouter(prefix="/api/v1/locations", tags=["locations"])
 
 
 def get_location_service(db: Session = Depends(get_db)) -> LocationService:
-    return LocationService(repository=LocationRepository(db=db))
+    return LocationService(
+        repository=LocationRepository(db=db),
+        audit=build_audit_service(db),
+    )
 
 
 @router.get("", response_model=list[LocationRead])
@@ -45,9 +49,9 @@ def get_location(
 def create_location(
     payload: LocationCreate,
     service: LocationService = Depends(get_location_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
-    return service.create_location(payload)
+    return service.create_location(payload, performed_by=current_user.id)
 
 
 @router.put("/{location_id}", response_model=LocationRead)
@@ -55,9 +59,11 @@ def update_location(
     location_id: int,
     payload: LocationUpdate,
     service: LocationService = Depends(get_location_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
-    location = service.update_location(location_id, payload)
+    location = service.update_location(
+        location_id, payload, performed_by=current_user.id
+    )
     if location is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
@@ -69,9 +75,9 @@ def update_location(
 def delete_location(
     location_id: int,
     service: LocationService = Depends(get_location_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> None:
-    if not service.delete_location(location_id):
+    if not service.delete_location(location_id, performed_by=current_user.id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Localização não encontrada"
         )

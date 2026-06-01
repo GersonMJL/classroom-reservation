@@ -15,6 +15,7 @@ from app.modules.environments.calendar_block_router import (
 from app.modules.environments.router import router as environments_router
 from app.modules.governance.router import router as governance_router
 from app.modules.locations.router import router as locations_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.operations.router import router as operations_router
 from app.modules.organizational_units.router import (
     router as organizational_units_router,
@@ -72,6 +73,7 @@ app.include_router(auth_router)
 app.include_router(organizational_units_router)
 app.include_router(reservations_router)
 app.include_router(qualifications_router)
+app.include_router(notifications_router)
 app.include_router(operations_router)
 app.include_router(governance_router)
 app.include_router(audit_router)

@@ -49,6 +49,22 @@ class ResourceService:
         )
         return updated
 
+    def transfer(
+        self, resource: Resource, *, location_id: int, performed_by: int
+    ) -> Resource:
+        before = snapshot(resource, ResourceRead)
+        resource.current_location_id = location_id
+        updated = self.repository.update(resource, ResourceUpdate())
+        self.audit.record(
+            entity_type="resource",
+            target_id=updated.id,
+            action=AuditAction.UPDATE,
+            performed_by=performed_by,
+            before=before,
+            after=snapshot(updated, ResourceRead),
+        )
+        return updated
+
     def delete_resource(self, resource: Resource, *, performed_by: int) -> None:
         before = snapshot(resource, ResourceRead)
         target_id = resource.id

@@ -7,7 +7,7 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.resources.repository import ResourceRepository
-from app.modules.resources.schemas import ResourceCreate, ResourceRead, ResourceUpdate
+from app.modules.resources.schemas import ResourceCreate, ResourceRead, ResourceTransfer, ResourceUpdate
 from app.modules.resources.service import ResourceService
 from app.modules.users.models import User
 
@@ -82,3 +82,20 @@ def delete_resource(
             status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
         )
     service.delete_resource(resource, performed_by=current_user.id)
+
+
+@router.post("/{resource_id}/transferir", response_model=ResourceRead)
+def transfer_resource(
+    resource_id: int,
+    payload: ResourceTransfer,
+    service: ResourceService = Depends(get_resource_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    resource = service.get_resource(resource_id)
+    if resource is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
+        )
+    return service.transfer(
+        resource, location_id=payload.location_id, performed_by=current_user.id
+    )

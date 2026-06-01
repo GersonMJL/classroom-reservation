@@ -68,3 +68,7 @@ class ResourceMaintenanceRead(ResourceMaintenanceBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class ResourceTransfer(BaseModel):
+    location_id: int = Field(gt=0)

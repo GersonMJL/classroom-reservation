@@ -16,5 +16,6 @@ export default [
   route("bloqueios", "routes/calendar-blocks.tsx"),
   route("penalidades", "routes/penalties.tsx"),
   route("incidentes", "routes/incidents.tsx"),
+  route("notificacoes", "routes/notifications.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

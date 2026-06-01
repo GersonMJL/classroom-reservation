@@ -72,3 +72,27 @@ class ResourceMaintenanceRead(ResourceMaintenanceBase):
 
 class ResourceTransfer(BaseModel):
     location_id: int = Field(gt=0)
+
+
+class ResourceAvailabilityBase(BaseModel):
+    resource_id: int = Field(gt=0)
+    start: datetime
+    end: datetime
+    available: bool = True
+    reason: str | None = Field(default=None, max_length=255)
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "ResourceAvailabilityBase":
+        if self.end <= self.start:
+            raise ValueError("end deve ser maior que start")
+        return self
+
+
+class ResourceAvailabilityCreate(ResourceAvailabilityBase):
+    pass
+
+
+class ResourceAvailabilityRead(ResourceAvailabilityBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int

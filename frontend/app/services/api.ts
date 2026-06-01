@@ -1510,3 +1510,60 @@ export const incidentApi = {
     return response.json() as Promise<Incident>;
   },
 };
+
+export type NotificationType =
+  | "RESERVATION_APPROVED"
+  | "RESERVATION_REJECTED"
+  | "SUPPORT_PENDING"
+  | "PENALTY_APPLIED"
+  | "APPEAL_RESOLVED"
+  | "COMPOSITE_REVISION_REQUIRED";
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  related_entity_type: string | null;
+  related_target_id: number | null;
+  created_at: string;
+}
+
+export const notificationApi = {
+  async list(onlyUnread = false) {
+    const response = await fetch(
+      `${API_BASE_URL}/notificacoes?only_unread=${onlyUnread}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar notificações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Notification[]>;
+  },
+
+  async unreadCount() {
+    const response = await fetch(`${API_BASE_URL}/notificacoes/contagem`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar contagem de notificações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<{ unread: number }>;
+  },
+
+  async markRead(id: number) {
+    const response = await fetch(`${API_BASE_URL}/notificacoes/${id}/lida`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao marcar notificação como lida");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Notification>;
+  },
+};

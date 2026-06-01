@@ -8,6 +8,7 @@ from app.modules.environments.models import (
 )
 from app.modules.governance.models import Appeal, Penalty
 from app.modules.locations.models import Location
+from app.modules.notifications.models import Notification
 from app.modules.operations.models import Incident, ResourceLoan
 from app.modules.organizational_units.models import OrganizationalUnit
 from app.modules.qualifications.models import Qualification, UserQualification
@@ -45,6 +46,7 @@ __all__ = [
     "ExecutionBuffer",
     "Incident",
     "Location",
+    "Notification",
     "OrganizationalUnit",
     "Penalty",
     "Qualification",

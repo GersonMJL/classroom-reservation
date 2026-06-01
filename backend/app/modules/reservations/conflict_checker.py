@@ -105,6 +105,20 @@ def check_reservation(
                 f"({clash.start_time:%d/%m/%Y %H:%M} – {clash.end_time:%H:%M})",
             )
 
+        from app.modules.resources.maintenance_repository import (
+            ResourceMaintenanceRepository,
+        )
+
+        maintenance = ResourceMaintenanceRepository(
+            db=repository.db
+        ).overlapping(resource_ids=resource_ids, start=start, end=end)
+        for m in maintenance:
+            report.add(
+                "RESOURCE",
+                f"Recurso #{m.resource_id} em manutenção de "
+                f"{m.start_date:%d/%m/%Y %H:%M} a {m.end_date:%H:%M}",
+            )
+
     required_qual_ids = [r.qualification_id for r in environment.requirements]
     if required_qual_ids:
         from app.modules.qualifications.models import UserQualification

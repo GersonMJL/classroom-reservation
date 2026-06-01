@@ -1,5 +1,9 @@
 from app.modules.audit.audit_service import AuditService
 from app.modules.audit.snapshot import snapshot
+from app.modules.environments.environment_rules import (
+    assert_capacity_not_below_confirmed,
+    assert_unique_code,
+)
 from app.modules.environments.models import Environment
 from app.modules.environments.repository import EnvironmentRepository
 from app.modules.environments.schemas import (
@@ -26,6 +30,8 @@ class EnvironmentService:
     def create_environment(
         self, payload: EnvironmentCreate, *, performed_by: int
     ) -> Environment:
+        clash = self.repository.get_by_code(payload.code)
+        assert_unique_code(existing_id=clash.id if clash else None)
         env = self.repository.create(payload)
         self.audit.record(
             entity_type=_ENTITY_TYPE,
@@ -39,6 +45,18 @@ class EnvironmentService:
     def update_environment(
         self, environment: Environment, payload: EnvironmentUpdate, *, performed_by: int
     ) -> Environment:
+        if payload.code is not None and payload.code != environment.code:
+            clash = self.repository.get_by_code(payload.code)
+            assert_unique_code(
+                existing_id=clash.id
+                if clash and clash.id != environment.id
+                else None
+            )
+        if payload.capacity is not None:
+            assert_capacity_not_below_confirmed(
+                new_capacity=payload.capacity,
+                max_confirmed=self.repository.max_active_participants(environment.id),
+            )
         before = snapshot(environment, EnvironmentRead)
         updated = self.repository.update(environment, payload)
         self.audit.record(

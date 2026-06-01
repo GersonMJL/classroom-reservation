@@ -12,6 +12,7 @@ def _environment() -> Environment:
     return Environment(
         id=3,
         name="Sala 101",
+        code="SALA-101",
         type=EnvironmentType.CLASSROOM,
         criticality=EnvironmentCriticality.COMMON,
         capacity=40,

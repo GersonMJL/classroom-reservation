@@ -12,6 +12,7 @@ def _environment() -> Environment:
     return Environment(
         id=5,
         name="Lab A",
+        code="LAB-A",
         type=EnvironmentType.LABORATORY,
         criticality=EnvironmentCriticality.CONTROLLED,
         capacity=20,
@@ -39,6 +40,12 @@ class _FakeRepo:
     def delete(self, environment):
         self.deleted.append(environment)
 
+    def get_by_code(self, code: str):
+        return None
+
+    def max_active_participants(self, environment_id: int) -> int:
+        return 0
+
 
 class _FakeAudit:
     def __init__(self) -> None:
@@ -51,6 +58,7 @@ class _FakeAudit:
 def _payload_create() -> EnvironmentCreate:
     return EnvironmentCreate(
         name="Lab A",
+        code="LAB-A",
         type=EnvironmentType.LABORATORY,
         criticality=EnvironmentCriticality.CONTROLLED,
         capacity=20,

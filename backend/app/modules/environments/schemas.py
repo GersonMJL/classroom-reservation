@@ -6,6 +6,7 @@ from app.shared.enums import CalendarBlockType, EnvironmentCriticality, Environm
 
 
 class EnvironmentBase(BaseModel):
+    code: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=255)
     type: EnvironmentType
     criticality: EnvironmentCriticality
@@ -24,6 +25,7 @@ class EnvironmentCreate(EnvironmentBase):
 
 
 class EnvironmentUpdate(BaseModel):
+    code: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=1, max_length=255)
     type: EnvironmentType | None = None
     criticality: EnvironmentCriticality | None = None

@@ -22,6 +22,7 @@ from app.modules.organizational_units.router import (
 )
 from app.modules.qualifications.router import router as qualifications_router
 from app.modules.reservations.router import router as reservations_router
+from app.modules.resources.maintenance_router import router as resource_maintenance_router
 from app.modules.resources.router import router as resources_router
 from app.modules.users.router import router as users_router
 
@@ -67,6 +68,7 @@ def healthcheck() -> dict[str, str]:
 app.include_router(environments_router)
 app.include_router(calendar_block_router)
 app.include_router(locations_router)
+app.include_router(resource_maintenance_router)
 app.include_router(resources_router)
 app.include_router(users_router)
 app.include_router(auth_router)

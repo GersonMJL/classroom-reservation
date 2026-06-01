@@ -45,3 +45,26 @@ class ResourceRead(BaseModel):
     attachment_type: ResourceAttachment
     environment_id: int | None
     active: bool
+
+
+class ResourceMaintenanceBase(BaseModel):
+    resource_id: int = Field(gt=0)
+    start_date: datetime
+    end_date: datetime
+    reason: str = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "ResourceMaintenanceBase":
+        if self.end_date <= self.start_date:
+            raise ValueError("end_date deve ser maior que start_date")
+        return self
+
+
+class ResourceMaintenanceCreate(ResourceMaintenanceBase):
+    pass
+
+
+class ResourceMaintenanceRead(ResourceMaintenanceBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int

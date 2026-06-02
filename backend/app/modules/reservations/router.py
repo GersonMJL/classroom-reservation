@@ -8,6 +8,7 @@ from app.core.auth import get_current_user
 from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
+from app.modules.notifications.service import build_notification_service
 from app.modules.governance.penalty_repository import PenaltyRepository
 from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations.approval_service import ApprovalService
@@ -44,6 +45,7 @@ def get_approval_service(db: Session = Depends(get_db)) -> ApprovalService:
     return ApprovalService(
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
+        notifications=build_notification_service(db),
     )
 
 

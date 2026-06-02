@@ -1321,6 +1321,32 @@ export const auditApi = {
   },
 };
 
+export const AUDIT_ENTITY_TYPES = [
+  "reservation",
+  "environment",
+  "resource",
+  "location",
+  "user",
+  "penalty",
+  "appeal",
+  "incident",
+  "calendar_block",
+  "composite_reservation",
+] as const;
+
+function auditQueryString(filters: Record<string, string | number | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") params.set(k, String(v));
+  });
+  return params.toString();
+}
+
+export const auditExport = {
+  csvUrl: (filters: Record<string, string | number | undefined>) =>
+    `/api/v1/audit-records/export.csv?${auditQueryString(filters)}`,
+};
+
 export type CalendarBlockType =
   | "ADMIN_BLOCK"
   | "MAINTENANCE"

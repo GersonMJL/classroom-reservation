@@ -30,7 +30,9 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import dayjs, { type Dayjs } from "dayjs";
 
 import {
+  AUDIT_ENTITY_TYPES,
   auditApi,
+  auditExport,
   clearAuthTokens,
   hasValidAccessToken,
   userApi,
@@ -116,6 +118,11 @@ export default function AuditPage() {
 
   const [diffTarget, setDiffTarget] = useState<AuditRecord | null>(null);
 
+  const periodTooLong =
+    filters.start !== null &&
+    filters.end !== null &&
+    filters.end.diff(filters.start, "day") > 365;
+
   const handleAuthError = (message: string): boolean => {
     if (
       message.includes("Sua sessão expirou") ||
@@ -188,6 +195,26 @@ export default function AuditPage() {
   const getUserEmail = (id: number): string =>
     users.find((u) => u.id === id)?.email ?? `Usuário #${id}`;
 
+  const handleExport = async () => {
+    const url = auditExport.csvUrl({
+      entity_type: filters.entity_type || undefined,
+      target_id: filters.target_id ? Number(filters.target_id) : undefined,
+      action: filters.action || undefined,
+      start: filters.start ? filters.start.toISOString() : undefined,
+      end: filters.end ? filters.end.toISOString() : undefined,
+    });
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "auditoria.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
@@ -209,12 +236,21 @@ export default function AuditPage() {
             Histórico de ações realizadas no sistema
           </Typography>
         </Box>
+        <Button variant="outlined" onClick={handleExport}>
+          Exportar CSV
+        </Button>
       </Box>
 
       {/* Alerts */}
       {error && (
         <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+      {periodTooLong && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Período superior a 12 meses pode impactar a performance; considere arquivar
+          registros antigos.
         </Alert>
       )}
 
@@ -227,15 +263,21 @@ export default function AuditPage() {
             gap: 2,
           }}
         >
-          <TextField
-            label="Tipo de entidade"
+          <Select
             size="small"
+            displayEmpty
             value={filters.entity_type}
             onChange={(e) =>
               setFilters((f) => ({ ...f, entity_type: e.target.value }))
             }
-            placeholder="ex: reservation"
-          />
+          >
+            <MenuItem value="">Todas as entidades</MenuItem>
+            {AUDIT_ENTITY_TYPES.map((t) => (
+              <MenuItem key={t} value={t}>
+                {t}
+              </MenuItem>
+            ))}
+          </Select>
           <TextField
             label="ID alvo"
             size="small"
@@ -364,6 +406,21 @@ export default function AuditPage() {
                         }}
                       >
                         Ver diff
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const newFilters = {
+                            ...filters,
+                            entity_type: r.entity_type,
+                            target_id: String(r.target_id),
+                          };
+                          setFilters(newFilters);
+                          fetchRecords(newFilters);
+                        }}
+                        sx={{ ml: 1 }}
+                      >
+                        Ver histórico
                       </Button>
                     </TableCell>
                   </TableRow>

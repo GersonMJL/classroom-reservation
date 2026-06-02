@@ -1665,3 +1665,37 @@ export const notificationApi = {
     return response.json() as Promise<Notification>;
   },
 };
+
+export interface AvailabilityResponse {
+  available: boolean;
+  conflicts: { type: string; detail: string }[];
+  suggestions: { start_time: string; end_time: string }[];
+}
+
+export const reservationAvailabilityApi = {
+  async check(params: {
+    environment_id: number;
+    start: string;
+    end: string;
+    participant_count: number;
+  }) {
+    const q = new URLSearchParams({
+      environment_id: String(params.environment_id),
+      start: params.start,
+      end: params.end,
+      participant_count: String(params.participant_count),
+    }).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/disponibilidade?${q}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(
+        response,
+        "Falha ao verificar disponibilidade"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<AvailabilityResponse>;
+  },
+};

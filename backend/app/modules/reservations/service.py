@@ -7,6 +7,8 @@ from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.governance.restriction import RestrictionGuard
 from app.modules.notifications.service import NotificationService
+from app.modules.qualifications.qualification_rules import assert_qualifications_met
+from app.modules.qualifications.repository import QualificationRepository
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
 from app.modules.reservations.recurrence import expand_weekly
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
@@ -41,11 +43,13 @@ class ReservationService:
         audit: AuditService,
         restriction: RestrictionGuard,
         notifications: NotificationService,
+        qualification_repo: QualificationRepository,
     ) -> None:
         self.repository = repository
         self.audit = audit
         self.restriction = restriction
         self.notifications = notifications
+        self.qualification_repo = qualification_repo
 
     # ----------- consultas -----------
 
@@ -146,6 +150,14 @@ class ReservationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Ambiente não encontrado",
             )
+
+        # Enforce qualification check
+        required_ids = [r.qualification_id for r in environment.requirements]
+        if required_ids:
+            held_ids = self.qualification_repo.list_valid_qualification_ids(
+                payload.requester_id, at=datetime.now(UTC)
+            )
+            assert_qualifications_met(required_ids=required_ids, held_ids=held_ids)
 
         resource_ids = [r.resource_id for r in payload.resources]
         required_support = [s.support_type for s in payload.support]
@@ -367,6 +379,14 @@ class ReservationService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
             )
+
+        # Enforce qualification check
+        required_ids = [r.qualification_id for r in environment.requirements]
+        if required_ids:
+            held_ids = self.qualification_repo.list_valid_qualification_ids(
+                payload.requester_id, at=datetime.now(UTC)
+            )
+            assert_qualifications_met(required_ids=required_ids, held_ids=held_ids)
 
         assert payload.recurrence is not None  # schema enforces this
         slots = expand_weekly(

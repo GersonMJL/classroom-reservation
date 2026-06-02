@@ -29,6 +29,7 @@ from app.modules.reservations.schemas import (
 )
 from app.modules.environments.models import Environment
 from app.modules.qualifications.models import UserQualification
+from app.modules.qualifications.repository import QualificationRepository
 from app.modules.reservations.models import CompositeReservation, CompositeReservationItem
 from app.modules.reservations.service import ReservationService
 from app.modules.users.models import User
@@ -43,6 +44,7 @@ def get_reservation_service(db: Session = Depends(get_db)) -> ReservationService
         audit=build_audit_service(db),
         restriction=RestrictionGuard(repository=PenaltyRepository(db=db)),
         notifications=build_notification_service(db),
+        qualification_repo=QualificationRepository(db=db),
     )
 
 

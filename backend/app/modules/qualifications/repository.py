@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -46,6 +48,16 @@ class QualificationRepository:
         self.db.delete(qualification)
         self.db.commit()
         return True
+
+    def list_valid_qualification_ids(self, user_id: int, at: datetime) -> list[int]:
+        """Retorna IDs de qualificações válidas de um usuário em um dado momento."""
+        results = self.db.execute(
+            select(UserQualification.qualification_id).where(
+                UserQualification.user_id == user_id,
+                UserQualification.valid_until >= at,
+            )
+        ).scalars().all()
+        return list(results)
 
 
 class UserQualificationRepository:

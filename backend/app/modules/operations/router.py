@@ -8,6 +8,9 @@ from app.core.auth import get_current_user
 from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
+from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.governance.penalty_service import PenaltyService
+from app.modules.notifications.service import build_notification_service
 from app.modules.operations.incident_repository import IncidentRepository
 from app.modules.operations.incident_service import IncidentService
 from app.modules.operations.schemas import IncidentCreate, IncidentRead
@@ -21,6 +24,11 @@ def get_incident_service(db: Session = Depends(get_db)) -> IncidentService:
     return IncidentService(
         repository=IncidentRepository(db=db),
         audit=build_audit_service(db),
+        penalties=PenaltyService(
+            repository=PenaltyRepository(db=db),
+            audit=build_audit_service(db),
+            notifications=build_notification_service(db),
+        ),
     )
 
 

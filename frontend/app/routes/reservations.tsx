@@ -20,16 +20,18 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import {
   clearAuthTokens,
+  compositeApi,
   environmentApi,
   hasValidAccessToken,
   reservationApi,
   resourceApi,
   userApi,
 } from "../services/api";
-import type { Reservation, Resource, Room, User } from "../services/api";
+import type { CompositeReservation, Reservation, Resource, Room, User } from "../services/api";
 
 import { CancelDialog } from "./reservations/CancelDialog";
 import { CompositeDialog } from "./reservations/CompositeDialog";
+import { CompositeManageDialog } from "./reservations/CompositeManageDialog";
 import { IncidentDialog } from "./reservations/IncidentDialog";
 import { ReservationCard } from "./reservations/ReservationCard";
 import { ReservationFormDialog } from "./reservations/ReservationFormDialog";
@@ -56,6 +58,7 @@ export default function ReservationsPage() {
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [incidentTarget, setIncidentTarget] = useState<Reservation | null>(null);
   const [compositeOpen, setCompositeOpen] = useState(false);
+  const [compositeManage, setCompositeManage] = useState<CompositeReservation | null>(null);
 
   const isStaff =
     currentUser?.roles.includes("admin") ||
@@ -154,6 +157,12 @@ export default function ReservationsPage() {
     return map;
   }, [environments]);
 
+  const reservationsById = useMemo(() => {
+    const map = new Map<number, Reservation>();
+    for (const r of reservations) map.set(r.id, r);
+    return map;
+  }, [reservations]);
+
   const openCreateDialog = () => {
     setEditingReservation(null);
     setIsFormOpen(true);
@@ -162,6 +171,17 @@ export default function ReservationsPage() {
   const openEditDialog = (reservation: Reservation) => {
     setEditingReservation(reservation);
     setIsFormOpen(true);
+  };
+
+  const handleManageComposite = async (reservation: Reservation) => {
+    try {
+      const composite = await compositeApi.getByReservationId(reservation.id);
+      setCompositeManage(composite);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Falha ao carregar reserva composta";
+      handleError(message);
+    }
   };
 
   return (
@@ -304,6 +324,7 @@ export default function ReservationsPage() {
                   onSuccess={setSuccessMessage}
                   onError={handleError}
                   onIncident={setIncidentTarget}
+                  onManageComposite={handleManageComposite}
                 />
               ))}
             </Stack>
@@ -367,6 +388,19 @@ export default function ReservationsPage() {
         environmentById={environmentById}
         onClose={() => setIncidentTarget(null)}
         onSuccess={setSuccessMessage}
+        onError={handleError}
+      />
+
+      <CompositeManageDialog
+        composite={compositeManage}
+        reservationsById={reservationsById}
+        environmentById={environmentById}
+        onClose={() => setCompositeManage(null)}
+        onUpdated={(updated) => {
+          setCompositeManage(updated);
+          setSuccessMessage("Item cancelado com sucesso");
+          loadReservations(visibleMonth);
+        }}
         onError={handleError}
       />
     </Container>

@@ -29,6 +29,7 @@ from app.modules.reservations.schemas import (
 )
 from app.modules.environments.models import Environment
 from app.modules.qualifications.models import UserQualification
+from app.modules.reservations.models import CompositeReservation, CompositeReservationItem
 from app.modules.reservations.service import ReservationService
 from app.modules.users.models import User
 from app.shared.enums import ReservationStatus, UserRole
@@ -158,6 +159,32 @@ def requester_qualification_status(
         "missing": missing,
         "meets_all": not missing,
     }
+
+
+@router.get("/{reservation_id}/composta", response_model=CompositeReservationRead)
+def get_composite_by_reservation(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> Any:
+    """Retorna a reserva composta que contém o item com o reservation_id informado."""
+    item = db.execute(
+        select(CompositeReservationItem).where(
+            CompositeReservationItem.reservation_id == reservation_id
+        )
+    ).scalar_one_or_none()
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Este item não pertence a nenhuma reserva composta",
+        )
+    composite = db.get(CompositeReservation, item.composite_reservation_id)
+    if composite is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reserva composta não encontrada",
+        )
+    return composite
 
 
 @router.post("", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)

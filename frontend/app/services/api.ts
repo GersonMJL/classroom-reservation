@@ -1205,6 +1205,36 @@ export const compositeApi = {
     return response.json() as Promise<CompositeReservation>;
   },
 
+  async get(compositeId: number): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/compostas/${compositeId}`,
+      { headers: getAuthHeaders() },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao carregar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
+  async getByReservationId(reservationId: number): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/${reservationId}/composta`,
+      { headers: getAuthHeaders() },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao carregar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
   async cancelItem(
     compositeId: number,
     reservationId: number,

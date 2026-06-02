@@ -91,3 +91,7 @@ class CalendarBlockRead(CalendarBlockBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class BufferReleaseRequest(BaseModel):
+    notes: str | None = Field(default=None, max_length=500)

@@ -179,7 +179,7 @@ export function ReservationCard({
           {reservation.type === "COMPOSITE_CHILD" && onManageComposite && (
             <Button
               size="small"
-              color="secondary"
+              color="error"
               variant="outlined"
               startIcon={<AccountTreeIcon />}
               onClick={() => onManageComposite(reservation)}

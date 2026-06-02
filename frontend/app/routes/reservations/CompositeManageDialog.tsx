@@ -44,6 +44,7 @@ export function CompositeManageDialog({
     new Map(),
   );
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [confirmingNonCriticalId, setConfirmingNonCriticalId] = useState<number | null>(null);
 
   if (!composite) return null;
 
@@ -59,8 +60,13 @@ export function CompositeManageDialog({
     if (critical) {
       setConfirmingId(reservationId);
     } else {
-      setCancellingId(reservationId);
+      setConfirmingNonCriticalId(reservationId);
     }
+  };
+
+  const confirmNonCritical = (reservationId: number) => {
+    setConfirmingNonCriticalId(null);
+    setCancellingId(reservationId);
   };
 
   const confirmCritical = (reservationId: number) => {
@@ -121,6 +127,38 @@ export function CompositeManageDialog({
             sx={{ "&:active": { transform: "scale(0.97)" } }}
           >
             Sim, cancelar item crítico
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Non-critical item confirmation dialog */}
+      <Dialog
+        open={confirmingNonCriticalId !== null}
+        onClose={() => setConfirmingNonCriticalId(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <BlockIcon color="error" />
+          Cancelar item
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Cancelar este item? Confirme se o restante do evento ainda é viável.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmingNonCriticalId(null)}>Voltar</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() =>
+              confirmingNonCriticalId !== null &&
+              confirmNonCritical(confirmingNonCriticalId)
+            }
+            sx={{ "&:active": { transform: "scale(0.97)" } }}
+          >
+            Sim, cancelar item
           </Button>
         </DialogActions>
       </Dialog>

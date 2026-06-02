@@ -13,7 +13,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/reservas",              label: "Reservas",        group: "primary",    requiresAuth: true },
   { path: "/environments",          label: "Ambientes",       group: "primary",    requiresAuth: true },
   { path: "/resources",             label: "Recursos",        group: "primary",    requiresAuth: true },
-  { path: "/purposes",              label: "Finalidades",     group: "primary",    requiresAuth: true },
+  // { path: "/purposes",              label: "Finalidades",     group: "primary",    requiresAuth: true },
   { path: "/organizational-units",  label: "Unidades Org.",   group: "primary",    requiresAuth: true },
   { path: "/qualifications",        label: "Qualificações",   group: "primary",    requiresAuth: true },
   { path: "/aprovacoes",            label: "Aprovações",      group: "operations", requiresAuth: true, roles: ["admin", "manager"] },

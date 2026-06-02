@@ -37,38 +37,48 @@ import type { Purpose } from "../services/api";
 export default function PurposesManagement() {
   const navigate = useNavigate();
   const [purposes, setPurposes] = useState<Purpose[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Create/Edit dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingPurposeId, setEditingPurposeId] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState("");
+  const [dialogError, setDialogError] = useState("");
+
+  // Delete confirmation dialog
+  const [deleteTarget, setDeleteTarget] = useState<Purpose | null>(null);
+
+  const handleAuthError = (message: string): boolean => {
+    if (
+      message.includes("Could not validate credentials") ||
+      message.includes("Token expired") ||
+      message.includes("Não foi possível validar as credenciais") ||
+      message.includes("Token expirado")
+    ) {
+      clearAuthTokens();
+      navigate("/login");
+      return true;
+    }
+    return false;
+  };
 
   const loadPurposes = async () => {
-    setLoading(true);
+    setListLoading(true);
     setError("");
     try {
       const data = await purposeApi.getAllPurposes(0, 500, false);
       setPurposes(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Falha ao carregar finalidades";
-      if (
-        message.includes("Could not validate credentials")
-        || message.includes("Token expired")
-        || message.includes("Não foi possível validar as credenciais")
-        || message.includes("Token expirado")
-      ) {
-        clearAuthTokens();
-        navigate("/login");
-        return;
-      }
-      setError(message);
+      if (!handleAuthError(message)) setError(message);
     } finally {
-      setLoading(false);
+      setListLoading(false);
     }
   };
 
@@ -77,24 +87,21 @@ export default function PurposesManagement() {
       navigate("/login");
       return;
     }
-
     setIsAdmin(getTokenRoles().includes("admin"));
     loadPurposes();
   }, [navigate]);
 
   const filteredPurposes = useMemo(() => {
     const normalized = searchValue.trim().toLowerCase();
-    if (!normalized) {
-      return purposes;
-    }
-
-    return purposes.filter((purpose) => purpose.name.toLowerCase().includes(normalized));
+    if (!normalized) return purposes;
+    return purposes.filter((p) => p.name.toLowerCase().includes(normalized));
   }, [purposes, searchValue]);
 
   const openCreateDialog = () => {
     setIsEditMode(false);
     setEditingPurposeId(null);
     setNameInput("");
+    setDialogError("");
     setIsDialogOpen(true);
   };
 
@@ -102,65 +109,76 @@ export default function PurposesManagement() {
     setIsEditMode(true);
     setEditingPurposeId(purpose.id);
     setNameInput(purpose.name);
+    setDialogError("");
     setIsDialogOpen(true);
   };
 
   const closeDialog = () => {
+    if (saving) return;
     setIsDialogOpen(false);
     setIsEditMode(false);
     setEditingPurposeId(null);
     setNameInput("");
+    setDialogError("");
   };
 
   const handleSave = async () => {
     const normalized = nameInput.trim();
     if (!normalized) {
-      setError("Nome da finalidade é obrigatório");
+      setDialogError("Nome da finalidade é obrigatório.");
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setSuccessMessage("");
+    setSaving(true);
+    setDialogError("");
     try {
       if (isEditMode && editingPurposeId !== null) {
         const updated = await purposeApi.updatePurpose(editingPurposeId, { name: normalized });
         setPurposes((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        setSuccessMessage(`Finalidade ${updated.name} atualizada`);
+        setSuccessMessage(`Finalidade "${updated.name}" atualizada`);
       } else {
         const created = await purposeApi.createPurpose({ name: normalized });
         if (!purposes.some((item) => item.id === created.id)) {
           setPurposes((prev) => [...prev, created]);
         }
-        setSuccessMessage(`Finalidade ${created.name} criada`);
+        setSuccessMessage(`Finalidade "${created.name}" criada`);
       }
       closeDialog();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao salvar finalidade");
+      const message = err instanceof Error ? err.message : "Falha ao salvar finalidade";
+      if (!handleAuthError(message)) setDialogError(message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (purpose: Purpose) => {
-    const confirmed = window.confirm(`Excluir a finalidade ${purpose.name}?`);
-    if (!confirmed) {
-      return;
-    }
+  const openDeleteConfirm = (purpose: Purpose) => {
+    setDeleteTarget(purpose);
+  };
 
-    setLoading(true);
+  const closeDeleteConfirm = () => {
+    if (saving) return;
+    setDeleteTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
     setError("");
-    setSuccessMessage("");
     try {
-      await purposeApi.deletePurpose(purpose.id);
-      setPurposes((prev) => prev.map((item) => (
-        item.id === purpose.id ? { ...item, is_active: false } : item
-      )));
-      setSuccessMessage(`Finalidade ${purpose.name} excluída`);
+      await purposeApi.deletePurpose(deleteTarget.id);
+      setPurposes((prev) =>
+        prev.map((item) =>
+          item.id === deleteTarget.id ? { ...item, is_active: false } : item
+        )
+      );
+      setSuccessMessage(`Finalidade "${deleteTarget.name}" excluída`);
+      setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao excluir finalidade");
+      const message = err instanceof Error ? err.message : "Falha ao excluir finalidade";
+      if (!handleAuthError(message)) setError(message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -181,7 +199,7 @@ export default function PurposesManagement() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={openCreateDialog}
-              disabled={loading}
+              disabled={listLoading}
             >
               Nova Finalidade
             </Button>
@@ -190,7 +208,7 @@ export default function PurposesManagement() {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={loadPurposes}
-            disabled={loading}
+            disabled={listLoading}
           >
             Atualizar
           </Button>
@@ -220,7 +238,7 @@ export default function PurposesManagement() {
         />
       </Paper>
 
-      {loading && purposes.length === 0 ? (
+      {listLoading && purposes.length === 0 ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress />
         </Box>
@@ -254,7 +272,7 @@ export default function PurposesManagement() {
                           size="small"
                           startIcon={<EditIcon />}
                           onClick={() => openEditDialog(purpose)}
-                          disabled={loading || !purpose.is_active}
+                          disabled={saving || !purpose.is_active}
                         >
                           Editar
                         </Button>
@@ -262,8 +280,8 @@ export default function PurposesManagement() {
                           size="small"
                           color="error"
                           startIcon={<DeleteIcon />}
-                          onClick={() => handleDelete(purpose)}
-                          disabled={loading || !purpose.is_active}
+                          onClick={() => openDeleteConfirm(purpose)}
+                          disabled={saving || !purpose.is_active}
                         >
                           Excluir
                         </Button>
@@ -284,21 +302,59 @@ export default function PurposesManagement() {
         </TableContainer>
       )}
 
+      {/* Create / Edit Dialog */}
       <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditMode ? "Editar Finalidade" : "Nova Finalidade"}</DialogTitle>
         <DialogContent sx={{ "&.MuiDialogContent-root": { pt: 3 } }}>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Nome"
-            value={nameInput}
-            onChange={(event) => setNameInput(event.target.value)}
-          />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {dialogError && (
+              <Alert severity="error" onClose={() => setDialogError("")}>
+                {dialogError}
+              </Alert>
+            )}
+            <TextField
+              autoFocus
+              fullWidth
+              label="Nome *"
+              value={nameInput}
+              onChange={(event) => {
+                setNameInput(event.target.value);
+                if (dialogError) setDialogError("");
+              }}
+              error={!!dialogError && !nameInput.trim()}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDialog}>Cancelar</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading}>
-            {isEditMode ? "Salvar" : "Criar"}
+          <Button onClick={closeDialog} disabled={saving} color="inherit">
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} variant="contained" disabled={saving}>
+            {saving ? "Aguarde..." : isEditMode ? "Salvar" : "Criar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={Boolean(deleteTarget)} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Excluir finalidade</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir a finalidade{" "}
+            <strong>"{deleteTarget?.name}"</strong>? Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirm} disabled={saving} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            color="error"
+            disabled={saving}
+          >
+            {saving ? "Aguarde..." : "Excluir"}
           </Button>
         </DialogActions>
       </Dialog>

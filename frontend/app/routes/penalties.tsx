@@ -34,6 +34,7 @@ import {
   clearAuthTokens,
   hasValidAccessToken,
   penaltyApi,
+  reservationApi,
   userApi,
 } from "../services/api";
 import type {
@@ -42,6 +43,7 @@ import type {
   PenaltyManualCreate,
   PenaltyStatus,
   PenaltyType,
+  Reservation,
   User,
 } from "../services/api";
 
@@ -93,6 +95,7 @@ export default function PenaltiesPage() {
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [pendingAppeals, setPendingAppeals] = useState<Appeal[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -191,12 +194,14 @@ export default function PenaltiesPage() {
     }
     const bootstrap = async () => {
       try {
-        const [allUsers, me] = await Promise.all([
+        const [allUsers, me, allReservations] = await Promise.all([
           userApi.getAllUsers(0, 500),
           userApi.getCurrentUser(),
+          reservationApi.list({ limit: 500 }),
         ]);
         setUsers(allUsers);
         setCurrentUser(me);
+        setReservations(allReservations);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Falha ao carregar dados auxiliares";
@@ -552,20 +557,26 @@ export default function PenaltiesPage() {
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="ID da reserva *"
-              type="number"
-              value={createForm.reservation_id ?? ""}
-              onChange={(e) =>
-                setCreateForm((prev) => ({
-                  ...prev,
-                  reservation_id: Number(e.target.value) || undefined,
-                }))
-              }
-              fullWidth
-              required
-              slotProps={{ htmlInput: { min: 1 } }}
-            />
+            <FormControl fullWidth required>
+              <InputLabel id="penalty-reservation-label">Reserva *</InputLabel>
+              <Select
+                labelId="penalty-reservation-label"
+                label="Reserva *"
+                value={createForm.reservation_id ?? ""}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    reservation_id: Number(e.target.value),
+                  }))
+                }
+              >
+                {reservations.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    #{r.id} — {dayjs(r.start_time).format("DD/MM/YYYY HH:mm")} ({r.status})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl fullWidth required>
               <InputLabel id="penalty-type-label">Tipo *</InputLabel>
               <Select

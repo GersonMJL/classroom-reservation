@@ -22,6 +22,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -115,6 +116,7 @@ export default function CalendarBlocksPage() {
   // Release dialog
   const [releaseTarget, setReleaseTarget] = useState<CalendarBlock | null>(null);
   const [releasing, setReleasing] = useState(false);
+  const [releaseNotes, setReleaseNotes] = useState("");
 
   const handleAuthError = (message: string): boolean => {
     if (
@@ -282,10 +284,14 @@ export default function CalendarBlocksPage() {
     }
   };
 
-  const openRelease = (block: CalendarBlock) => setReleaseTarget(block);
+  const openRelease = (block: CalendarBlock) => {
+    setReleaseNotes("");
+    setReleaseTarget(block);
+  };
   const closeRelease = () => {
     if (releasing) return;
     setReleaseTarget(null);
+    setReleaseNotes("");
   };
 
   const handleRelease = async () => {
@@ -293,12 +299,16 @@ export default function CalendarBlocksPage() {
     setReleasing(true);
     setError("");
     try {
-      const updated = await calendarBlockApi.releaseEarly(releaseTarget.id);
+      const updated = await calendarBlockApi.releaseEarly(
+        releaseTarget.id,
+        releaseNotes.trim() || undefined
+      );
       setSuccessMessage("Bloqueio liberado antecipadamente.");
       setBlocks((prev) =>
         prev.map((b) => (b.id === updated.id ? updated : b))
       );
       setReleaseTarget(null);
+      setReleaseNotes("");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Falha ao liberar bloqueio";
@@ -373,7 +383,7 @@ export default function CalendarBlocksPage() {
       )}
 
       {/* Filter */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <FormControl size="small" sx={{ minWidth: 260 }}>
           <InputLabel>Ambiente</InputLabel>
           <Select
@@ -389,6 +399,21 @@ export default function CalendarBlocksPage() {
             ))}
           </Select>
         </FormControl>
+        {filterEnvId !== "" && (() => {
+          const now = Date.now();
+          const occupied = blocks.some(
+            (b) =>
+              new Date(b.start_time).getTime() <= now &&
+              new Date(b.end_time).getTime() > now
+          );
+          return (
+            <Chip
+              size="small"
+              color={occupied ? "warning" : "success"}
+              label={occupied ? "Em buffer/bloqueio" : "Livre"}
+            />
+          );
+        })()}
       </Box>
 
       {/* Content */}
@@ -460,12 +485,12 @@ export default function CalendarBlocksPage() {
                       >
                         {block.type === "BUFFER" ? (
                           <Button
-                            variant="contained"
-                            color="primary"
+                            variant="outlined"
                             size="small"
                             onClick={() => openRelease(block)}
+                            sx={{ "&:active": { transform: "scale(0.97)" } }}
                           >
-                            Liberar agora
+                            Liberar
                           </Button>
                         ) : (
                           <>
@@ -646,6 +671,17 @@ export default function CalendarBlocksPage() {
               {formatEnd(releaseTarget.start_time, releaseTarget.end_time)}
             </Typography>
           )}
+          <TextField
+            label="Notas da liberação (opcional)"
+            value={releaseNotes}
+            onChange={(e) => setReleaseNotes(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            size="small"
+            sx={{ mt: 2 }}
+            disabled={releasing}
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeRelease} disabled={releasing} color="inherit">

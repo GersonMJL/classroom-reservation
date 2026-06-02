@@ -1385,10 +1385,11 @@ export const calendarBlockApi = {
     }
   },
 
-  async releaseEarly(id: number): Promise<CalendarBlock> {
+  async releaseEarly(id: number, notes?: string): Promise<CalendarBlock> {
     const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}/liberar`, {
       method: "POST",
       headers: getAuthHeaders(),
+      body: JSON.stringify({ notes: notes ?? null }),
     });
     if (!response.ok) {
       throw new Error(await _calendarBlockError(response, "Falha ao liberar bloqueio"));

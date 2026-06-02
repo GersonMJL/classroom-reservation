@@ -59,6 +59,16 @@ export interface EnvironmentCreate {
 
 export type EnvironmentUpdate = Partial<EnvironmentCreate>;
 
+export interface EnvironmentRequirement {
+  id: number;
+  environment_id: number;
+  qualification_id: number;
+}
+
+export interface EnvironmentRequirementCreate {
+  qualification_id: number;
+}
+
 export interface Location {
   id: number;
   campus: string;
@@ -356,6 +366,47 @@ export const environmentApi = {
   async searchByLocation(locationId: number, skip = 0, limit = 100) {
     const environments = await this.getAllRooms(skip, limit);
     return environments.filter((environment) => environment.location_id === locationId);
+  },
+};
+
+export const environmentRequirementApi = {
+  async list(environmentId: number): Promise<EnvironmentRequirement[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/environments/${environmentId}/requisitos`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar requisitos");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<EnvironmentRequirement[]>;
+  },
+
+  async add(environmentId: number, qualificationId: number): Promise<EnvironmentRequirement> {
+    const response = await fetch(
+      `${API_BASE_URL}/environments/${environmentId}/requisitos`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ qualification_id: qualificationId } satisfies EnvironmentRequirementCreate),
+      }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao adicionar requisito");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<EnvironmentRequirement>;
+  },
+
+  async remove(environmentId: number, requirementId: number): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/environments/${environmentId}/requisitos/${requirementId}`,
+      { method: "DELETE", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao remover requisito");
+      throw new Error(detail);
+    }
   },
 };
 

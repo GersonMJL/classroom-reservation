@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
-import { environmentApi, locationApi } from "../../services/api";
-import type { Environment, EnvironmentCreate, Location } from "../../services/api";
+import {
+  environmentApi,
+  environmentRequirementApi,
+  locationApi,
+  qualificationApi,
+} from "../../services/api";
+import type {
+  Environment,
+  EnvironmentCreate,
+  EnvironmentRequirement,
+  Location,
+  Qualification,
+} from "../../services/api";
 import { useToast } from "../../ui/useToast";
 
 const initialFormData: EnvironmentCreate = {
@@ -33,6 +44,9 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [availableQualifications, setAvailableQualifications] = useState<Qualification[]>([]);
+  const [selectedQualificationIds, setSelectedQualificationIds] = useState<number[]>([]);
+  const [originalRequirements, setOriginalRequirements] = useState<EnvironmentRequirement[]>([]);
 
   const loadLocations = async () => {
     setLoadingLocations(true);
@@ -55,6 +69,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
   useEffect(() => {
     void loadLocations();
+    qualificationApi.getAll(0, 500).then(setAvailableQualifications).catch(() => {});
   }, []);
 
   const resetForm = () => {
@@ -72,6 +87,8 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     setIsEditMode(false);
     setEditingEnvironmentId(null);
     setOpenEnvironmentDialog(true);
+    setSelectedQualificationIds([]);
+    setOriginalRequirements([]);
   };
 
   const openEditDialog = (environment: Environment) => {
@@ -93,6 +110,12 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       active: environment.active,
     });
     setOpenEnvironmentDialog(true);
+    setSelectedQualificationIds([]);
+    setOriginalRequirements([]);
+    environmentRequirementApi.list(environment.id).then((reqs) => {
+      setOriginalRequirements(reqs);
+      setSelectedQualificationIds(reqs.map((r) => r.qualification_id));
+    }).catch(() => {});
   };
 
   const closeEnvironmentDialog = () => {
@@ -140,13 +163,28 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
 
     setSubmitting(true);
     try {
+      let savedEnvironmentId: number;
       if (isEditMode && editingEnvironmentId !== null) {
         await environmentApi.updateRoom(editingEnvironmentId, formData);
+        savedEnvironmentId = editingEnvironmentId;
         toast.success("Ambiente atualizado.");
       } else {
-        await environmentApi.createRoom(formData);
+        const created = await environmentApi.createRoom(formData);
+        savedEnvironmentId = created.id;
         toast.success("Ambiente salvo.");
       }
+
+      // Sync requirements: add new, remove deleted
+      const toAdd = selectedQualificationIds.filter(
+        (qid) => !originalRequirements.some((r) => r.qualification_id === qid)
+      );
+      const toRemove = originalRequirements.filter(
+        (r) => !selectedQualificationIds.includes(r.qualification_id)
+      );
+      await Promise.all([
+        ...toAdd.map((qid) => environmentRequirementApi.add(savedEnvironmentId, qid)),
+        ...toRemove.map((r) => environmentRequirementApi.remove(savedEnvironmentId, r.id)),
+      ]);
 
       closeEnvironmentDialog();
       setError("");
@@ -176,5 +214,8 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     openEditDialog,
     closeEnvironmentDialog,
     handleSaveEnvironment,
+    availableQualifications,
+    selectedQualificationIds,
+    setSelectedQualificationIds,
   };
 }

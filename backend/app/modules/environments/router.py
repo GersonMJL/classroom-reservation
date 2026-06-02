@@ -10,6 +10,8 @@ from app.modules.environments.repository import EnvironmentRepository
 from app.modules.environments.schemas import (
     EnvironmentCreate,
     EnvironmentRead,
+    EnvironmentRequirementCreate,
+    EnvironmentRequirementRead,
     EnvironmentUpdate,
 )
 from app.modules.environments.service import EnvironmentService
@@ -85,3 +87,59 @@ def delete_environment(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
         )
     service.delete_environment(environment, performed_by=current_user.id)
+
+
+@router.get("/{environment_id}/requisitos", response_model=list[EnvironmentRequirementRead])
+def list_requirements(
+    environment_id: int,
+    service: EnvironmentService = Depends(get_environment_service),
+    _: User = Depends(get_current_user),
+) -> list[Any]:
+    environment = service.get_environment(environment_id)
+    if environment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
+        )
+    return service.list_requirements(environment_id)
+
+
+@router.post(
+    "/{environment_id}/requisitos",
+    response_model=EnvironmentRequirementRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_requirement(
+    environment_id: int,
+    payload: EnvironmentRequirementCreate,
+    service: EnvironmentService = Depends(get_environment_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    environment = service.get_environment(environment_id)
+    if environment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
+        )
+    return service.add_requirement(environment, payload.qualification_id, performed_by=current_user.id)
+
+
+@router.delete(
+    "/{environment_id}/requisitos/{requirement_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remove_requirement(
+    environment_id: int,
+    requirement_id: int,
+    service: EnvironmentService = Depends(get_environment_service),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    environment = service.get_environment(environment_id)
+    if environment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
+        )
+    requirement = service.repository.get_requirement(requirement_id)
+    if requirement is None or requirement.environment_id != environment_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Requisito não encontrado"
+        )
+    service.remove_requirement(requirement, performed_by=current_user.id)

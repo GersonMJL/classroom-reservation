@@ -37,6 +37,9 @@ export default function EnvironmentsManagement() {
         handleSaveEnvironment,
         handleDeleteEnvironment,
         handleSearch,
+        availableQualifications,
+        selectedQualificationIds,
+        setSelectedQualificationIds,
     } = useEnvironmentsManagement();
 
     return (
@@ -90,6 +93,9 @@ export default function EnvironmentsManagement() {
                 setFormData={setFormData}
                 onClose={closeEnvironmentDialog}
                 onSave={handleSaveEnvironment}
+                availableQualifications={availableQualifications}
+                selectedQualificationIds={selectedQualificationIds}
+                setSelectedQualificationIds={setSelectedQualificationIds}
             />
 
             <SearchDialog

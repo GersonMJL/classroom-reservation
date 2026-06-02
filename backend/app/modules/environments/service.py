@@ -4,7 +4,7 @@ from app.modules.environments.environment_rules import (
     assert_capacity_not_below_confirmed,
     assert_unique_code,
 )
-from app.modules.environments.models import Environment
+from app.modules.environments.models import Environment, EnvironmentRequirement
 from app.modules.environments.repository import EnvironmentRepository
 from app.modules.environments.schemas import (
     EnvironmentCreate,
@@ -76,6 +76,49 @@ class EnvironmentService:
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=target_id,
+            action=AuditAction.DELETE,
+            performed_by=performed_by,
+            before=before,
+        )
+
+    def list_requirements(self, environment_id: int) -> list[EnvironmentRequirement]:
+        return self.repository.list_requirements(environment_id)
+
+    def add_requirement(
+        self,
+        environment: Environment,
+        qualification_id: int,
+        *,
+        performed_by: int,
+    ) -> EnvironmentRequirement:
+        if self.repository.requirement_exists(environment.id, qualification_id):
+            from fastapi import HTTPException, status as http_status
+            raise HTTPException(
+                status_code=http_status.HTTP_409_CONFLICT,
+                detail="Qualificação já exigida neste ambiente",
+            )
+        req = self.repository.add_requirement(environment.id, qualification_id)
+        self.audit.record(
+            entity_type="environment_requirement",
+            target_id=req.id,
+            action=AuditAction.CREATE,
+            performed_by=performed_by,
+            after={"environment_id": environment.id, "qualification_id": qualification_id},
+        )
+        return req
+
+    def remove_requirement(
+        self,
+        requirement: EnvironmentRequirement,
+        *,
+        performed_by: int,
+    ) -> None:
+        before = {"environment_id": requirement.environment_id, "qualification_id": requirement.qualification_id}
+        req_id = requirement.id
+        self.repository.remove_requirement(requirement)
+        self.audit.record(
+            entity_type="environment_requirement",
+            target_id=req_id,
             action=AuditAction.DELETE,
             performed_by=performed_by,
             before=before,

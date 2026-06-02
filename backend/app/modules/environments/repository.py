@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.modules.environments.models import Environment
+from app.modules.environments.models import Environment, EnvironmentRequirement
 from app.modules.environments.schemas import EnvironmentCreate, EnvironmentUpdate
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.state_machine import BLOCKING_STATUSES
@@ -51,3 +51,39 @@ class EnvironmentRepository:
             .where(Reservation.status.in_(list(BLOCKING_STATUSES)))
         ).scalar_one_or_none()
         return int(result or 0)
+
+    # --- Requirement methods ---
+
+    def list_requirements(self, environment_id: int) -> list[EnvironmentRequirement]:
+        query = select(EnvironmentRequirement).where(
+            EnvironmentRequirement.environment_id == environment_id
+        )
+        return list(self.db.execute(query).scalars().all())
+
+    def get_requirement(self, requirement_id: int) -> EnvironmentRequirement | None:
+        return self.db.get(EnvironmentRequirement, requirement_id)
+
+    def requirement_exists(self, environment_id: int, qualification_id: int) -> bool:
+        result = self.db.execute(
+            select(EnvironmentRequirement).where(
+                EnvironmentRequirement.environment_id == environment_id,
+                EnvironmentRequirement.qualification_id == qualification_id,
+            )
+        ).scalars().first()
+        return result is not None
+
+    def add_requirement(
+        self, environment_id: int, qualification_id: int
+    ) -> EnvironmentRequirement:
+        req = EnvironmentRequirement(
+            environment_id=environment_id,
+            qualification_id=qualification_id,
+        )
+        self.db.add(req)
+        self.db.commit()
+        self.db.refresh(req)
+        return req
+
+    def remove_requirement(self, requirement: EnvironmentRequirement) -> None:
+        self.db.delete(requirement)
+        self.db.commit()

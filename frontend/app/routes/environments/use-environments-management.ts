@@ -37,5 +37,8 @@ export function useEnvironmentsManagement() {
     handleSaveEnvironment: form.handleSaveEnvironment,
     handleDeleteEnvironment: data.handleDeleteEnvironment,
     handleSearch: data.handleSearch,
+    availableQualifications: form.availableQualifications,
+    selectedQualificationIds: form.selectedQualificationIds,
+    setSelectedQualificationIds: form.setSelectedQualificationIds,
   };
 }

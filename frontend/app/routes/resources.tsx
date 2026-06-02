@@ -459,6 +459,45 @@ export default function ResourcesManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog open={isTransferDialogOpen} onClose={closeTransferDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Transferir Recurso
+          {transferResource && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {transferResource.name}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ "&.MuiDialogContent-root": { pt: 3 } }}>
+          <FormControl fullWidth>
+            <InputLabel id="transfer-env-label">Ambiente de destino</InputLabel>
+            <Select
+              labelId="transfer-env-label"
+              label="Ambiente de destino"
+              value={transferEnvironmentId}
+              onChange={(event) =>
+                setTransferEnvironmentId(event.target.value as number)
+              }
+            >
+              {environments.map((env) => (
+                <MenuItem key={env.id} value={env.id}>
+                  {env.code ? `${env.code} — ${env.name}` : env.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeTransferDialog}>Cancelar</Button>
+          <Button
+            onClick={handleTransfer}
+            variant="contained"
+            disabled={loading || !transferEnvironmentId}
+          >
+            Confirmar transferência
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

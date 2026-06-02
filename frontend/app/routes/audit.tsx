@@ -196,23 +196,36 @@ export default function AuditPage() {
     users.find((u) => u.id === id)?.email ?? `Usuário #${id}`;
 
   const handleExport = async () => {
-    const url = auditExport.csvUrl({
-      entity_type: filters.entity_type || undefined,
-      target_id: filters.target_id ? Number(filters.target_id) : undefined,
-      action: filters.action || undefined,
-      start: filters.start ? filters.start.toISOString() : undefined,
-      end: filters.end ? filters.end.toISOString() : undefined,
-    });
-    const token = localStorage.getItem("accessToken");
-    const res = await fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "auditoria.csv";
-    link.click();
-    URL.revokeObjectURL(link.href);
+    try {
+      const url = auditExport.csvUrl({
+        entity_type: filters.entity_type || undefined,
+        target_id: filters.target_id ? Number(filters.target_id) : undefined,
+        action: filters.action || undefined,
+        start: filters.start ? filters.start.toISOString() : undefined,
+        end: filters.end ? filters.end.toISOString() : undefined,
+      });
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuthTokens();
+          navigate("/login");
+          return;
+        }
+        setError(`Falha ao exportar CSV (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "auditoria.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao exportar CSV");
+    }
   };
 
   return (

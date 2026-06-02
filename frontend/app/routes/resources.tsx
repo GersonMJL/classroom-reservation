@@ -357,24 +357,7 @@ export default function ResourcesManagement() {
                         {resource.attachment_type === "MOBILE" && (
                           <Button
                             size="small"
-                            onClick={async () => {
-                              const input = window.prompt("ID da nova localização:");
-                              const id = Number(input);
-                              if (!id) return;
-                              try {
-                                await resourceTransferApi.transfer(resource.id, id);
-                                setSuccessMessage(
-                                  `Recurso "${resource.name}" transferido`
-                                );
-                                await loadResources();
-                              } catch (err) {
-                                setError(
-                                  err instanceof Error
-                                    ? err.message
-                                    : "Falha ao transferir recurso"
-                                );
-                              }
-                            }}
+                            onClick={() => openTransferDialog(resource)}
                             disabled={loading || !resource.active}
                           >
                             Transferir

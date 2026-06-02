@@ -269,7 +269,7 @@ const apiFetch = async <T>(
     extraHeaders.forEach((value, key) => headers.set(key, value));
   }
 
-  const response = await fetch(new URL(path, API_BASE_URL), {
+  const response = await fetch(new URL(path, `${API_BASE_URL}/`), {
     ...options,
     headers,
   });
@@ -995,7 +995,7 @@ const buildQuery = (params: Record<string, unknown>): string => {
 export const reservationQualificationApi = {
   status: (reservationId: number) =>
     apiFetch<QualificationStatus>(
-      `/api/v1/reservas/${reservationId}/qualificacoes-solicitante`
+      `reservas/${reservationId}/qualificacoes-solicitante`
     ),
 };
 

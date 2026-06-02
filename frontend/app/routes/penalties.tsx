@@ -151,7 +151,8 @@ export default function PenaltiesPage() {
   };
 
   const handleResolve = async (appealId: number, approve: boolean) => {
-    const notes = window.prompt("Notas da decisão:") ?? "";
+    const notes = window.prompt("Notas da decisão:");
+    if (notes === null) return;
     try {
       await appealApi.resolve(appealId, approve, notes);
       setSuccessMessage(approve ? "Recurso aprovado." : "Recurso rejeitado.");

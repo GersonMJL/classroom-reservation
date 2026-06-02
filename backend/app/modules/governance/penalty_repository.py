@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.governance.models import Appeal, Penalty
-from app.shared.enums import PenaltyStatus, PenaltyType
+from app.shared.enums import AppealStatus, PenaltyStatus, PenaltyType
 
 
 class PenaltyRepository:
@@ -70,7 +70,7 @@ class PenaltyRepository:
         self.db.refresh(appeal)
         return appeal
 
-    def list_appeals(self, *, status=None, skip: int = 0, limit: int = 100):
+    def list_appeals(self, *, status: AppealStatus | None = None, skip: int = 0, limit: int = 100) -> list[Appeal]:
         query = select(Appeal).order_by(Appeal.id.desc())
         if status is not None:
             query = query.where(Appeal.status == status)

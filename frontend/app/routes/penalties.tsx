@@ -109,6 +109,11 @@ export default function PenaltiesPage() {
   const [createForm, setCreateForm] = useState<Partial<PenaltyManualCreate>>({});
   const [submittingCreate, setSubmittingCreate] = useState(false);
 
+  // Resolve appeal dialog state
+  const [resolveTarget, setResolveTarget] = useState<{ id: number; approve: boolean } | null>(null);
+  const [resolveNotes, setResolveNotes] = useState("");
+  const [submittingResolve, setSubmittingResolve] = useState(false);
+
   const isStaff =
     currentUser?.roles.includes("admin") ||
     currentUser?.roles.includes("manager");
@@ -150,16 +155,32 @@ export default function PenaltiesPage() {
     }
   };
 
-  const handleResolve = async (appealId: number, approve: boolean) => {
-    const notes = window.prompt("Notas da decisão:");
-    if (notes === null) return;
+  const openResolve = (appealId: number, approve: boolean) => {
+    setResolveTarget({ id: appealId, approve });
+    setResolveNotes("");
+  };
+
+  const closeResolve = () => {
+    if (submittingResolve) return;
+    setResolveTarget(null);
+    setResolveNotes("");
+  };
+
+  const handleResolve = async () => {
+    if (!resolveTarget) return;
+    setSubmittingResolve(true);
+    setError("");
     try {
-      await appealApi.resolve(appealId, approve, notes);
-      setSuccessMessage(approve ? "Recurso aprovado." : "Recurso rejeitado.");
+      await appealApi.resolve(resolveTarget.id, resolveTarget.approve, resolveNotes.trim());
+      setSuccessMessage(resolveTarget.approve ? "Recurso aprovado." : "Recurso rejeitado.");
+      setResolveTarget(null);
+      setResolveNotes("");
       await Promise.all([loadPenalties(), loadAppeals()]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Falha ao resolver recurso";
       if (!handleAuthError(message)) setError(message);
+    } finally {
+      setSubmittingResolve(false);
     }
   };
 
@@ -339,10 +360,10 @@ export default function PenaltiesPage() {
                 <Typography sx={{ flex: 1 }}>
                   Recurso #{a.id} — penalidade #{a.penalty_id}
                 </Typography>
-                <Button size="small" color="success" onClick={() => handleResolve(a.id, true)}>
+                <Button size="small" color="success" onClick={() => openResolve(a.id, true)}>
                   Aprovar
                 </Button>
-                <Button size="small" color="error" onClick={() => handleResolve(a.id, false)}>
+                <Button size="small" color="error" onClick={() => openResolve(a.id, false)}>
                   Rejeitar
                 </Button>
               </Stack>
@@ -607,6 +628,43 @@ export default function PenaltiesPage() {
             disabled={submittingCreate || !createFormValid}
           >
             {submittingCreate ? "Aguarde..." : "Aplicar penalidade"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Resolve Appeal Dialog */}
+      <Dialog
+        open={Boolean(resolveTarget)}
+        onClose={closeResolve}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {resolveTarget?.approve ? "Aprovar recurso" : "Rejeitar recurso"}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              label="Notas da decisão"
+              multiline
+              rows={4}
+              value={resolveNotes}
+              onChange={(e) => setResolveNotes(e.target.value)}
+              fullWidth
+              autoFocus
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeResolve} disabled={submittingResolve} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color={resolveTarget?.approve ? "success" : "error"}
+            onClick={handleResolve}
+            disabled={submittingResolve}
+          >
+            {submittingResolve ? "Aguarde..." : resolveTarget?.approve ? "Confirmar aprovação" : "Confirmar rejeição"}
           </Button>
         </DialogActions>
       </Dialog>

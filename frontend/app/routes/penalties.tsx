@@ -16,6 +16,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -36,6 +37,7 @@ import {
   userApi,
 } from "../services/api";
 import type {
+  Appeal,
   Penalty,
   PenaltyManualCreate,
   PenaltyStatus,
@@ -89,6 +91,7 @@ export default function PenaltiesPage() {
   const navigate = useNavigate();
 
   const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [pendingAppeals, setPendingAppeals] = useState<Appeal[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -138,6 +141,28 @@ export default function PenaltiesPage() {
     }
   };
 
+  const loadAppeals = async () => {
+    if (!isStaff) return;
+    try {
+      const data = await appealApi.listPending();
+      setPendingAppeals(data);
+    } catch {
+      // silent — not critical
+    }
+  };
+
+  const handleResolve = async (appealId: number, approve: boolean) => {
+    const notes = window.prompt("Notas da decisão:") ?? "";
+    try {
+      await appealApi.resolve(appealId, approve, notes);
+      setSuccessMessage(approve ? "Recurso aprovado." : "Recurso rejeitado.");
+      await Promise.all([loadPenalties(), loadAppeals()]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Falha ao resolver recurso";
+      if (!handleAuthError(message)) setError(message);
+    }
+  };
+
   useEffect(() => {
     if (!hasValidAccessToken()) {
       navigate("/login");
@@ -159,6 +184,7 @@ export default function PenaltiesPage() {
     };
     bootstrap();
     loadPenalties();
+    loadAppeals();
   }, [navigate]);
 
   const getUserName = (id: number): string =>
@@ -299,6 +325,30 @@ export default function PenaltiesPage() {
         <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
           {error}
         </Alert>
+      )}
+
+      {/* Pending Appeals Section */}
+      {isStaff && pendingAppeals.length > 0 && (
+        <Paper sx={{ mb: 3, p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Recursos pendentes
+          </Typography>
+          <Stack spacing={1}>
+            {pendingAppeals.map((a) => (
+              <Stack key={a.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Typography sx={{ flex: 1 }}>
+                  Recurso #{a.id} — penalidade #{a.penalty_id}
+                </Typography>
+                <Button size="small" color="success" onClick={() => handleResolve(a.id, true)}>
+                  Aprovar
+                </Button>
+                <Button size="small" color="error" onClick={() => handleResolve(a.id, false)}>
+                  Rejeitar
+                </Button>
+              </Stack>
+            ))}
+          </Stack>
+        </Paper>
       )}
 
       {/* Content */}

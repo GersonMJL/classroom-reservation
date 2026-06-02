@@ -1532,6 +1532,8 @@ export const penaltyApi = {
 };
 
 export const appealApi = {
+  listPending: () =>
+    apiFetch<Appeal[]>(`/api/v1/governance/appeals?status_filter=SUBMITTED`),
   async submit(penalty_id: number, justification: string): Promise<Appeal> {
     const response = await fetch(`${API_BASE_URL}/governance/appeals`, {
       method: "POST",

@@ -19,7 +19,7 @@ from app.modules.governance.schemas import (
     PenaltyRead,
 )
 from app.modules.users.models import User
-from app.shared.enums import UserRole
+from app.shared.enums import AppealStatus, UserRole
 
 router = APIRouter(prefix="/api/v1/governance", tags=["governance"])
 
@@ -103,3 +103,14 @@ def resolve_appeal(
         resolution_notes=payload.resolution_notes,
         by=current_user,
     )
+
+
+@router.get("/appeals", response_model=list[AppealRead])
+def list_appeals(
+    status_filter: AppealStatus | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    service: PenaltyService = Depends(get_penalty_service),
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
+) -> list[Any]:
+    return service.repository.list_appeals(status=status_filter, skip=skip, limit=limit)

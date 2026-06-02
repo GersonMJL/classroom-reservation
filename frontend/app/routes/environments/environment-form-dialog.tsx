@@ -1,14 +1,19 @@
 import {
+  Box,
+  Checkbox,
+  Chip,
   FormControl,
   FormHelperText,
   InputLabel,
+  ListItemText,
   MenuItem,
+  OutlinedInput,
   Select,
   FormControlLabel,
   Switch,
 } from "@mui/material";
 import type { Dispatch, SetStateAction } from "react";
-import type { EnvironmentCreate, Location } from "../../services/api";
+import type { EnvironmentCreate, Location, Qualification } from "../../services/api";
 import { FormDialog } from "../../ui/FormDialog";
 import { FormField } from "../../ui/FormField";
 
@@ -18,6 +23,9 @@ type EnvironmentFormDialogProps = {
   formData: EnvironmentCreate;
   locations: Location[];
   loadingLocations: boolean;
+  availableQualifications: Qualification[];
+  selectedQualificationIds: number[];
+  setSelectedQualificationIds: Dispatch<SetStateAction<number[]>>;
   setFormData: Dispatch<SetStateAction<EnvironmentCreate>>;
   onClose: () => void;
   onSave: () => void;
@@ -30,6 +38,9 @@ export function EnvironmentFormDialog({
   formData,
   locations,
   loadingLocations,
+  availableQualifications,
+  selectedQualificationIds,
+  setSelectedQualificationIds,
   setFormData,
   onClose,
   onSave,
@@ -178,6 +189,44 @@ export function EnvironmentFormDialog({
         }
         slotProps={{ htmlInput: { min: 0 } }}
       />
+
+      {availableQualifications.length > 0 && (
+        <FormControl fullWidth margin="dense">
+          <InputLabel id="env-qualifications-label" shrink>
+            Qualificações exigidas
+          </InputLabel>
+          <Select
+            labelId="env-qualifications-label"
+            multiple
+            value={selectedQualificationIds}
+            onChange={(event) => {
+              const val = event.target.value;
+              setSelectedQualificationIds(
+                typeof val === "string" ? val.split(",").map(Number) : (val as number[])
+              );
+            }}
+            input={<OutlinedInput label="Qualificações exigidas" notched />}
+            renderValue={(selected) => (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                {(selected as number[]).map((id) => {
+                  const q = availableQualifications.find((q) => q.id === id);
+                  return <Chip key={id} label={q?.name ?? `#${id}`} size="small" />;
+                })}
+              </Box>
+            )}
+          >
+            {availableQualifications.map((q) => (
+              <MenuItem key={q.id} value={q.id}>
+                <Checkbox checked={selectedQualificationIds.includes(q.id)} />
+                <ListItemText primary={q.name} secondary={q.description} />
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText>
+            Usuários sem essas qualificações não poderão criar reservas neste ambiente.
+          </FormHelperText>
+        </FormControl>
+      )}
 
       <FormControlLabel
         control={

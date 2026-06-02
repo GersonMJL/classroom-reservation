@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     noshow_job_enabled: bool = True
     noshow_job_interval_seconds: int = 300
 
+    overtime_job_enabled: bool = True
+    overtime_job_interval_seconds: int = 300
+    overtime_grace_minutes: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

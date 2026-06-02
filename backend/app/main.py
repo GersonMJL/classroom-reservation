@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.core.scheduler import noshow_job, run_periodic
+from app.core.scheduler import noshow_job, overtime_job, run_periodic
 from app.db import models  # noqa: F401
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
@@ -33,20 +33,32 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event = asyncio.Event()
-    task: asyncio.Task | None = None
+    tasks: list[asyncio.Task] = []
     if settings.noshow_job_enabled:
-        task = asyncio.create_task(
-            run_periodic(
-                noshow_job,
-                interval_seconds=settings.noshow_job_interval_seconds,
-                stop_event=stop_event,
+        tasks.append(
+            asyncio.create_task(
+                run_periodic(
+                    noshow_job,
+                    interval_seconds=settings.noshow_job_interval_seconds,
+                    stop_event=stop_event,
+                )
+            )
+        )
+    if settings.overtime_job_enabled:
+        tasks.append(
+            asyncio.create_task(
+                run_periodic(
+                    overtime_job,
+                    interval_seconds=settings.overtime_job_interval_seconds,
+                    stop_event=stop_event,
+                )
             )
         )
     try:
         yield
     finally:
         stop_event.set()
-        if task is not None:
+        for task in tasks:
             await task
 
 

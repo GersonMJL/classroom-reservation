@@ -49,3 +49,17 @@ def noshow_job() -> None:
             logger.info("No-show automático aplicado às reservas %s", changed)
     finally:
         db.close()
+
+
+def overtime_job() -> None:
+    """Job de produção: abre sessão e aplica penalidade de overtime em reservas sem check-out."""
+    from app.db.session import session_factory
+    from app.modules.reservations.overtime_job import mark_overtime
+
+    db = session_factory()
+    try:
+        changed = mark_overtime(db)
+        if changed:
+            logger.info("Overtime automático aplicado às reservas %s", changed)
+    finally:
+        db.close()

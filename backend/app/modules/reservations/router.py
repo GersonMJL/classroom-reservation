@@ -16,6 +16,7 @@ from app.modules.reservations.checkin_service import CheckinService
 from app.modules.reservations.composite_service import CompositeService
 from app.modules.reservations.repository import ReservationRepository
 from app.modules.reservations.schemas import (
+    AvailabilityResponse,
     CompositeReservationCreate,
     CompositeReservationRead,
     ReservationCancel,
@@ -81,6 +82,25 @@ def list_reservations(
         status=status_filter,
         start_after=start_after,
         end_before=end_before,
+    )
+
+
+@router.get("/disponibilidade", response_model=AvailabilityResponse)
+def check_availability(
+    environment_id: int,
+    start: datetime,
+    end: datetime,
+    participant_count: int = 1,
+    service: ReservationService = Depends(get_reservation_service),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    return service.check_availability(
+        environment_id=environment_id,
+        start=start,
+        end=end,
+        participant_count=participant_count,
+        resource_ids=[],
+        current_user=current_user,
     )
 
 

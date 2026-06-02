@@ -9,6 +9,7 @@ from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
 from app.modules.reservations.recurrence import expand_weekly
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
+from app.modules.reservations.slot_suggester import suggest_slots
 from app.modules.reservations.models import (
     Reservation,
     ReservationResource,
@@ -67,6 +68,59 @@ class ReservationService:
 
     def get_reservation(self, reservation_id: int) -> Reservation | None:
         return self.repository.get_by_id(reservation_id)
+
+    def check_availability(
+        self,
+        *,
+        environment_id: int,
+        start: datetime,
+        end: datetime,
+        participant_count: int,
+        resource_ids: list[int],
+        current_user: User,
+    ) -> dict:
+        environment = self.repository.db.get(Environment, environment_id)
+        if environment is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Ambiente não encontrado",
+            )
+        report = conflict_checker.check_reservation(
+            repository=self.repository,
+            environment=environment,
+            start=start,
+            end=end,
+            participant_count=participant_count,
+            resource_ids=resource_ids,
+            requester_id=current_user.id,
+            requester_role_ids=[ur.role_id for ur in current_user.user_roles],
+        )
+        suggestions: list[dict] = []
+        if report.has_conflicts:
+            day_end = start.replace(hour=22, minute=0, second=0, microsecond=0)
+            busy = [
+                (r.start_time, r.end_time)
+                for r in self.repository.get_overlapping(
+                    environment_id=environment_id, start=start, end=day_end
+                )
+            ]
+            duration = int((end - start).total_seconds() // 60)
+            suggestions = [
+                {"start_time": s, "end_time": e}
+                for s, e in suggest_slots(
+                    desired_start=start,
+                    duration_minutes=duration,
+                    busy=busy,
+                    day_end=day_end,
+                )
+            ]
+        return {
+            "available": not report.has_conflicts,
+            "conflicts": [
+                {"type": c.type, "detail": c.detail} for c in report.conflicts
+            ],
+            "suggestions": suggestions,
+        }
 
     # ----------- mutações -----------
 

@@ -1345,7 +1345,7 @@ function auditQueryString(filters: Record<string, string | number | undefined>) 
 
 export const auditExport = {
   csvUrl: (filters: Record<string, string | number | undefined>) =>
-    `/api/v1/audit-records/export.csv?${auditQueryString(filters)}`,
+    `${API_BASE_URL}/audit-records/export.csv?${auditQueryString(filters)}`,
 };
 
 export type CalendarBlockType =

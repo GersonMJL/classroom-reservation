@@ -95,3 +95,15 @@ class CalendarBlockRead(CalendarBlockBase):
 
 class BufferReleaseRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
+
+
+class EnvironmentRequirementCreate(BaseModel):
+    qualification_id: int = Field(gt=0)
+
+
+class EnvironmentRequirementRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    environment_id: int
+    qualification_id: int

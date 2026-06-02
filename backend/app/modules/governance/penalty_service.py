@@ -4,7 +4,12 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.governance.models import Appeal, Penalty
+from app.modules.governance.penalty_notifications import (
+    appeal_resolved_notification,
+    penalty_applied_notification,
+)
 from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.notifications.service import NotificationService
 from app.modules.users.models import User
 from app.shared.enums import (
     AppealStatus,
@@ -19,13 +24,33 @@ class PenaltyService:
     REPEAT_NOSHOW_THRESHOLD = 3
     REPEAT_NOSHOW_WINDOW_DAYS = 30
     REPEAT_BLOCK_DAYS = 30
+    OVERTIME_DURATION_DAYS = 3
 
-    def __init__(self, repository: PenaltyRepository, audit: AuditService) -> None:
+    def __init__(
+        self,
+        repository: PenaltyRepository,
+        audit: AuditService,
+        notifications: NotificationService,
+    ) -> None:
         self.repository = repository
         self.audit = audit
+        self.notifications = notifications
 
     def list(self, **kwargs) -> list[Penalty]:
         return self.repository.list(**kwargs)
+
+    def _notify_applied(self, penalty: Penalty) -> None:
+        payload = penalty_applied_notification(
+            penalty_type=PenaltyType(penalty.type), penalty_id=penalty.id
+        )
+        self.notifications.notify(
+            user_id=penalty.user_id,
+            type=payload["type"],
+            title=payload["title"],
+            body=payload["body"],
+            related_entity_type="penalty",
+            related_target_id=penalty.id,
+        )
 
     def apply_no_show(self, *, user_id: int, reservation_id: int) -> Penalty:
         now = datetime.now(UTC)
@@ -48,6 +73,7 @@ class PenaltyService:
             performed_by=user_id,
             after={"type": "NO_SHOW", "user_id": user_id},
         )
+        self._notify_applied(saved)
 
         count = self.repository.count_noshows_last_days(
             user_id=user_id,
@@ -111,6 +137,31 @@ class PenaltyService:
             performed_by=applied_by.id,
             after={"type": type.value, "user_id": user_id},
         )
+        self._notify_applied(saved)
+        return saved
+
+    def apply_overtime(self, *, user_id: int, reservation_id: int) -> Penalty:
+        now = datetime.now(UTC)
+        penalty = Penalty(
+            user_id=user_id,
+            reservation_id=reservation_id,
+            type=PenaltyType.OVERTIME,
+            status=PenaltyStatus.APPLIED,
+            description="Falta de check-out / excesso de tempo",
+            duration_days=self.OVERTIME_DURATION_DAYS,
+            start_date=now,
+            end_date=now + timedelta(days=self.OVERTIME_DURATION_DAYS),
+            applied_by=None,
+        )
+        saved = self.repository.add(penalty)
+        self.audit.record(
+            entity_type="penalty",
+            target_id=saved.id,
+            action=AuditAction.CREATE,
+            performed_by=user_id,
+            after={"type": "OVERTIME", "user_id": user_id},
+        )
+        self._notify_applied(saved)
         return saved
 
     def submit_appeal(self, *, penalty_id: int, justification: str, by: User) -> Appeal:
@@ -154,6 +205,10 @@ class PenaltyService:
         if penalty is not None:
             penalty.status = PenaltyStatus.WAIVED if approve else PenaltyStatus.APPLIED
             self.repository.save(penalty)
+            if approve:
+                self.repository.waive_repeat_blocks(
+                    user_id=penalty.user_id, now=datetime.now(UTC)
+                )
         self.repository.db.add(appeal)
         self.repository.db.commit()
         self.repository.db.refresh(appeal)
@@ -164,4 +219,14 @@ class PenaltyService:
             performed_by=by.id,
             after={"status": appeal.status},
         )
+        if penalty is not None:
+            payload = appeal_resolved_notification(approved=approve, appeal_id=appeal_id)
+            self.notifications.notify(
+                user_id=penalty.user_id,
+                type=payload["type"],
+                title=payload["title"],
+                body=payload["body"],
+                related_entity_type="appeal",
+                related_target_id=appeal_id,
+            )
         return appeal

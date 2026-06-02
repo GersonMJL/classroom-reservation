@@ -69,3 +69,24 @@ class PenaltyRepository:
         self.db.commit()
         self.db.refresh(appeal)
         return appeal
+
+    def list_appeals(self, *, status=None, skip: int = 0, limit: int = 100):
+        query = select(Appeal).order_by(Appeal.id.desc())
+        if status is not None:
+            query = query.where(Appeal.status == status)
+        return list(self.db.execute(query.offset(skip).limit(limit)).scalars().all())
+
+    def waive_repeat_blocks(self, *, user_id: int, now: datetime) -> int:
+        """Marca como WAIVED bloqueios por recorrência (MISUSE) vigentes do usuário."""
+        query = (
+            select(Penalty)
+            .where(Penalty.user_id == user_id)
+            .where(Penalty.type == PenaltyType.MISUSE)
+            .where(Penalty.status == PenaltyStatus.APPLIED)
+            .where(Penalty.end_date > now)
+        )
+        blocks = list(self.db.execute(query).scalars().all())
+        for block in blocks:
+            block.status = PenaltyStatus.WAIVED
+            self.db.add(block)
+        return len(blocks)

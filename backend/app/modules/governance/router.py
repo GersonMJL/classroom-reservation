@@ -9,6 +9,7 @@ from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.notifications.service import build_notification_service
 from app.modules.governance.penalty_service import PenaltyService
 from app.modules.governance.schemas import (
     AppealCreate,
@@ -27,6 +28,7 @@ def get_penalty_service(db: Session = Depends(get_db)) -> PenaltyService:
     return PenaltyService(
         repository=PenaltyRepository(db=db),
         audit=build_audit_service(db),
+        notifications=build_notification_service(db),
     )
 
 

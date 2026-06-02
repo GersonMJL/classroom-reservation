@@ -7,6 +7,7 @@ from app.modules.audit.audit_service import build_audit_service
 from app.modules.environments.models import Environment
 from app.modules.governance.penalty_repository import PenaltyRepository
 from app.modules.governance.penalty_service import PenaltyService
+from app.modules.notifications.service import build_notification_service
 from app.modules.reservations.models import Reservation, ReservationStatusHistory
 from app.shared.enums import AuditAction, ReservationStatus
 
@@ -19,6 +20,7 @@ def mark_noshows(db: Session, *, now: datetime | None = None) -> list[int]:
     penalty_service = PenaltyService(
         repository=PenaltyRepository(db=db),
         audit=audit,
+        notifications=build_notification_service(db),
     )
 
     candidates = (

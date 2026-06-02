@@ -7,10 +7,12 @@ from app.modules.environments.models import Environment
 from app.modules.governance.restriction import RestrictionGuard
 from app.modules.reservations import conflict_checker
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
+from app.modules.reservations.composite_dependencies import dependency_pairs
 from app.modules.reservations.models import (
     CompositeReservation,
     CompositeReservationItem,
     Reservation,
+    ReservationDependency,
     ReservationStatusHistory,
 )
 from app.modules.reservations.repository import ReservationRepository
@@ -127,6 +129,17 @@ class CompositeService:
                     reservation_id=reservation.id,
                     critical=item.critical,
                     order=idx,
+                )
+            )
+
+        item_pairs = [
+            (ci.reservation_id, ci.critical) for ci in composite.items
+        ]
+        for dependent_id, prereq_id in dependency_pairs(item_pairs):
+            self.repository.db.add(
+                ReservationDependency(
+                    reservation_id=dependent_id,
+                    dependent_reservation_id=prereq_id,
                 )
             )
 

@@ -142,7 +142,6 @@ export default function PenaltiesPage() {
   };
 
   const loadAppeals = async () => {
-    if (!isStaff) return;
     try {
       const data = await appealApi.listPending();
       setPendingAppeals(data);

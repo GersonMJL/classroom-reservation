@@ -39,6 +39,15 @@ class PenaltyService:
     def list(self, **kwargs) -> list[Penalty]:
         return self.repository.list(**kwargs)
 
+    def list_appeals(
+        self,
+        *,
+        status: AppealStatus | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Appeal]:
+        return self.repository.list_appeals(status=status, skip=skip, limit=limit)
+
     def _notify_applied(self, penalty: Penalty) -> None:
         payload = penalty_applied_notification(
             penalty_type=PenaltyType(penalty.type), penalty_id=penalty.id

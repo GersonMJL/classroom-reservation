@@ -113,4 +113,4 @@ def list_appeals(
     service: PenaltyService = Depends(get_penalty_service),
     _: User = Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
 ) -> list[Any]:
-    return service.repository.list_appeals(status=status_filter, skip=skip, limit=limit)
+    return service.list_appeals(status=status_filter, skip=skip, limit=limit)

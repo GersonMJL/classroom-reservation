@@ -155,6 +155,23 @@ export default function ResourcesManagement() {
     setTransferEnvironmentId("");
   };
 
+  const handleTransfer = async () => {
+    if (!transferResource || !transferEnvironmentId) return;
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      await resourceTransferApi.transfer(transferResource.id, transferEnvironmentId as number);
+      setSuccessMessage(`Recurso "${transferResource.name}" transferido com sucesso`);
+      closeTransferDialog();
+      await loadResources();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao transferir recurso");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     const payload: ResourceCreate = {
       name: formData.name.trim(),

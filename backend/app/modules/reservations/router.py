@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -26,6 +27,8 @@ from app.modules.reservations.schemas import (
     ReservationRead,
     ReservationUpdate,
 )
+from app.modules.environments.models import Environment
+from app.modules.qualifications.models import UserQualification
 from app.modules.reservations.service import ReservationService
 from app.modules.users.models import User
 from app.shared.enums import ReservationStatus, UserRole
@@ -120,6 +123,40 @@ def get_reservation(
             detail="Reserva não encontrada",
         )
     return reservation
+
+
+@router.get("/{reservation_id}/qualificacoes-solicitante")
+def requester_qualification_status(
+    reservation_id: int,
+    service: ReservationService = Depends(get_reservation_service),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
+) -> dict:
+    reservation = service.get_reservation(reservation_id)
+    if reservation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reserva não encontrada"
+        )
+    environment = db.get(Environment, reservation.environment_id)
+    required = [r.qualification_id for r in environment.requirements]
+    now = datetime.now(UTC)
+    held = list(
+        db.execute(
+            select(UserQualification.qualification_id).where(
+                UserQualification.user_id == reservation.requester_id,
+                UserQualification.valid_until >= now,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    missing = sorted(set(required) - set(held))
+    return {
+        "required": sorted(required),
+        "held": sorted(held),
+        "missing": missing,
+        "meets_all": not missing,
+    }
 
 
 @router.post("", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)

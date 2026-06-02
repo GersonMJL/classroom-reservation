@@ -258,6 +258,30 @@ const getAuthHeaders = () => {
   return headers;
 };
 
+const apiFetch = async <T>(
+  path: string,
+  options: RequestInit = {},
+  fallbackMessage = "Falha ao processar requisição"
+): Promise<T> => {
+  const headers = new Headers(getAuthHeaders());
+  if (options.headers) {
+    const extraHeaders = new Headers(options.headers);
+    extraHeaders.forEach((value, key) => headers.set(key, value));
+  }
+
+  const response = await fetch(new URL(path, API_BASE_URL), {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const detail = await parseErrorDetail(response, fallbackMessage);
+    throw new Error(detail);
+  }
+
+  return response.json() as Promise<T>;
+};
+
 // Room API endpoints
 export const environmentApi = {
   async getAllRooms(skip = 0, limit = 100) {
@@ -795,6 +819,13 @@ export type ReservationPurpose =
   | "MAINTENANCE"
   | "TRAINING";
 
+export interface QualificationStatus {
+  required: number[];
+  held: number[];
+  missing: number[];
+  meets_all: boolean;
+}
+
 export interface RecurrenceSpec {
   weekdays: number[];
   occurrences: number;
@@ -959,6 +990,13 @@ const buildQuery = (params: Record<string, unknown>): string => {
   }
   const qs = search.toString();
   return qs ? `?${qs}` : "";
+};
+
+export const reservationQualificationApi = {
+  status: (reservationId: number) =>
+    apiFetch<QualificationStatus>(
+      `/api/v1/reservas/${reservationId}/qualificacoes-solicitante`
+    ),
 };
 
 export const reservationApi = {

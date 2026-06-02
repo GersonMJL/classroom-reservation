@@ -1325,6 +1325,7 @@ export const AUDIT_ENTITY_TYPES = [
   "reservation",
   "environment",
   "resource",
+  "resource_maintenance",
   "location",
   "user",
   "penalty",

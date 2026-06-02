@@ -11,6 +11,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -115,6 +117,7 @@ export default function AuditPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const [diffTarget, setDiffTarget] = useState<AuditRecord | null>(null);
 
@@ -196,6 +199,7 @@ export default function AuditPage() {
     users.find((u) => u.id === id)?.email ?? `Usuário #${id}`;
 
   const handleExport = async () => {
+    setExporting(true);
     try {
       const url = auditExport.csvUrl({
         entity_type: filters.entity_type || undefined,
@@ -223,8 +227,13 @@ export default function AuditPage() {
       link.download = "auditoria.csv";
       link.click();
       URL.revokeObjectURL(link.href);
+      if (res.headers.get("x-export-truncated") === "true") {
+        setError("Exportação limitada a 10 000 registros. Refine os filtros para exportar períodos menores.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao exportar CSV");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -249,8 +258,8 @@ export default function AuditPage() {
             Histórico de ações realizadas no sistema
           </Typography>
         </Box>
-        <Button variant="outlined" onClick={handleExport}>
-          Exportar CSV
+        <Button variant="outlined" onClick={handleExport} disabled={exporting}>
+          {exporting ? "Exportando..." : "Exportar CSV"}
         </Button>
       </Box>
 
@@ -276,21 +285,24 @@ export default function AuditPage() {
             gap: 2,
           }}
         >
-          <Select
-            size="small"
-            displayEmpty
-            value={filters.entity_type}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, entity_type: e.target.value }))
-            }
-          >
-            <MenuItem value="">Todas as entidades</MenuItem>
-            {AUDIT_ENTITY_TYPES.map((t) => (
-              <MenuItem key={t} value={t}>
-                {t}
-              </MenuItem>
-            ))}
-          </Select>
+          <FormControl size="small">
+            <InputLabel>Tipo de entidade</InputLabel>
+            <Select
+              label="Tipo de entidade"
+              displayEmpty
+              value={filters.entity_type}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, entity_type: e.target.value }))
+              }
+            >
+              <MenuItem value="">Todas as entidades</MenuItem>
+              {AUDIT_ENTITY_TYPES.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label="ID alvo"
             size="small"

@@ -62,8 +62,11 @@ def export_audit_records(
         end=end,
     )
     csv_text = build_audit_csv(records)
+    headers = {"Content-Disposition": "attachment; filename=auditoria.csv"}
+    if len(records) >= 10000:
+        headers["X-Export-Truncated"] = "true"
     return Response(
         content=csv_text,
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=auditoria.csv"},
+        headers=headers,
     )

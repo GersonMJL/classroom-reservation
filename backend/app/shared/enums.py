@@ -32,6 +32,7 @@ class ResourceCategory(StrEnum):
     GENERAL = "GENERAL"
     FURNITURE = "FURNITURE"
     COMPUTING = "COMPUTING"
+    ACCESS = "ACCESS"
 
 
 class ResourceCheckoutStatus(StrEnum):

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
 from app.db.session import get_db
+from app.modules.audit.audit_service import build_audit_service
 from app.modules.environments.calendar_block_repository import CalendarBlockRepository
 from app.modules.environments.calendar_block_service import CalendarBlockService
 from app.modules.environments.schemas import (
@@ -20,7 +21,10 @@ router = APIRouter(prefix="/api/v1/calendar-blocks", tags=["calendar-blocks"])
 
 
 def get_service(db: Session = Depends(get_db)) -> CalendarBlockService:
-    return CalendarBlockService(repository=CalendarBlockRepository(db=db))
+    return CalendarBlockService(
+        repository=CalendarBlockRepository(db=db),
+        audit=build_audit_service(db),
+    )
 
 
 @router.get("", response_model=list[CalendarBlockRead])

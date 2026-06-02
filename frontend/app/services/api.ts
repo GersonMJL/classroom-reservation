@@ -807,6 +807,22 @@ export type SupportType =
   | "SECURITY"
   | "CLEANING";
 
+export const SUPPORT_TYPES: SupportType[] = [
+  "IT_SUPPORT",
+  "AUDIOVISUAL",
+  "LAB_TECHNICIAN",
+  "SECURITY",
+  "CLEANING",
+];
+
+export const SUPPORT_TYPE_LABELS: Record<SupportType, string> = {
+  IT_SUPPORT: "Suporte de TI",
+  AUDIOVISUAL: "Audiovisual",
+  LAB_TECHNICIAN: "Técnico de laboratório",
+  SECURITY: "Segurança",
+  CLEANING: "Limpeza",
+};
+
 export interface ReservationResourceRead {
   id: number;
   resource_id: number;

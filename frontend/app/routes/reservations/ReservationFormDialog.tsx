@@ -31,9 +31,15 @@ import type {
   ReservationPurpose,
   Resource,
   Room,
+  SupportType,
   User,
 } from "../../services/api";
-import { ReservationConflictError, reservationApi } from "../../services/api";
+import {
+  ReservationConflictError,
+  reservationApi,
+  SUPPORT_TYPES,
+  SUPPORT_TYPE_LABELS,
+} from "../../services/api";
 import {
   MIN_TIME,
   MAX_TIME,
@@ -106,12 +112,18 @@ export function ReservationFormDialog({
   const [formError, setFormError] = useState("");
   const [formConflicts, setFormConflicts] = useState<ReservationConflictDetail[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [supportTypes, setSupportTypes] = useState<SupportType[]>([]);
 
   // Intentionally depends only on [open]: form resets when dialog opens, not on every selectedDate/currentUser change.
   useEffect(() => {
     if (!open) return;
     setFormError("");
     setFormConflicts([]);
+    setSupportTypes(
+      editingReservation
+        ? editingReservation.support.map((s) => s.support_type)
+        : []
+    );
     if (editingReservation) {
       setForm({
         environment_id: editingReservation.environment_id,
@@ -185,7 +197,7 @@ export function ReservationFormDialog({
         participant_count: form.participant_count,
         accept_terms: form.acceptTerms,
         resources: form.resource_ids.map((id) => ({ resource_id: id })),
-        support: [],
+        support: supportTypes.map((t) => ({ support_type: t })),
         ...(editingReservation === null && form.recurring
           ? {
               type: "RECURRING" as const,
@@ -372,6 +384,33 @@ export function ReservationFormDialog({
             />
           )}
         />
+
+        <FormControl fullWidth>
+          <InputLabel id="support-label" shrink>
+            Suporte técnico
+          </InputLabel>
+          <Select
+            labelId="support-label"
+            label="Suporte técnico"
+            multiple
+            value={supportTypes}
+            onChange={(e) =>
+              setSupportTypes(e.target.value as SupportType[])
+            }
+            renderValue={(selected) =>
+              (selected as SupportType[])
+                .map((t) => SUPPORT_TYPE_LABELS[t])
+                .join(", ")
+            }
+          >
+            {SUPPORT_TYPES.map((t) => (
+              <MenuItem key={t} value={t}>
+                <Checkbox checked={supportTypes.includes(t)} />
+                {SUPPORT_TYPE_LABELS[t]}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         {editingReservation === null && (
           <>

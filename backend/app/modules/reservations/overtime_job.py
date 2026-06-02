@@ -17,12 +17,12 @@ def mark_overtime(db: Session, *, now: datetime | None = None) -> list[int]:
     com penalidade OVERTIME ao responsável. Retorna IDs alterados."""
     now = now or datetime.now(UTC)
     grace = get_settings().overtime_grace_minutes
+    audit = build_audit_service(db)
     penalty_service = PenaltyService(
         repository=PenaltyRepository(db=db),
-        audit=build_audit_service(db),
+        audit=audit,
         notifications=build_notification_service(db),
     )
-    audit = build_audit_service(db)
 
     candidates = (
         db.execute(

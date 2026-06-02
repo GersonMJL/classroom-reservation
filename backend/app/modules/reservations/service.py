@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.governance.restriction import RestrictionGuard
+from app.modules.notifications.service import NotificationService
 from app.modules.reservations import buffer_manager, conflict_checker, state_machine
 from app.modules.reservations.recurrence import expand_weekly
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
@@ -27,6 +28,7 @@ from app.modules.users.models import User
 from app.shared.enums import (
     AuditAction,
     EnvironmentCriticality,
+    NotificationType,
     ReservationStatus,
     ReservationType,
 )
@@ -38,10 +40,12 @@ class ReservationService:
         repository: ReservationRepository,
         audit: AuditService,
         restriction: RestrictionGuard,
+        notifications: NotificationService,
     ) -> None:
         self.repository = repository
         self.audit = audit
         self.restriction = restriction
+        self.notifications = notifications
 
     # ----------- consultas -----------
 
@@ -216,6 +220,18 @@ class ReservationService:
             before=None,
             after=_snapshot(saved),
         )
+        if has_support_conflict:
+            self.notifications.notify(
+                user_id=saved.requester_id,
+                type=NotificationType.SUPPORT_PENDING,
+                title="Reserva aguardando suporte",
+                body=(
+                    f"Sua reserva #{saved.id} está pendente de confirmação de "
+                    f"equipe de suporte."
+                ),
+                related_entity_type="reservation",
+                related_target_id=saved.id,
+            )
         return saved
 
     def update_reservation(

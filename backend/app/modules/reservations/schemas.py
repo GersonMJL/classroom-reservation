@@ -220,3 +220,19 @@ class CompositeReservationRead(BaseModel):
     name: str
     description: str | None = None
     items: list[CompositeItemRead] = Field(default_factory=list)
+
+
+class ConflictRead(BaseModel):
+    type: str
+    detail: str
+
+
+class SlotSuggestion(BaseModel):
+    start_time: datetime
+    end_time: datetime
+
+
+class AvailabilityResponse(BaseModel):
+    available: bool
+    conflicts: list[ConflictRead] = Field(default_factory=list)
+    suggestions: list[SlotSuggestion] = Field(default_factory=list)

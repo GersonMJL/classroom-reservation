@@ -11,6 +11,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -30,7 +32,9 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import dayjs, { type Dayjs } from "dayjs";
 
 import {
+  AUDIT_ENTITY_TYPES,
   auditApi,
+  auditExport,
   clearAuthTokens,
   hasValidAccessToken,
   userApi,
@@ -113,8 +117,14 @@ export default function AuditPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const [diffTarget, setDiffTarget] = useState<AuditRecord | null>(null);
+
+  const periodTooLong =
+    filters.start !== null &&
+    filters.end !== null &&
+    filters.end.diff(filters.start, "day") > 365;
 
   const handleAuthError = (message: string): boolean => {
     if (
@@ -188,6 +198,45 @@ export default function AuditPage() {
   const getUserEmail = (id: number): string =>
     users.find((u) => u.id === id)?.email ?? `Usuário #${id}`;
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const url = auditExport.csvUrl({
+        entity_type: filters.entity_type || undefined,
+        target_id: filters.target_id ? Number(filters.target_id) : undefined,
+        action: filters.action || undefined,
+        start: filters.start ? filters.start.toISOString() : undefined,
+        end: filters.end ? filters.end.toISOString() : undefined,
+      });
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuthTokens();
+          navigate("/login");
+          return;
+        }
+        setError(`Falha ao exportar CSV (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "auditoria.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      if (res.headers.get("x-export-truncated") === "true") {
+        setError("Exportação limitada a 10 000 registros. Refine os filtros para exportar períodos menores.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao exportar CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
@@ -209,12 +258,21 @@ export default function AuditPage() {
             Histórico de ações realizadas no sistema
           </Typography>
         </Box>
+        <Button variant="outlined" onClick={handleExport} disabled={exporting}>
+          {exporting ? "Exportando..." : "Exportar CSV"}
+        </Button>
       </Box>
 
       {/* Alerts */}
       {error && (
         <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+      {periodTooLong && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Período superior a 12 meses pode impactar a performance; considere arquivar
+          registros antigos.
         </Alert>
       )}
 
@@ -227,15 +285,24 @@ export default function AuditPage() {
             gap: 2,
           }}
         >
-          <TextField
-            label="Tipo de entidade"
-            size="small"
-            value={filters.entity_type}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, entity_type: e.target.value }))
-            }
-            placeholder="ex: reservation"
-          />
+          <FormControl size="small">
+            <InputLabel>Tipo de entidade</InputLabel>
+            <Select
+              label="Tipo de entidade"
+              displayEmpty
+              value={filters.entity_type}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, entity_type: e.target.value }))
+              }
+            >
+              <MenuItem value="">Todas as entidades</MenuItem>
+              {AUDIT_ENTITY_TYPES.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label="ID alvo"
             size="small"
@@ -364,6 +431,21 @@ export default function AuditPage() {
                         }}
                       >
                         Ver diff
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const newFilters = {
+                            ...filters,
+                            entity_type: r.entity_type,
+                            target_id: String(r.target_id),
+                          };
+                          setFilters(newFilters);
+                          fetchRecords(newFilters);
+                        }}
+                        sx={{ ml: 1 }}
+                      >
+                        Ver histórico
                       </Button>
                     </TableCell>
                   </TableRow>

@@ -32,11 +32,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   clearAuthTokens,
+  environmentApi,
   getTokenRoles,
   hasValidAccessToken,
   resourceApi,
+  resourceTransferApi,
 } from "../services/api";
-import type { Resource, ResourceAttachment, ResourceCreate } from "../services/api";
+import type { Environment, Resource, ResourceAttachment, ResourceCreate } from "../services/api";
 
 const emptyForm: ResourceCreate = {
   name: "",
@@ -53,11 +55,15 @@ export default function ResourcesManagement() {
   const [successMessage, setSuccessMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingResourceId, setEditingResourceId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ResourceCreate>(emptyForm);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [transferResource, setTransferResource] = useState<Resource | null>(null);
+  const [transferEnvironmentId, setTransferEnvironmentId] = useState<number | "">("");
 
   const loadResources = async () => {
     setLoading(true);
@@ -91,6 +97,10 @@ export default function ResourcesManagement() {
 
     setIsAdmin(getTokenRoles().includes("admin"));
     loadResources();
+    environmentApi
+      .getAllRooms(0, 500)
+      .then(setEnvironments)
+      .catch(() => setEnvironments([]));
   }, [navigate]);
 
   const filteredResources = useMemo(() => {
@@ -133,6 +143,35 @@ export default function ResourcesManagement() {
     setFormData(emptyForm);
   };
 
+  const openTransferDialog = (resource: Resource) => {
+    setTransferResource(resource);
+    setTransferEnvironmentId("");
+    setIsTransferDialogOpen(true);
+  };
+
+  const closeTransferDialog = () => {
+    setIsTransferDialogOpen(false);
+    setTransferResource(null);
+    setTransferEnvironmentId("");
+  };
+
+  const handleTransfer = async () => {
+    if (!transferResource || !transferEnvironmentId) return;
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      await resourceTransferApi.transfer(transferResource.id, transferEnvironmentId as number);
+      setSuccessMessage(`Recurso "${transferResource.name}" transferido com sucesso`);
+      closeTransferDialog();
+      await loadResources();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao transferir recurso");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     const payload: ResourceCreate = {
       name: formData.name.trim(),
@@ -148,6 +187,10 @@ export default function ResourcesManagement() {
     }
     if (!payload.type) {
       setError("Tipo do recurso é obrigatório");
+      return;
+    }
+    if (payload.attachment_type === "FIXED" && !payload.environment_id) {
+      setError("Recurso fixo exige um ambiente de instalação");
       return;
     }
 
@@ -311,6 +354,15 @@ export default function ResourcesManagement() {
                         >
                           Excluir
                         </Button>
+                        {resource.attachment_type === "MOBILE" && (
+                          <Button
+                            size="small"
+                            onClick={() => openTransferDialog(resource)}
+                            disabled={loading || !resource.active}
+                          >
+                            Transferir
+                          </Button>
+                        )}
                       </Stack>
                     </TableCell>
                   )}
@@ -355,7 +407,7 @@ export default function ResourcesManagement() {
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, category: event.target.value }))
             }
-            placeholder="Ex.: AUDIOVISUAL, COMPUTING, ACCESS"
+            placeholder="Ex.: IT, AUDIOVISUAL, LABORATORY, GENERAL, FURNITURE"
             fullWidth
           />
           <FormControl fullWidth>
@@ -364,22 +416,85 @@ export default function ResourcesManagement() {
               labelId="attachment-label"
               label="Vínculo"
               value={formData.attachment_type}
-              onChange={(event) =>
+              onChange={(event) => {
+                const value = event.target.value as ResourceAttachment;
                 setFormData((prev) => ({
                   ...prev,
-                  attachment_type: event.target.value as ResourceAttachment,
-                }))
-              }
+                  attachment_type: value,
+                  environment_id: value === "MOBILE" ? null : prev.environment_id,
+                }));
+              }}
             >
               <MenuItem value="MOBILE">Móvel</MenuItem>
               <MenuItem value="FIXED">Fixo</MenuItem>
             </Select>
           </FormControl>
+          {formData.attachment_type === "FIXED" && (
+            <FormControl fullWidth>
+              <InputLabel id="env-label">Ambiente de instalação</InputLabel>
+              <Select
+                labelId="env-label"
+                label="Ambiente de instalação"
+                value={formData.environment_id ?? ""}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    environment_id: Number(event.target.value) || null,
+                  }))
+                }
+              >
+                {environments.map((env) => (
+                  <MenuItem key={env.id} value={env.id}>
+                    {env.code ? `${env.code} — ${env.name}` : env.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancelar</Button>
           <Button onClick={handleSave} variant="contained" disabled={loading}>
             {isEditMode ? "Salvar" : "Criar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={isTransferDialogOpen} onClose={closeTransferDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Transferir Recurso
+          {transferResource && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {transferResource.name}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ "&.MuiDialogContent-root": { pt: 3 } }}>
+          <FormControl fullWidth>
+            <InputLabel id="transfer-env-label">Ambiente de destino</InputLabel>
+            <Select
+              labelId="transfer-env-label"
+              label="Ambiente de destino"
+              value={transferEnvironmentId}
+              onChange={(event) =>
+                setTransferEnvironmentId(event.target.value as number)
+              }
+            >
+              {environments.map((env) => (
+                <MenuItem key={env.id} value={env.id}>
+                  {env.code ? `${env.code} — ${env.name}` : env.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeTransferDialog}>Cancelar</Button>
+          <Button
+            onClick={handleTransfer}
+            variant="contained"
+            disabled={loading || !transferEnvironmentId}
+          >
+            Confirmar transferência
           </Button>
         </DialogActions>
       </Dialog>

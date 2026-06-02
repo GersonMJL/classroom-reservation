@@ -1,26 +1,30 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
 from app.db.session import get_db
+from app.modules.audit.audit_service import build_audit_service
 from app.modules.environments.calendar_block_repository import CalendarBlockRepository
 from app.modules.environments.calendar_block_service import CalendarBlockService
 from app.modules.environments.schemas import (
+    BufferReleaseRequest,
     CalendarBlockCreate,
     CalendarBlockRead,
     CalendarBlockUpdate,
 )
-from app.modules.reservations import buffer_manager
 from app.modules.users.models import User
-from app.shared.enums import CalendarBlockType, UserRole
+from app.shared.enums import UserRole
 
 router = APIRouter(prefix="/api/v1/calendar-blocks", tags=["calendar-blocks"])
 
 
 def get_service(db: Session = Depends(get_db)) -> CalendarBlockService:
-    return CalendarBlockService(repository=CalendarBlockRepository(db=db))
+    return CalendarBlockService(
+        repository=CalendarBlockRepository(db=db),
+        audit=build_audit_service(db),
+    )
 
 
 @router.get("", response_model=list[CalendarBlockRead])
@@ -82,28 +86,17 @@ def delete_block(
 @router.post("/{block_id}/liberar", response_model=CalendarBlockRead)
 def release_block_early(
     block_id: int,
+    payload: BufferReleaseRequest = Body(default_factory=BufferReleaseRequest),
     service: CalendarBlockService = Depends(get_service),
     current_user: User = Depends(
         require_roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TECHNICIAN)
     ),
-    db: Session = Depends(get_db),
 ) -> Any:
     block = service.get(block_id)
     if block is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bloqueio não encontrado"
         )
-    if CalendarBlockType(block.type) is not CalendarBlockType.BUFFER:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Somente buffers podem ser liberados antecipadamente",
-        )
-    buffer_manager.release_buffer_early(
-        buffer_block=block,
-        session=db,
-        released_by_user_id=current_user.id,
-        notes=None,
+    return service.release_early(
+        block, released_by=current_user.id, notes=payload.notes
     )
-    db.commit()
-    db.refresh(block)
-    return block

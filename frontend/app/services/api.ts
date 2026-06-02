@@ -35,9 +35,15 @@ export interface Environment {
   location_id: number;
   operating_hours: string;
   requires_approval: boolean;
+  code: string | null;
+  buffer_before_min: number;
+  buffer_after_min: number;
+  noshow_tolerance_min: number;
+  active: boolean;
 }
 
 export interface EnvironmentCreate {
+  code: string;
   name: string;
   type: EnvironmentType;
   criticality: EnvironmentCriticality;
@@ -45,6 +51,10 @@ export interface EnvironmentCreate {
   location_id: number;
   operating_hours: string;
   requires_approval: boolean;
+  buffer_before_min?: number;
+  buffer_after_min?: number;
+  noshow_tolerance_min?: number;
+  active?: boolean;
 }
 
 export type EnvironmentUpdate = Partial<EnvironmentCreate>;
@@ -246,6 +256,30 @@ const getAuthHeaders = () => {
   }
 
   return headers;
+};
+
+const apiFetch = async <T>(
+  path: string,
+  options: RequestInit = {},
+  fallbackMessage = "Falha ao processar requisição"
+): Promise<T> => {
+  const headers = new Headers(getAuthHeaders());
+  if (options.headers) {
+    const extraHeaders = new Headers(options.headers);
+    extraHeaders.forEach((value, key) => headers.set(key, value));
+  }
+
+  const response = await fetch(new URL(path, `${API_BASE_URL}/`), {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const detail = await parseErrorDetail(response, fallbackMessage);
+    throw new Error(detail);
+  }
+
+  return response.json() as Promise<T>;
 };
 
 // Room API endpoints
@@ -785,6 +819,13 @@ export type ReservationPurpose =
   | "MAINTENANCE"
   | "TRAINING";
 
+export interface QualificationStatus {
+  required: number[];
+  held: number[];
+  missing: number[];
+  meets_all: boolean;
+}
+
 export interface RecurrenceSpec {
   weekdays: number[];
   occurrences: number;
@@ -796,6 +837,22 @@ export type SupportType =
   | "LAB_TECHNICIAN"
   | "SECURITY"
   | "CLEANING";
+
+export const SUPPORT_TYPES: SupportType[] = [
+  "IT_SUPPORT",
+  "AUDIOVISUAL",
+  "LAB_TECHNICIAN",
+  "SECURITY",
+  "CLEANING",
+];
+
+export const SUPPORT_TYPE_LABELS: Record<SupportType, string> = {
+  IT_SUPPORT: "Suporte de TI",
+  AUDIOVISUAL: "Audiovisual",
+  LAB_TECHNICIAN: "Técnico de laboratório",
+  SECURITY: "Segurança",
+  CLEANING: "Limpeza",
+};
 
 export interface ReservationResourceRead {
   id: number;
@@ -933,6 +990,13 @@ const buildQuery = (params: Record<string, unknown>): string => {
   }
   const qs = search.toString();
   return qs ? `?${qs}` : "";
+};
+
+export const reservationQualificationApi = {
+  status: (reservationId: number) =>
+    apiFetch<QualificationStatus>(
+      `reservas/${reservationId}/qualificacoes-solicitante`
+    ),
 };
 
 export const reservationApi = {
@@ -1141,6 +1205,36 @@ export const compositeApi = {
     return response.json() as Promise<CompositeReservation>;
   },
 
+  async get(compositeId: number): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/compostas/${compositeId}`,
+      { headers: getAuthHeaders() },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao carregar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
+  async getByReservationId(reservationId: number): Promise<CompositeReservation> {
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/${reservationId}/composta`,
+      { headers: getAuthHeaders() },
+    );
+    if (!response.ok) {
+      const detail = await parseReservationError(
+        response,
+        "Falha ao carregar reserva composta"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<CompositeReservation>;
+  },
+
   async cancelItem(
     compositeId: number,
     reservationId: number,
@@ -1225,6 +1319,33 @@ export const auditApi = {
     }
     return response.json() as Promise<AuditRecord[]>;
   },
+};
+
+export const AUDIT_ENTITY_TYPES = [
+  "reservation",
+  "environment",
+  "resource",
+  "resource_maintenance",
+  "location",
+  "user",
+  "penalty",
+  "appeal",
+  "incident",
+  "calendar_block",
+  "composite_reservation",
+] as const;
+
+function auditQueryString(filters: Record<string, string | number | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") params.set(k, String(v));
+  });
+  return params.toString();
+}
+
+export const auditExport = {
+  csvUrl: (filters: Record<string, string | number | undefined>) =>
+    `${API_BASE_URL}/audit-records/export.csv?${auditQueryString(filters)}`,
 };
 
 export type CalendarBlockType =
@@ -1321,10 +1442,11 @@ export const calendarBlockApi = {
     }
   },
 
-  async releaseEarly(id: number): Promise<CalendarBlock> {
+  async releaseEarly(id: number, notes?: string): Promise<CalendarBlock> {
     const response = await fetch(`${API_BASE_URL}/calendar-blocks/${id}/liberar`, {
       method: "POST",
       headers: getAuthHeaders(),
+      body: JSON.stringify({ notes: notes ?? null }),
     });
     if (!response.ok) {
       throw new Error(await _calendarBlockError(response, "Falha ao liberar bloqueio"));
@@ -1437,6 +1559,8 @@ export const penaltyApi = {
 };
 
 export const appealApi = {
+  listPending: () =>
+    apiFetch<Appeal[]>(`/api/v1/governance/appeals?status_filter=SUBMITTED`),
   async submit(penalty_id: number, justification: string): Promise<Appeal> {
     const response = await fetch(`${API_BASE_URL}/governance/appeals`, {
       method: "POST",
@@ -1508,5 +1632,168 @@ export const incidentApi = {
     });
     if (!response.ok) throw new Error(await _opsError(response, "Falha ao registrar incidente"));
     return response.json() as Promise<Incident>;
+  },
+};
+
+// ========== Resource Maintenance & Transfer ==========
+
+export interface ResourceMaintenance {
+  id: number;
+  resource_id: number;
+  start_date: string;
+  end_date: string;
+  reason: string;
+}
+
+export const resourceMaintenanceApi = {
+  async list(resourceId?: number) {
+    const qs = resourceId ? `?resource_id=${resourceId}` : "";
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes${qs}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar manutenções");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<ResourceMaintenance[]>;
+  },
+
+  async create(body: {
+    resource_id: number;
+    start_date: string;
+    end_date: string;
+    reason: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao criar manutenção");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<ResourceMaintenance>;
+  },
+
+  async remove(id: number) {
+    const response = await fetch(`${API_BASE_URL}/resources/manutencoes/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao remover manutenção");
+      throw new Error(detail);
+    }
+  },
+};
+
+export const resourceTransferApi = {
+  async transfer(resourceId: number, locationId: number) {
+    const response = await fetch(
+      `${API_BASE_URL}/resources/${resourceId}/transferir`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ location_id: locationId }),
+      }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao transferir recurso");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Resource>;
+  },
+};
+
+export type NotificationType =
+  | "RESERVATION_APPROVED"
+  | "RESERVATION_REJECTED"
+  | "SUPPORT_PENDING"
+  | "PENALTY_APPLIED"
+  | "APPEAL_RESOLVED"
+  | "COMPOSITE_REVISION_REQUIRED";
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  related_entity_type: string | null;
+  related_target_id: number | null;
+  created_at: string;
+}
+
+export const notificationApi = {
+  async list(onlyUnread = false) {
+    const response = await fetch(
+      `${API_BASE_URL}/notificacoes?only_unread=${onlyUnread}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar notificações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Notification[]>;
+  },
+
+  async unreadCount() {
+    const response = await fetch(`${API_BASE_URL}/notificacoes/contagem`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao buscar contagem de notificações");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<{ unread: number }>;
+  },
+
+  async markRead(id: number) {
+    const response = await fetch(`${API_BASE_URL}/notificacoes/${id}/lida`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, "Falha ao marcar notificação como lida");
+      throw new Error(detail);
+    }
+    return response.json() as Promise<Notification>;
+  },
+};
+
+export interface AvailabilityResponse {
+  available: boolean;
+  conflicts: { type: string; detail: string }[];
+  suggestions: { start_time: string; end_time: string }[];
+}
+
+export const reservationAvailabilityApi = {
+  async check(params: {
+    environment_id: number;
+    start: string;
+    end: string;
+    participant_count: number;
+  }) {
+    const q = new URLSearchParams({
+      environment_id: String(params.environment_id),
+      start: params.start,
+      end: params.end,
+      participant_count: String(params.participant_count),
+    }).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/reservas/disponibilidade?${q}`,
+      { method: "GET", headers: getAuthHeaders() }
+    );
+    if (!response.ok) {
+      const detail = await parseErrorDetail(
+        response,
+        "Falha ao verificar disponibilidade"
+      );
+      throw new Error(detail);
+    }
+    return response.json() as Promise<AvailabilityResponse>;
   },
 };

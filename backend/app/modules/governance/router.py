@@ -9,6 +9,7 @@ from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import build_audit_service
 from app.modules.governance.penalty_repository import PenaltyRepository
+from app.modules.notifications.service import build_notification_service
 from app.modules.governance.penalty_service import PenaltyService
 from app.modules.governance.schemas import (
     AppealCreate,
@@ -18,7 +19,7 @@ from app.modules.governance.schemas import (
     PenaltyRead,
 )
 from app.modules.users.models import User
-from app.shared.enums import UserRole
+from app.shared.enums import AppealStatus, UserRole
 
 router = APIRouter(prefix="/api/v1/governance", tags=["governance"])
 
@@ -27,6 +28,7 @@ def get_penalty_service(db: Session = Depends(get_db)) -> PenaltyService:
     return PenaltyService(
         repository=PenaltyRepository(db=db),
         audit=build_audit_service(db),
+        notifications=build_notification_service(db),
     )
 
 
@@ -101,3 +103,14 @@ def resolve_appeal(
         resolution_notes=payload.resolution_notes,
         by=current_user,
     )
+
+
+@router.get("/appeals", response_model=list[AppealRead])
+def list_appeals(
+    status_filter: AppealStatus | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    service: PenaltyService = Depends(get_penalty_service),
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
+) -> list[Any]:
+    return service.list_appeals(status=status_filter, skip=skip, limit=limit)

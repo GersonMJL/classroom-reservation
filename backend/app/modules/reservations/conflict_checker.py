@@ -1,8 +1,8 @@
 """Validação centralizada de conflitos e restrições para criação/edição de reservas.
 
-Bloqueios de calendário (``CalendarBlock``) de qualquer tipo exceto ``BUFFER``
-geram conflito ``CALENDAR_BLOCK``. ``BUFFER`` é excluído para que a
-edição de uma reserva não colida com seus próprios buffers gerados.
+Bloqueios de calendário (``CalendarBlock``) bloqueiam a reserva, **inclusive**
+buffers de outras reservas. Os buffers da própria reserva em edição são
+ignorados via ``buffer_rules.filter_blocking``.
 
 Qualificação do solicitante gera ``QUALIFICATION``.
 Disponibilidade de equipe de suporte gera ``SUPPORT_UNAVAILABLE`` (conflito suave;
@@ -15,9 +15,10 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 
 from app.modules.environments.models import Environment
+from app.modules.reservations.buffer_rules import filter_blocking
 from app.modules.reservations.models import Reservation
 from app.modules.reservations.repository import ReservationRepository
-from app.shared.enums import CalendarBlockType, SupportType
+from app.shared.enums import SupportType
 
 ConflictType = str  # SCHEDULE | RESOURCE | LEAD_TIME | CAPACITY | INACTIVE_ENV | QUALIFICATION | SUPPORT_UNAVAILABLE | CALENDAR_BLOCK
 
@@ -104,6 +105,20 @@ def check_reservation(
                 f"({clash.start_time:%d/%m/%Y %H:%M} – {clash.end_time:%H:%M})",
             )
 
+        from app.modules.resources.maintenance_repository import (
+            ResourceMaintenanceRepository,
+        )
+
+        maintenance = ResourceMaintenanceRepository(
+            db=repository.db
+        ).overlapping(resource_ids=resource_ids, start=start, end=end)
+        for m in maintenance:
+            report.add(
+                "RESOURCE",
+                f"Recurso #{m.resource_id} em manutenção de "
+                f"{m.start_date:%d/%m/%Y %H:%M} a {m.end_date:%H:%M}",
+            )
+
     required_qual_ids = [r.qualification_id for r in environment.requirements]
     if required_qual_ids:
         from app.modules.qualifications.models import UserQualification
@@ -137,13 +152,12 @@ def check_reservation(
                     f"Sem técnico disponível para {support_type.value}",
                 )
 
-    blocks = repository.get_calendar_blocks_overlapping(
+    all_blocks = repository.get_calendar_blocks_overlapping(
         environment_id=environment.id,
         start=start,
         end=end,
-        exclude_types=(CalendarBlockType.BUFFER,),
     )
-    for block in blocks:
+    for block in filter_blocking(all_blocks, exclude_reservation_id=exclude_id):
         report.add(
             "CALENDAR_BLOCK",
             f"Bloqueio {block.type} de {block.start_time:%d/%m/%Y %H:%M} "

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.modules.audit.audit_service import build_audit_service
 from app.modules.environments.repository import EnvironmentRepository
 from app.modules.environments.schemas import (
     EnvironmentCreate,
@@ -18,7 +19,10 @@ router = APIRouter(prefix="/api/v1/environments", tags=["environments"])
 
 
 def get_environment_service(db: Session = Depends(get_db)) -> EnvironmentService:
-    return EnvironmentService(repository=EnvironmentRepository(db=db))
+    return EnvironmentService(
+        repository=EnvironmentRepository(db=db),
+        audit=build_audit_service(db),
+    )
 
 
 @router.get("", response_model=list[EnvironmentRead])
@@ -49,9 +53,9 @@ def get_environment(
 def create_environment(
     payload: EnvironmentCreate,
     service: EnvironmentService = Depends(get_environment_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
-    return service.create_environment(payload)
+    return service.create_environment(payload, performed_by=current_user.id)
 
 
 @router.put("/{environment_id}", response_model=EnvironmentRead)
@@ -59,25 +63,25 @@ def update_environment(
     environment_id: int,
     payload: EnvironmentUpdate,
     service: EnvironmentService = Depends(get_environment_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     environment = service.get_environment(environment_id)
     if environment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
         )
-    return service.update_environment(environment, payload)
+    return service.update_environment(environment, payload, performed_by=current_user.id)
 
 
 @router.delete("/{environment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_environment(
     environment_id: int,
     service: EnvironmentService = Depends(get_environment_service),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> None:
     environment = service.get_environment(environment_id)
     if environment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado"
         )
-    service.delete_environment(environment)
+    service.delete_environment(environment, performed_by=current_user.id)

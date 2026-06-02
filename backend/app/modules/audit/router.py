@@ -1,12 +1,13 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.core.rbac import require_roles
 from app.db.session import get_db
 from app.modules.audit.audit_service import AuditService, build_audit_service
+from app.modules.audit.export import build_audit_csv
 from app.modules.audit.schemas import AuditRecordRead
 from app.modules.users.models import User
 from app.shared.enums import AuditAction, UserRole
@@ -38,4 +39,34 @@ def list_audit_records(
         action=action,
         start=start,
         end=end,
+    )
+
+
+@router.get("/export.csv")
+def export_audit_records(
+    entity_type: str | None = None,
+    target_id: int | None = None,
+    action: AuditAction | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    service: AuditService = Depends(get_audit_service),
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
+) -> Response:
+    records = service.list(
+        skip=0,
+        limit=10000,
+        entity_type=entity_type,
+        target_id=target_id,
+        action=action,
+        start=start,
+        end=end,
+    )
+    csv_text = build_audit_csv(records)
+    headers = {"Content-Disposition": "attachment; filename=auditoria.csv"}
+    if len(records) >= 10000:
+        headers["X-Export-Truncated"] = "true"
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers=headers,
     )

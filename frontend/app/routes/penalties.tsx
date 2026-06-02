@@ -16,6 +16,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -33,13 +34,16 @@ import {
   clearAuthTokens,
   hasValidAccessToken,
   penaltyApi,
+  reservationApi,
   userApi,
 } from "../services/api";
 import type {
+  Appeal,
   Penalty,
   PenaltyManualCreate,
   PenaltyStatus,
   PenaltyType,
+  Reservation,
   User,
 } from "../services/api";
 
@@ -89,7 +93,9 @@ export default function PenaltiesPage() {
   const navigate = useNavigate();
 
   const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [pendingAppeals, setPendingAppeals] = useState<Appeal[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -105,6 +111,11 @@ export default function PenaltiesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<Partial<PenaltyManualCreate>>({});
   const [submittingCreate, setSubmittingCreate] = useState(false);
+
+  // Resolve appeal dialog state
+  const [resolveTarget, setResolveTarget] = useState<{ id: number; approve: boolean } | null>(null);
+  const [resolveNotes, setResolveNotes] = useState("");
+  const [submittingResolve, setSubmittingResolve] = useState(false);
 
   const isStaff =
     currentUser?.roles.includes("admin") ||
@@ -138,6 +149,44 @@ export default function PenaltiesPage() {
     }
   };
 
+  const loadAppeals = async () => {
+    try {
+      const data = await appealApi.listPending();
+      setPendingAppeals(data);
+    } catch {
+      // silent — not critical
+    }
+  };
+
+  const openResolve = (appealId: number, approve: boolean) => {
+    setResolveTarget({ id: appealId, approve });
+    setResolveNotes("");
+  };
+
+  const closeResolve = () => {
+    if (submittingResolve) return;
+    setResolveTarget(null);
+    setResolveNotes("");
+  };
+
+  const handleResolve = async () => {
+    if (!resolveTarget) return;
+    setSubmittingResolve(true);
+    setError("");
+    try {
+      await appealApi.resolve(resolveTarget.id, resolveTarget.approve, resolveNotes.trim());
+      setSuccessMessage(resolveTarget.approve ? "Recurso aprovado." : "Recurso rejeitado.");
+      setResolveTarget(null);
+      setResolveNotes("");
+      await Promise.all([loadPenalties(), loadAppeals()]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Falha ao resolver recurso";
+      if (!handleAuthError(message)) setError(message);
+    } finally {
+      setSubmittingResolve(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasValidAccessToken()) {
       navigate("/login");
@@ -145,12 +194,14 @@ export default function PenaltiesPage() {
     }
     const bootstrap = async () => {
       try {
-        const [allUsers, me] = await Promise.all([
+        const [allUsers, me, allReservations] = await Promise.all([
           userApi.getAllUsers(0, 500),
           userApi.getCurrentUser(),
+          reservationApi.list({ limit: 500 }),
         ]);
         setUsers(allUsers);
         setCurrentUser(me);
+        setReservations(allReservations);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Falha ao carregar dados auxiliares";
@@ -159,6 +210,7 @@ export default function PenaltiesPage() {
     };
     bootstrap();
     loadPenalties();
+    loadAppeals();
   }, [navigate]);
 
   const getUserName = (id: number): string =>
@@ -299,6 +351,30 @@ export default function PenaltiesPage() {
         <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
           {error}
         </Alert>
+      )}
+
+      {/* Pending Appeals Section */}
+      {isStaff && pendingAppeals.length > 0 && (
+        <Paper sx={{ mb: 3, p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Recursos pendentes
+          </Typography>
+          <Stack spacing={1}>
+            {pendingAppeals.map((a) => (
+              <Stack key={a.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Typography sx={{ flex: 1 }}>
+                  Recurso #{a.id} — penalidade #{a.penalty_id}
+                </Typography>
+                <Button size="small" color="success" onClick={() => openResolve(a.id, true)}>
+                  Aprovar
+                </Button>
+                <Button size="small" color="error" onClick={() => openResolve(a.id, false)}>
+                  Rejeitar
+                </Button>
+              </Stack>
+            ))}
+          </Stack>
+        </Paper>
       )}
 
       {/* Content */}
@@ -481,20 +557,26 @@ export default function PenaltiesPage() {
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="ID da reserva *"
-              type="number"
-              value={createForm.reservation_id ?? ""}
-              onChange={(e) =>
-                setCreateForm((prev) => ({
-                  ...prev,
-                  reservation_id: Number(e.target.value) || undefined,
-                }))
-              }
-              fullWidth
-              required
-              slotProps={{ htmlInput: { min: 1 } }}
-            />
+            <FormControl fullWidth required>
+              <InputLabel id="penalty-reservation-label">Reserva *</InputLabel>
+              <Select
+                labelId="penalty-reservation-label"
+                label="Reserva *"
+                value={createForm.reservation_id ?? ""}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    reservation_id: Number(e.target.value),
+                  }))
+                }
+              >
+                {reservations.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    #{r.id} — {dayjs(r.start_time).format("DD/MM/YYYY HH:mm")} ({r.status})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl fullWidth required>
               <InputLabel id="penalty-type-label">Tipo *</InputLabel>
               <Select
@@ -557,6 +639,43 @@ export default function PenaltiesPage() {
             disabled={submittingCreate || !createFormValid}
           >
             {submittingCreate ? "Aguarde..." : "Aplicar penalidade"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Resolve Appeal Dialog */}
+      <Dialog
+        open={Boolean(resolveTarget)}
+        onClose={closeResolve}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {resolveTarget?.approve ? "Aprovar recurso" : "Rejeitar recurso"}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              label="Notas da decisão"
+              multiline
+              rows={4}
+              value={resolveNotes}
+              onChange={(e) => setResolveNotes(e.target.value)}
+              fullWidth
+              autoFocus
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeResolve} disabled={submittingResolve} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color={resolveTarget?.approve ? "success" : "error"}
+            onClick={handleResolve}
+            disabled={submittingResolve}
+          >
+            {submittingResolve ? "Aguarde..." : resolveTarget?.approve ? "Confirmar aprovação" : "Confirmar rejeição"}
           </Button>
         </DialogActions>
       </Dialog>

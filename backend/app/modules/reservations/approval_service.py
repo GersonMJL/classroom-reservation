@@ -5,7 +5,9 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
+from app.modules.notifications.service import NotificationService
 from app.modules.reservations import buffer_manager, state_machine
+from app.modules.reservations.approval_notifications import decision_notification
 from app.modules.reservations.models import (
     Approval,
     Reservation,
@@ -17,9 +19,15 @@ from app.shared.enums import ApprovalStatus, AuditAction, ReservationStatus
 
 
 class ApprovalService:
-    def __init__(self, repository: ReservationRepository, audit: AuditService) -> None:
+    def __init__(
+        self,
+        repository: ReservationRepository,
+        audit: AuditService,
+        notifications: NotificationService,
+    ) -> None:
         self.repository = repository
         self.audit = audit
+        self.notifications = notifications
 
     def list_pending(self, *, skip: int = 0, limit: int = 100) -> list[Reservation]:
         return self.repository.list_pending(skip=skip, limit=limit)
@@ -108,5 +116,17 @@ class ApprovalService:
             performed_by=approver.id,
             before={"status": current.value},
             after={"status": target.value},
+        )
+        payload = decision_notification(
+            approved=approval_status is ApprovalStatus.APPROVED,
+            reservation_id=saved.id,
+        )
+        self.notifications.notify(
+            user_id=saved.requester_id,
+            type=payload["type"],
+            title=payload["title"],
+            body=payload["body"],
+            related_entity_type="reservation",
+            related_target_id=saved.id,
         )
         return saved

@@ -25,6 +25,14 @@ class ResourceType(StrEnum):
     KIT = "KIT"
 
 
+class ResourceCategory(StrEnum):
+    IT = "IT"
+    AUDIOVISUAL = "AUDIOVISUAL"
+    LABORATORY = "LABORATORY"
+    GENERAL = "GENERAL"
+    FURNITURE = "FURNITURE"
+
+
 class ResourceCheckoutStatus(StrEnum):
     CHECKED_OUT = "CHECKED_OUT"
     RETURNED = "RETURNED"
@@ -160,3 +168,12 @@ class AttachmentType(StrEnum):
 class ResourceAttachment(StrEnum):
     FIXED = "FIXED"
     MOBILE = "MOBILE"
+
+
+class NotificationType(StrEnum):
+    RESERVATION_APPROVED = "RESERVATION_APPROVED"
+    RESERVATION_REJECTED = "RESERVATION_REJECTED"
+    SUPPORT_PENDING = "SUPPORT_PENDING"
+    PENALTY_APPLIED = "PENALTY_APPLIED"
+    APPEAL_RESOLVED = "APPEAL_RESOLVED"
+    COMPOSITE_REVISION_REQUIRED = "COMPOSITE_REVISION_REQUIRED"

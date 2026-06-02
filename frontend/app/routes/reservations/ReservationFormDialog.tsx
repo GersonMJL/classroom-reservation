@@ -25,15 +25,25 @@ import {
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { type Dayjs } from "dayjs";
 import type {
+  AvailabilityResponse,
+  Location,
   Reservation,
   ReservationConflictDetail,
   ReservationCreate,
   ReservationPurpose,
   Resource,
   Room,
+  SupportType,
   User,
 } from "../../services/api";
-import { ReservationConflictError, reservationApi } from "../../services/api";
+import {
+  ReservationConflictError,
+  reservationApi,
+  reservationAvailabilityApi,
+  locationApi,
+  SUPPORT_TYPES,
+  SUPPORT_TYPE_LABELS,
+} from "../../services/api";
 import {
   MIN_TIME,
   MAX_TIME,
@@ -43,6 +53,15 @@ import {
   RESERVATION_PURPOSE_OPTIONS,
   toPurposeValue,
 } from "./constants";
+
+const ENV_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "CLASSROOM", label: "Sala de aula" },
+  { value: "LABORATORY", label: "Laboratório" },
+  { value: "AUDITORIUM", label: "Auditório" },
+  { value: "MEETING_ROOM", label: "Sala de reunião" },
+  { value: "STUDIO", label: "Estúdio" },
+  { value: "MULTIPURPOSE", label: "Multipropósito" },
+];
 
 interface FormState {
   environment_id: number | "";
@@ -106,12 +125,23 @@ export function ReservationFormDialog({
   const [formError, setFormError] = useState("");
   const [formConflicts, setFormConflicts] = useState<ReservationConflictDetail[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [supportTypes, setSupportTypes] = useState<SupportType[]>([]);
+  const [availability, setAvailability] = useState<AvailabilityResponse | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [locationFilter, setLocationFilter] = useState<number>(0);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   // Intentionally depends only on [open]: form resets when dialog opens, not on every selectedDate/currentUser change.
   useEffect(() => {
     if (!open) return;
     setFormError("");
     setFormConflicts([]);
+    setAvailability(null);
+    setSupportTypes(
+      editingReservation
+        ? editingReservation.support.map((s) => s.support_type)
+        : []
+    );
     if (editingReservation) {
       setForm({
         environment_id: editingReservation.environment_id,
@@ -144,6 +174,13 @@ export function ReservationFormDialog({
       });
     }
   }, [open]);
+
+  useEffect(() => {
+    locationApi
+      .getAllLocations(0, 500)
+      .then(setLocations)
+      .catch(() => setLocations([]));
+  }, []);
 
   const validate = (): string | null => {
     if (form.environment_id === "") return "Selecione um ambiente";
@@ -185,7 +222,7 @@ export function ReservationFormDialog({
         participant_count: form.participant_count,
         accept_terms: form.acceptTerms,
         resources: form.resource_ids.map((id) => ({ resource_id: id })),
-        support: [],
+        support: supportTypes.map((t) => ({ support_type: t })),
         ...(editingReservation === null && form.recurring
           ? {
               type: "RECURRING" as const,
@@ -224,6 +261,34 @@ export function ReservationFormDialog({
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const filteredEnvironments = environments.filter(
+    (env) =>
+      (typeFilter === "" || env.type === typeFilter) &&
+      (locationFilter === 0 || env.location_id === locationFilter)
+  );
+
+  const handleCheck = async () => {
+    if (form.environment_id === "") {
+      setFormError("Selecione um ambiente para verificar disponibilidade");
+      return;
+    }
+    if (!form.start_time.isValid() || !form.end_time.isValid()) {
+      setFormError("Datas inválidas");
+      return;
+    }
+    try {
+      const result = await reservationAvailabilityApi.check({
+        environment_id: Number(form.environment_id),
+        start: form.start_time.toISOString(),
+        end: form.end_time.toISOString(),
+        participant_count: form.participant_count,
+      });
+      setAvailability(result);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Falha ao verificar disponibilidade");
     }
   };
 
@@ -279,6 +344,41 @@ export function ReservationFormDialog({
           />
         </Stack>
 
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <FormControl sx={{ flex: 1 }}>
+            <InputLabel id="type-filter-label">Filtrar por tipo</InputLabel>
+            <Select
+              labelId="type-filter-label"
+              label="Filtrar por tipo"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <MenuItem value="">Todos os tipos</MenuItem>
+              {ENV_TYPE_OPTIONS.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl sx={{ flex: 1 }}>
+            <InputLabel id="loc-filter-label">Filtrar por localidade</InputLabel>
+            <Select
+              labelId="loc-filter-label"
+              label="Filtrar por localidade"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(Number(e.target.value) || 0)}
+            >
+              <MenuItem value={0}>Todas as localidades</MenuItem>
+              {locations.map((loc) => (
+                <MenuItem key={loc.id} value={loc.id}>
+                  {`${loc.campus} - ${loc.building} - ${loc.floor}`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+
         <FormControl fullWidth>
           <InputLabel id="env-label">Ambiente</InputLabel>
           <Select
@@ -292,13 +392,43 @@ export function ReservationFormDialog({
               }))
             }
           >
-            {environments.map((env) => (
+            {filteredEnvironments.map((env) => (
               <MenuItem key={env.id} value={env.id}>
                 {env.name} · cap. {env.capacity}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
+
+        <Box>
+          <Button variant="outlined" size="small" onClick={handleCheck}>
+            Verificar disponibilidade
+          </Button>
+        </Box>
+        {availability && !availability.available && (
+          <Stack spacing={1}>
+            <Alert severity="warning">Indisponível neste horário.</Alert>
+            {availability.suggestions.map((s) => (
+              <Button
+                key={s.start_time}
+                size="small"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    start_time: dayjs(s.start_time),
+                    end_time: dayjs(s.end_time),
+                  }))
+                }
+              >
+                {new Date(s.start_time).toLocaleString()} –{" "}
+                {new Date(s.end_time).toLocaleTimeString()}
+              </Button>
+            ))}
+          </Stack>
+        )}
+        {availability?.available && (
+          <Alert severity="success">Horário disponível.</Alert>
+        )}
 
         <FormControl fullWidth>
           <InputLabel id="responsible-label">Responsável</InputLabel>
@@ -372,6 +502,33 @@ export function ReservationFormDialog({
             />
           )}
         />
+
+        <FormControl fullWidth>
+          <InputLabel id="support-label" shrink>
+            Suporte técnico
+          </InputLabel>
+          <Select
+            labelId="support-label"
+            label="Suporte técnico"
+            multiple
+            value={supportTypes}
+            onChange={(e) =>
+              setSupportTypes(e.target.value as SupportType[])
+            }
+            renderValue={(selected) =>
+              (selected as SupportType[])
+                .map((t) => SUPPORT_TYPE_LABELS[t])
+                .join(", ")
+            }
+          >
+            {SUPPORT_TYPES.map((t) => (
+              <MenuItem key={t} value={t}>
+                <Checkbox checked={supportTypes.includes(t)} />
+                {SUPPORT_TYPE_LABELS[t]}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         {editingReservation === null && (
           <>

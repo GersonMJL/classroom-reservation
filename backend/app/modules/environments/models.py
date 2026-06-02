@@ -10,6 +10,7 @@ class Environment(Base):
     __tablename__ = "environments"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    code: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     type: Mapped[str] = mapped_column(String(64), nullable=False)
     criticality: Mapped[str] = mapped_column(String(64), nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)

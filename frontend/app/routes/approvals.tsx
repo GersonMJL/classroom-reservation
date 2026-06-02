@@ -29,10 +29,12 @@ import {
   environmentApi,
   hasValidAccessToken,
   reservationApi,
+  reservationQualificationApi,
   userApi,
 } from "../services/api";
 import type {
   EnvironmentCriticality,
+  QualificationStatus,
   Reservation,
   Room,
   User,
@@ -59,6 +61,8 @@ export default function ApprovalsPage() {
     reservation: Reservation;
     action: "approve" | "reject";
   } | null>(null);
+  const [qualificationStatus, setQualificationStatus] =
+    useState<QualificationStatus | null>(null);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -114,6 +118,18 @@ export default function ApprovalsPage() {
     bootstrap();
     loadPending();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!decisionTarget) {
+      setQualificationStatus(null);
+      return;
+    }
+
+    reservationQualificationApi
+      .status(decisionTarget.reservation.id)
+      .then(setQualificationStatus)
+      .catch(() => setQualificationStatus(null));
+  }, [decisionTarget]);
 
   const getEnvironmentName = (id: number): string =>
     environments.find((e) => e.id === id)?.name ?? `Ambiente #${id}`;
@@ -365,6 +381,17 @@ export default function ApprovalsPage() {
                 </Typography>
                 {renderCriticalityChip(decisionTarget.reservation.environment_id)}
               </Box>
+              {qualificationStatus && (
+                <Chip
+                  size="small"
+                  color={qualificationStatus.meets_all ? "success" : "warning"}
+                  label={
+                    qualificationStatus.meets_all
+                      ? "Solicitante atende às qualificações"
+                      : `Faltam qualificações: ${qualificationStatus.missing.join(", ")}`
+                  }
+                />
+              )}
               <TextField
                 label={
                   decisionTarget.action === "reject"

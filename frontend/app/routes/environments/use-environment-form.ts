@@ -4,6 +4,7 @@ import type { Environment, EnvironmentCreate, Location } from "../../services/ap
 import { useToast } from "../../ui/useToast";
 
 const initialFormData: EnvironmentCreate = {
+  code: "",
   name: "",
   type: "CLASSROOM",
   criticality: "COMMON",
@@ -11,6 +12,10 @@ const initialFormData: EnvironmentCreate = {
   location_id: 0,
   operating_hours: "08:00-18:00",
   requires_approval: false,
+  buffer_before_min: 0,
+  buffer_after_min: 0,
+  noshow_tolerance_min: 15,
+  active: true,
 };
 
 type UseEnvironmentFormArgs = {
@@ -74,6 +79,7 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
     setIsEditMode(true);
     setEditingEnvironmentId(environment.id);
     setFormData({
+      code: environment.code ?? "",
       name: environment.name,
       type: environment.type,
       criticality: environment.criticality,
@@ -81,6 +87,10 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
       location_id: environment.location_id,
       operating_hours: environment.operating_hours,
       requires_approval: environment.requires_approval,
+      buffer_before_min: environment.buffer_before_min,
+      buffer_after_min: environment.buffer_after_min,
+      noshow_tolerance_min: environment.noshow_tolerance_min,
+      active: environment.active,
     });
     setOpenEnvironmentDialog(true);
   };
@@ -91,6 +101,12 @@ export function useEnvironmentForm({ setLoading, setError, loadEnvironments }: U
   };
 
   const handleSaveEnvironment = async () => {
+    if (!formData.code.trim()) {
+      const msg = "Código do ambiente é obrigatório";
+      toast.error(msg);
+      setError(msg);
+      return;
+    }
     if (!formData.name.trim()) {
       const msg = "Nome do ambiente é obrigatório";
       toast.error(msg);

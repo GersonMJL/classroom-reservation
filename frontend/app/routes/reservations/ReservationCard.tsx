@@ -6,6 +6,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import EditIcon from "@mui/icons-material/Edit";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import LoginIcon from "@mui/icons-material/Login";
@@ -34,6 +35,7 @@ interface ReservationCardProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
   onIncident: (reservation: Reservation) => void;
+  onManageComposite?: (reservation: Reservation) => void;
 }
 
 export function ReservationCard({
@@ -48,6 +50,7 @@ export function ReservationCard({
   onSuccess,
   onError,
   onIncident,
+  onManageComposite,
 }: ReservationCardProps) {
   const env = environmentById.get(reservation.environment_id);
   const editable = EDITABLE_STATUSES.includes(reservation.status);
@@ -171,6 +174,18 @@ export function ReservationCard({
               onClick={() => onIncident(reservation)}
             >
               Incidente
+            </Button>
+          )}
+          {reservation.type === "COMPOSITE_CHILD" && onManageComposite && (
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              startIcon={<AccountTreeIcon />}
+              onClick={() => onManageComposite(reservation)}
+              sx={{ "&:active": { transform: "scale(0.97)" } }}
+            >
+              Cancelar item
             </Button>
           )}
         </Stack>

@@ -1,8 +1,10 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.environments.models import Environment
 from app.modules.environments.schemas import EnvironmentCreate, EnvironmentUpdate
+from app.modules.reservations.models import Reservation
+from app.modules.reservations.state_machine import BLOCKING_STATUSES
 
 
 class EnvironmentRepository:
@@ -34,3 +36,18 @@ class EnvironmentRepository:
     def delete(self, environment: Environment) -> None:
         self.db.delete(environment)
         self.db.commit()
+
+    def get_by_code(self, code: str) -> Environment | None:
+        return (
+            self.db.execute(select(Environment).where(Environment.code == code))
+            .scalars()
+            .first()
+        )
+
+    def max_active_participants(self, environment_id: int) -> int:
+        result = self.db.execute(
+            select(func.max(Reservation.participant_count))
+            .where(Reservation.environment_id == environment_id)
+            .where(Reservation.status.in_(list(BLOCKING_STATUSES)))
+        ).scalar_one_or_none()
+        return int(result or 0)

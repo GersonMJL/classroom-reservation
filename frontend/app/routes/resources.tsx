@@ -61,6 +61,9 @@ export default function ResourcesManagement() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingResourceId, setEditingResourceId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ResourceCreate>(emptyForm);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [transferResource, setTransferResource] = useState<Resource | null>(null);
+  const [transferEnvironmentId, setTransferEnvironmentId] = useState<number | "">("");
 
   const loadResources = async () => {
     setLoading(true);
@@ -138,6 +141,35 @@ export default function ResourcesManagement() {
     setIsEditMode(false);
     setEditingResourceId(null);
     setFormData(emptyForm);
+  };
+
+  const openTransferDialog = (resource: Resource) => {
+    setTransferResource(resource);
+    setTransferEnvironmentId("");
+    setIsTransferDialogOpen(true);
+  };
+
+  const closeTransferDialog = () => {
+    setIsTransferDialogOpen(false);
+    setTransferResource(null);
+    setTransferEnvironmentId("");
+  };
+
+  const handleTransfer = async () => {
+    if (!transferResource || !transferEnvironmentId) return;
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      await resourceTransferApi.transfer(transferResource.id, transferEnvironmentId as number);
+      setSuccessMessage(`Recurso "${transferResource.name}" transferido com sucesso`);
+      closeTransferDialog();
+      await loadResources();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao transferir recurso");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -325,24 +357,7 @@ export default function ResourcesManagement() {
                         {resource.attachment_type === "MOBILE" && (
                           <Button
                             size="small"
-                            onClick={async () => {
-                              const input = window.prompt("ID da nova localização:");
-                              const id = Number(input);
-                              if (!id) return;
-                              try {
-                                await resourceTransferApi.transfer(resource.id, id);
-                                setSuccessMessage(
-                                  `Recurso "${resource.name}" transferido`
-                                );
-                                await loadResources();
-                              } catch (err) {
-                                setError(
-                                  err instanceof Error
-                                    ? err.message
-                                    : "Falha ao transferir recurso"
-                                );
-                              }
-                            }}
+                            onClick={() => openTransferDialog(resource)}
                             disabled={loading || !resource.active}
                           >
                             Transferir
@@ -441,6 +456,45 @@ export default function ResourcesManagement() {
           <Button onClick={closeDialog}>Cancelar</Button>
           <Button onClick={handleSave} variant="contained" disabled={loading}>
             {isEditMode ? "Salvar" : "Criar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={isTransferDialogOpen} onClose={closeTransferDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Transferir Recurso
+          {transferResource && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {transferResource.name}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ "&.MuiDialogContent-root": { pt: 3 } }}>
+          <FormControl fullWidth>
+            <InputLabel id="transfer-env-label">Ambiente de destino</InputLabel>
+            <Select
+              labelId="transfer-env-label"
+              label="Ambiente de destino"
+              value={transferEnvironmentId}
+              onChange={(event) =>
+                setTransferEnvironmentId(event.target.value as number)
+              }
+            >
+              {environments.map((env) => (
+                <MenuItem key={env.id} value={env.id}>
+                  {env.code ? `${env.code} — ${env.name}` : env.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeTransferDialog}>Cancelar</Button>
+          <Button
+            onClick={handleTransfer}
+            variant="contained"
+            disabled={loading || !transferEnvironmentId}
+          >
+            Confirmar transferência
           </Button>
         </DialogActions>
       </Dialog>

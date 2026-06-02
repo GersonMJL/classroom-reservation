@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.governance.restriction import RestrictionGuard
+from app.modules.notifications.service import NotificationService
 from app.modules.reservations import conflict_checker
 from app.modules.reservations.conflict_checker import SUPPORT_UNAVAILABLE
 from app.modules.reservations.composite_dependencies import dependency_pairs
@@ -22,6 +23,7 @@ from app.modules.users.models import User
 from app.shared.enums import (
     AuditAction,
     EnvironmentCriticality,
+    NotificationType,
     ReservationStatus,
     ReservationType,
 )
@@ -33,10 +35,12 @@ class CompositeService:
         repository: ReservationRepository,
         audit: AuditService,
         restriction: RestrictionGuard,
+        notifications: NotificationService,
     ) -> None:
         self.repository = repository
         self.audit = audit
         self.restriction = restriction
+        self.notifications = notifications
 
     def get(self, composite_id: int) -> CompositeReservation | None:
         return self.repository.db.get(CompositeReservation, composite_id)
@@ -249,6 +253,17 @@ class CompositeService:
                         performed_by=current_user.id,
                         before={"status": other_status.value},
                         after={"status": ReservationStatus.PENDING_APPROVAL.value},
+                    )
+                    self.notifications.notify(
+                        user_id=other.requester_id,
+                        type=NotificationType.COMPOSITE_REVISION_REQUIRED,
+                        title="Revisão obrigatória",
+                        body=(
+                            f"O item crítico #{reservation_id} foi cancelado; "
+                            f"sua reserva #{other.id} requer revisão."
+                        ),
+                        related_entity_type="reservation",
+                        related_target_id=other.id,
                     )
 
         self.repository.db.commit()

@@ -65,6 +65,7 @@ def get_composite_service(db: Session = Depends(get_db)) -> CompositeService:
         repository=ReservationRepository(db=db),
         audit=build_audit_service(db),
         restriction=RestrictionGuard(repository=PenaltyRepository(db=db)),
+        notifications=build_notification_service(db),
     )
 
 

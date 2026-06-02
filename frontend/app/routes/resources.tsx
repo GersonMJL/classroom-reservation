@@ -61,6 +61,9 @@ export default function ResourcesManagement() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingResourceId, setEditingResourceId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ResourceCreate>(emptyForm);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [transferResource, setTransferResource] = useState<Resource | null>(null);
+  const [transferEnvironmentId, setTransferEnvironmentId] = useState<number | "">("");
 
   const loadResources = async () => {
     setLoading(true);
@@ -138,6 +141,18 @@ export default function ResourcesManagement() {
     setIsEditMode(false);
     setEditingResourceId(null);
     setFormData(emptyForm);
+  };
+
+  const openTransferDialog = (resource: Resource) => {
+    setTransferResource(resource);
+    setTransferEnvironmentId("");
+    setIsTransferDialogOpen(true);
+  };
+
+  const closeTransferDialog = () => {
+    setIsTransferDialogOpen(false);
+    setTransferResource(null);
+    setTransferEnvironmentId("");
   };
 
   const handleSave = async () => {

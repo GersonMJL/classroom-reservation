@@ -18,3 +18,4 @@ export * from "./DataTable";
 export * from "./FormDialog";
 export * from "./FormField";
 export * from "./ConfirmDialog";
+export * from "./DemoAccountsBanner";

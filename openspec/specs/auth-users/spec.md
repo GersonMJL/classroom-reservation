@@ -33,3 +33,24 @@ O sistema SHALL permitir que administradores criem, consultem, atualizem e desat
 - **GIVEN** um administrador autenticado
 - **WHEN** envia `POST /api/v1/usuarios` com nome, e-mail único, papel e senha
 - **THEN** o sistema persiste o registro criptografando a senha com Argon2 e retorna o ID do usuário criado
+
+### Requirement: Contas Padrão de Demonstração e Seeder
+O sistema SHALL disponibilizar contas de demonstração populadas por seeder/migração com e-mails e senhas padronizados para os papéis `ADMIN`, `PROFESSOR`, `STUDENT` e `TECHNICIAN`.
+
+#### Scenario: Login com conta padrão de administrador
+- **GIVEN** a base de dados populada com dados de demonstração
+- **WHEN** o usuário envia as credenciais de seed `admin@reservas.com` e senha `admin123`
+- **THEN** o sistema autentica com sucesso e concede permissões de nível `ADMIN`
+
+#### Scenario: Login com conta padrão de aluno
+- **GIVEN** a base de dados populada com dados de demonstração
+- **WHEN** o usuário envia as credenciais de seed `aluno@reservas.com` e senha `aluno123`
+- **THEN** o sistema autentica com sucesso atribuindo o papel `STUDENT`
+
+### Requirement: Restrição de Acesso para Usuários Comuns (Alunos)
+O sistema SHALL ocultar do menu de navegação e bloquear o acesso a rotas administrativas de gestão para usuários comuns (`STUDENT`), direcionando seu fluxo exclusivamente para consulta e solicitação de salas.
+
+#### Scenario: Aluno acessa menu lateral
+- **GIVEN** um usuário autenticado com papel `STUDENT`
+- **WHEN** navega pela aplicação
+- **THEN** o menu lateral exibe apenas "Início", "Salas e Ambientes" e "Minhas Reservas", ocultando módulos administrativos de auditoria, governança e gestão de unidades

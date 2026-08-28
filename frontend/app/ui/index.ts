@@ -12,6 +12,7 @@ export * from "./PageSection";
 export * from "./useToast";
 export * from "./EmptyState";
 export * from "./TableSkeleton";
+export * from "./Skeletons";
 export * from "./StatusChip";
 export * from "./DataTable";
 export * from "./FormDialog";

@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from app.core.cache import cache_delete_pattern, distributed_lock
 from app.modules.audit.audit_service import AuditService
 from app.modules.environments.models import Environment
 from app.modules.governance.restriction import RestrictionGuard
@@ -194,57 +195,59 @@ class ReservationService:
             )
         )
 
-        reservation = Reservation(
-            environment_id=payload.environment_id,
-            requester_id=payload.requester_id,
-            responsible_id=payload.responsible_id,
-            start_time=payload.start_time,
-            end_time=payload.end_time,
-            status=initial_status,
-            type=ReservationType.SIMPLE,
-            purpose=payload.purpose,
-            participant_count=payload.participant_count,
-        )
-        reservation.terms_accepted_at = datetime.now(UTC)
-        reservation.resources = _build_resources(payload.resources)
-        reservation.support = _build_support(payload.support)
-        reservation.status_history = [
-            _history_entry(
-                previous=None,
-                new=initial_status,
-                user_id=current_user.id,
-                reason=initial_reason,
+        with distributed_lock(f"env:{payload.environment_id}:{payload.start_time.date()}"):
+            reservation = Reservation(
+                environment_id=payload.environment_id,
+                requester_id=payload.requester_id,
+                responsible_id=payload.responsible_id,
+                start_time=payload.start_time,
+                end_time=payload.end_time,
+                status=initial_status,
+                type=ReservationType.SIMPLE,
+                purpose=payload.purpose,
+                participant_count=payload.participant_count,
             )
-        ]
-        saved = self.repository.add(reservation)
-        if initial_status is ReservationStatus.APPROVED:
-            buffer_manager.create_buffer_blocks(
-                reservation=saved,
-                environment=environment,
-                session=self.repository.db,
+            reservation.terms_accepted_at = datetime.now(UTC)
+            reservation.resources = _build_resources(payload.resources)
+            reservation.support = _build_support(payload.support)
+            reservation.status_history = [
+                _history_entry(
+                    previous=None,
+                    new=initial_status,
+                    user_id=current_user.id,
+                    reason=initial_reason,
+                )
+            ]
+            saved = self.repository.add(reservation)
+            if initial_status is ReservationStatus.APPROVED:
+                buffer_manager.create_buffer_blocks(
+                    reservation=saved,
+                    environment=environment,
+                    session=self.repository.db,
+                )
+                self.repository.db.commit()
+            cache_delete_pattern("cache:avail:*")
+            self.audit.record(
+                entity_type="reservation",
+                target_id=saved.id,
+                action=AuditAction.CREATE,
+                performed_by=current_user.id,
+                before=None,
+                after=_snapshot(saved),
             )
-            self.repository.db.commit()
-        self.audit.record(
-            entity_type="reservation",
-            target_id=saved.id,
-            action=AuditAction.CREATE,
-            performed_by=current_user.id,
-            before=None,
-            after=_snapshot(saved),
-        )
-        if has_support_conflict:
-            self.notifications.notify(
-                user_id=saved.requester_id,
-                type=NotificationType.SUPPORT_PENDING,
-                title="Reserva aguardando suporte",
-                body=(
-                    f"Sua reserva #{saved.id} está pendente de confirmação de "
-                    f"equipe de suporte."
-                ),
-                related_entity_type="reservation",
-                related_target_id=saved.id,
-            )
-        return saved
+            if has_support_conflict:
+                self.notifications.notify(
+                    user_id=saved.requester_id,
+                    type=NotificationType.SUPPORT_PENDING,
+                    title="Reserva aguardando suporte",
+                    body=(
+                        f"Sua reserva #{saved.id} está pendente de confirmação de "
+                        f"equipe de suporte."
+                    ),
+                    related_entity_type="reservation",
+                    related_target_id=saved.id,
+                )
+            return saved
 
     def update_reservation(
         self,

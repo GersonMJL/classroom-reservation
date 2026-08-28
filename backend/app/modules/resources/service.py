@@ -1,3 +1,4 @@
+from app.core.cache import cache_delete_pattern
 from app.modules.audit.audit_service import AuditService
 from app.modules.audit.snapshot import snapshot
 from app.modules.resources.models import Resource
@@ -25,6 +26,8 @@ class ResourceService:
         self, payload: ResourceCreate, *, performed_by: int
     ) -> Resource:
         resource = self.repository.create(payload)
+        cache_delete_pattern("cache:res:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=resource.id,
@@ -39,6 +42,8 @@ class ResourceService:
     ) -> Resource:
         before = snapshot(resource, ResourceRead)
         updated = self.repository.update(resource, payload)
+        cache_delete_pattern("cache:res:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=updated.id,
@@ -55,6 +60,8 @@ class ResourceService:
         before = snapshot(resource, ResourceRead)
         resource.current_location_id = location_id
         updated = self.repository.update(resource, ResourceUpdate())
+        cache_delete_pattern("cache:res:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type="resource",
             target_id=updated.id,
@@ -69,6 +76,8 @@ class ResourceService:
         before = snapshot(resource, ResourceRead)
         target_id = resource.id
         self.repository.delete(resource)
+        cache_delete_pattern("cache:res:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=target_id,

@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import { DemoAccountsBanner, type DemoAccount } from "../ui/DemoAccountsBanner";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,6 +25,14 @@ export default function Login() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleSelectAccount = (account: DemoAccount) => {
+    setFormData({
+      username: account.email,
+      password: account.pass,
+    });
+    setError("");
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -89,74 +98,83 @@ export default function Login() {
   };
 
   return (
-    <Box className="auth-shell">
-      <Paper className="auth-card page-enter" sx={{ p: { xs: 2.5, md: 3.5 } }}>
-        <Stack direction="column" spacing={2} sx={{ mb: 2.5 }}>
-          <Avatar sx={{ bgcolor: "primary.main", width: 44, height: 44 }}>
-            <MeetingRoomIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" component="h1">
-              Entrar
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Acesse sua conta para gerenciar reservas, recursos e finalidades.
-            </Typography>
+    <Box className="auth-shell" sx={{ py: 4, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Stack spacing={3} sx={{ width: "100%", maxWidth: 480, mx: "auto", px: 2 }}>
+        <Paper className="auth-card page-enter" sx={{ p: { xs: 2.5, md: 3.5 }, borderRadius: 3 }}>
+          <Stack direction="column" spacing={2} sx={{ mb: 2.5 }}>
+            <Avatar sx={{ bgcolor: "primary.main", width: 48, height: 48 }}>
+              <MeetingRoomIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+                Entrar
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Acesse sua conta para consultar horários e solicitar reservas.
+              </Typography>
+            </Box>
+          </Stack>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%", gap: 2, display: "flex", flexDirection: "column" }}>
+            <TextField
+              fullWidth
+              label="E-mail"
+              name="username"
+              type="email"
+              value={formData.username}
+              onChange={handleChange}
+              placeholder="exemplo@email.com"
+              variant="outlined"
+            />
+
+            <TextField
+              fullWidth
+              label="Senha"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Sua senha"
+              variant="outlined"
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              startIcon={loading ? undefined : <LoginIcon />}
+              sx={{ py: 1.4, fontSize: "0.98rem", borderRadius: 2 }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : "Entrar"}
+            </Button>
           </Box>
-        </Stack>
 
-        {error && <Alert severity="error">{error}</Alert>}
+          <Typography variant="body2" sx={{ mt: 2.5, textAlign: "center" }}>
+            Não tem uma conta?{" "}
+            <Link
+              href="/register"
+              sx={{
+                cursor: "pointer",
+                fontWeight: 600,
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              Cadastre-se aqui
+            </Link>
+          </Typography>
+        </Paper>
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%", gap: 2, display: "flex", flexDirection: "column" }}>
-          <TextField
-            fullWidth
-            label="E-mail"
-            name="username"
-            type="email"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder="exemplo@email.com"
-            variant="outlined"
-          />
-
-          <TextField
-            fullWidth
-            label="Senha"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Sua senha"
-            variant="outlined"
-          />
-
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            startIcon={loading ? undefined : <LoginIcon />}
-            sx={{ py: 1.4, fontSize: "0.98rem" }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : "Entrar"}
-          </Button>
-        </Box>
-
-        <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
-          Não tem uma conta?{" "}
-          <Link
-            href="/register"
-            sx={{
-              cursor: "pointer",
-              fontWeight: 600,
-              textDecoration: "none",
-              "&:hover": { textDecoration: "underline" },
-            }}
-          >
-            Cadastre-se aqui
-          </Link>
-        </Typography>
-      </Paper>
+        {/* 1-Click Demo Accounts Selector */}
+        <DemoAccountsBanner
+          onSelectAccount={handleSelectAccount}
+          selectedEmail={formData.username}
+          compact
+        />
+      </Stack>
     </Box>
   );
 }

@@ -1,3 +1,4 @@
+from app.core.cache import cache_delete_pattern
 from app.modules.audit.audit_service import AuditService
 from app.modules.audit.snapshot import snapshot
 from app.modules.environments.environment_rules import (
@@ -40,6 +41,8 @@ class EnvironmentService:
             performed_by=performed_by,
             after=snapshot(env, EnvironmentRead),
         )
+        cache_delete_pattern("cache:env:*")
+        cache_delete_pattern("cache:avail:*")
         return env
 
     def update_environment(
@@ -59,6 +62,8 @@ class EnvironmentService:
             )
         before = snapshot(environment, EnvironmentRead)
         updated = self.repository.update(environment, payload)
+        cache_delete_pattern("cache:env:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=updated.id,
@@ -73,6 +78,8 @@ class EnvironmentService:
         before = snapshot(environment, EnvironmentRead)
         target_id = environment.id
         self.repository.delete(environment)
+        cache_delete_pattern("cache:env:*")
+        cache_delete_pattern("cache:avail:*")
         self.audit.record(
             entity_type=_ENTITY_TYPE,
             target_id=target_id,

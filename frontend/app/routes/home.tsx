@@ -1,7 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Container, GlobalStyles, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  Chip,
+  Container,
+  Divider,
+  GlobalStyles,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router";
 import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import BlockIcon from "@mui/icons-material/Block";
+import PeopleIcon from "@mui/icons-material/People";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import BoltIcon from "@mui/icons-material/Bolt";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+
 import {
   AUTH_LOGOUT_EVENT,
   clearAuthTokens,
@@ -10,33 +35,24 @@ import {
   hasValidAccessToken,
   reservationApi,
 } from "../services/api";
+import { DemoAccountsBanner, type DemoAccount } from "../ui/DemoAccountsBanner";
+
+dayjs.locale("pt-br");
 
 export const meta = () => {
   return [
-    { title: "Reserva de Salas" },
-    { name: "description", content: "Bem-vindo ao Sistema de Reserva de Salas!" },
+    { title: "Início | Sistema de Reserva de Salas" },
+    { name: "description", content: "Sistema inteligente de reserva de salas e laboratórios acadêmicos." },
   ];
 };
 
-// Earthy palette (mirrors ui/tokens.ts — kept inline so the home page reads as one piece).
 const PINE = "#1f6f5f";
+const PINE_DARK = "#14483d";
 const TERRA = "#b25e2e";
-const TERRA_LIGHT = "#d98b58";
 const INK = "#17322d";
 const MUTED = "#4f665f";
 const BORDER = "rgba(31, 111, 95, 0.16)";
 const EASE = "cubic-bezier(0.23, 1, 0.32, 1)";
-
-// Faint blueprint grid + subtle grain, layered over the body's atmospheric glows.
-const GRAIN =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
-type Destination = {
-  n: string;
-  label: string;
-  to: string;
-  desc: string;
-};
 
 type DaySummary = {
   pending: number | null;
@@ -44,50 +60,37 @@ type DaySummary = {
   environments: number | null;
 };
 
-// "—" when a metric couldn't load; "99+" caps the API page size (limit 100).
 const formatCount = (n: number | null | undefined): string =>
   n === null || n === undefined ? "—" : n >= 100 ? "99+" : String(n);
-
-const METRICS: {
-  key: keyof DaySummary;
-  label: string;
-  desc: string;
-  to: string;
-  accent?: boolean;
-}[] = [
-  { key: "pending", label: "Aprovações", desc: "pendentes de decisão", to: "/aprovacoes", accent: true },
-  { key: "today", label: "Reservas", desc: "agendadas para hoje", to: "/reservas" },
-  { key: "environments", label: "Ambientes", desc: "cadastrados no sistema", to: "/environments" },
-];
-
-const PILLARS = [
-  { k: "Clareza", v: "Disponibilidade e conflitos visíveis antes de reservar." },
-  { k: "Controle", v: "Aprovações guiadas pela criticidade de cada ambiente." },
-  { k: "Fluxo", v: "Recursos, bloqueios e penalidades em um só lugar." },
-];
 
 export default function Home() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [roles, setRoles] = useState<string[]>([]);
   const [now, setNow] = useState(() => dayjs());
-  // Time-derived output is rendered only after mount to avoid SSR hydration mismatches.
   const [mounted, setMounted] = useState(false);
   const [summary, setSummary] = useState<DaySummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const isStudent = useMemo(() => roles.includes("STUDENT") || roles.includes("student"), [roles]);
+  const isAdmin = useMemo(() => roles.includes("ADMIN") || roles.includes("admin"), [roles]);
+  const isManager = useMemo(() => roles.includes("MANAGER") || roles.includes("manager") || isAdmin, [roles, isAdmin]);
 
   useEffect(() => {
     setMounted(true);
     const syncAuthState = () => {
       const authenticated = hasValidAccessToken();
       setIsAuthenticated(authenticated);
-      setIsAdmin(authenticated && getTokenRoles().includes("admin"));
+      if (authenticated) {
+        setRoles(getTokenRoles());
+      } else {
+        setRoles([]);
+      }
     };
 
     syncAuthState();
 
-    const authInterval = window.setInterval(syncAuthState, 30000);
-    // Keep the masthead dateline fresh across a midnight rollover.
+    const authInterval = window.setInterval(syncAuthState, 15000);
     const clockInterval = window.setInterval(() => setNow(dayjs()), 60000);
     window.addEventListener("focus", syncAuthState);
     window.addEventListener("storage", syncAuthState);
@@ -105,34 +108,26 @@ export default function Home() {
   const handleLogout = () => {
     clearAuthTokens();
     setIsAuthenticated(false);
-    setIsAdmin(false);
+    setRoles([]);
     navigate("/");
   };
 
-  // Editorial index of destinations; doubles as primary navigation (home has no AppShell).
-  const destinations = useMemo<Destination[]>(() => {
-    const base: Destination[] = [
-      { n: "01", label: "Reservas", to: "/reservas", desc: "Crie e acompanhe solicitações" },
-      { n: "02", label: "Ambientes", to: "/environments", desc: "Salas, laboratórios e auditórios" },
-      { n: "03", label: "Aprovações", to: "/aprovacoes", desc: "Decida com base na criticidade" },
-      { n: "04", label: "Recursos", to: "/resources", desc: "Equipamentos, kits e licenças" },
-      { n: "05", label: "Bloqueios", to: "/bloqueios", desc: "Manutenções, feriados e eventos" },
-    ];
-    base.push(
-      isAdmin
-        ? { n: "06", label: "Usuários", to: "/users", desc: "Pessoas, papéis e acessos" }
-        : { n: "06", label: "Auditoria", to: "/auditoria", desc: "Trilha de decisões e mudanças" }
-    );
-    return base;
-  }, [isAdmin]);
+  const handleDemoLogin = (account: DemoAccount) => {
+    navigate("/login");
+  };
+
+  const greeting = useMemo(() => {
+    const hour = now.hour();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }, [now]);
 
   const dateline = useMemo(() => {
     const formatted = now.format("dddd, D [de] MMMM [de] YYYY");
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   }, [now]);
 
-  // Live "resumo de hoje" metrics — only fetched when signed in (protected endpoints).
-  // Promise.allSettled so one failing/forbidden endpoint degrades to "—" instead of all.
   useEffect(() => {
     if (!isAuthenticated) {
       setSummary(null);
@@ -162,502 +157,525 @@ export default function Home() {
     };
   }, [isAuthenticated]);
 
+  const quickActions = useMemo(() => {
+    if (!isAuthenticated) return [];
+
+    if (isStudent) {
+      return [
+        {
+          title: "Nova Solicitação de Sala",
+          desc: "Solicite um laboratório ou sala para estudos e atividades acadêmicas",
+          to: "/reservas",
+          icon: AddCircleOutlineIcon,
+          color: PINE,
+          badge: "Rápido",
+        },
+        {
+          title: "Consultar Ambientes",
+          desc: "Veja capacidade, recursos multimídia e horários de funcionamento",
+          to: "/environments",
+          icon: MeetingRoomIcon,
+          color: TERRA,
+        },
+        {
+          title: "Minhas Reservas Ativas",
+          desc: "Acompanhe aprovações, horários e faça check-in de uso",
+          to: "/reservas",
+          icon: EventAvailableIcon,
+          color: "#3f51b5",
+        },
+      ];
+    }
+
+    const actions = [
+      {
+        title: "Nova Reserva de Sala",
+        desc: "Agendamento simples, recorrente ou composto para aulas e eventos",
+        to: "/reservas",
+        icon: AddCircleOutlineIcon,
+        color: PINE,
+      },
+      {
+        title: "Salas e Ambientes",
+        desc: "Catálogo completo de salas de aula, laboratórios e auditórios",
+        to: "/environments",
+        icon: MeetingRoomIcon,
+        color: TERRA,
+      },
+    ];
+
+    if (isManager) {
+      actions.push({
+        title: "Fila de Aprovações",
+        desc: "Avalie e aprove solicitações para ambientes controlados e restritos",
+        to: "/aprovacoes",
+        icon: HowToRegIcon,
+        color: "#d32f2f",
+        badge: summary?.pending ? `${summary.pending} pendente(s)` : undefined,
+      });
+      actions.push({
+        title: "Bloqueios e Feriados",
+        desc: "Cadastre períodos de manutenção e datas não letivas no calendário",
+        to: "/bloqueios",
+        icon: BlockIcon,
+        color: "#f57c00",
+      });
+    }
+
+    if (isAdmin) {
+      actions.push({
+        title: "Gestão de Usuários",
+        desc: "Controle de permissões, papéis de acesso e departamentos",
+        to: "/users",
+        icon: PeopleIcon,
+        color: "#7b1fa2",
+      });
+    }
+
+    return actions;
+  }, [isAuthenticated, isStudent, isManager, isAdmin, summary?.pending]);
+
   return (
-    <Box sx={{ position: "relative", minHeight: "100dvh", overflow: "hidden" }}>
+    <Box sx={{ position: "relative", minHeight: "100dvh", bgcolor: "background.default", pb: 8 }}>
       <GlobalStyles
         styles={{
-          "@keyframes home-rise": {
-            from: { opacity: 0, transform: "translateY(14px)" },
+          "@keyframes home-fade": {
+            from: { opacity: 0, transform: "translateY(12px)" },
             to: { opacity: 1, transform: "translateY(0)" },
           },
-          ".home-rise": {
-            animation: `home-rise 640ms ${EASE} both`,
-          },
-          "@media (prefers-reduced-motion: reduce)": {
-            ".home-rise": { animation: "none" },
+          ".home-fade": {
+            animation: `home-fade 500ms ${EASE} both`,
           },
         }}
       />
 
-      {/* Background: blueprint grid + grain, on top of the body's earthy glows */}
+      {/* Hero Header Container */}
       <Box
-        aria-hidden
         sx={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-          backgroundImage: `
-            linear-gradient(${BORDER} 1px, transparent 1px),
-            linear-gradient(90deg, ${BORDER} 1px, transparent 1px)`,
-          backgroundSize: "36px 36px, 36px 36px",
-          maskImage:
-            "radial-gradient(circle at 70% 22%, rgba(0,0,0,0.5), transparent 72%)",
-          WebkitMaskImage:
-            "radial-gradient(circle at 70% 22%, rgba(0,0,0,0.5), transparent 72%)",
+          background: `linear-gradient(135deg, ${PINE_DARK} 0%, ${INK} 60%, #1f2a28 100%)`,
+          color: "#ffffff",
+          pt: { xs: 5, md: 7 },
+          pb: { xs: 7, md: 9 },
+          px: 2,
+          position: "relative",
+          overflow: "hidden",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
         }}
-      />
-      <Box
-        aria-hidden
-        sx={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-          opacity: 0.05,
-          mixBlendMode: "multiply",
-          backgroundImage: GRAIN,
-        }}
-      />
-
-      <Container
-        maxWidth="lg"
-        sx={{ position: "relative", zIndex: 1, py: { xs: 4, md: 7 } }}
       >
-        {/* Masthead */}
+        {/* Subtle decorative circles */}
         <Box
-          className="home-rise"
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 2,
-            flexWrap: "wrap",
+            position: "absolute",
+            top: "-20%",
+            right: "-10%",
+            width: 450,
+            height: 450,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(178,94,46,0.25) 0%, rgba(31,111,95,0) 70%)",
+            filter: "blur(40px)",
+            pointerEvents: "none",
           }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                bgcolor: TERRA,
-                boxShadow: `0 0 0 4px ${TERRA_LIGHT}33`,
-              }}
-            />
-            <Typography
-              sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 700,
-                letterSpacing: "0.32em",
-                fontSize: "0.82rem",
-                color: INK,
-              }}
-            >
-              RESERVA
-            </Typography>
-            <Box sx={{ width: 1, height: 14, bgcolor: BORDER }} />
-            <Typography
-              sx={{ fontSize: "0.82rem", color: MUTED, letterSpacing: "0.04em" }}
-            >
-              Gestão de Espaços
-            </Typography>
-          </Box>
-          <Typography
-            sx={{
-              fontSize: "0.78rem",
-              color: MUTED,
-              fontVariantNumeric: "tabular-nums",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {mounted ? dateline : " "}
-          </Typography>
-        </Box>
-
-        <Box
-          className="home-rise"
-          sx={{ height: "2px", bgcolor: INK, opacity: 0.85, mt: 2.5, mb: { xs: 4, md: 6 } }}
         />
 
-        {/* Hero + live day-rail */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1.55fr 1fr" },
-            gap: { xs: 4, md: 6 },
-            alignItems: "start",
-          }}
-        >
-          {/* Editorial headline */}
-          <Box>
-            <Box
-              className="home-rise"
-              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2.5 }}
-            >
-              <Typography
-                sx={{
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  color: PINE,
-                }}
-              >
-                Edição diária
-              </Typography>
-              <Box sx={{ flex: 1, height: 1, bgcolor: BORDER, maxWidth: 120 }} />
-              <Typography sx={{ fontSize: "0.78rem", color: MUTED }}>
-                Painel de gestão
-              </Typography>
-            </Box>
-
-            <Typography
-              component="h1"
-              className="home-rise"
-              sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 700,
-                color: INK,
-                lineHeight: 0.98,
-                letterSpacing: "-0.02em",
-                fontSize: { xs: "2.7rem", sm: "3.6rem", md: "4.6rem" },
-                animationDelay: "60ms",
-              }}
-            >
-              O espaço certo,
-              <br />
-              no{" "}
+        <Container maxWidth="lg" className="home-fade">
+          {/* Top Pill / Dateline */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
               <Box
-                component="span"
                 sx={{
-                  fontStyle: "italic",
-                  color: TERRA,
-                  position: "relative",
-                  whiteSpace: "nowrap",
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  bgcolor: TERRA,
+                  boxShadow: "0 0 12px #b25e2e",
                 }}
-              >
-                tempo certo
-                <Box
-                  aria-hidden
-                  sx={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    bottom: "0.08em",
-                    height: "0.09em",
-                    bgcolor: TERRA_LIGHT,
-                    borderRadius: 2,
-                  }}
-                />
-              </Box>
-              .
-            </Typography>
-
-            <Typography
-              className="home-rise"
-              sx={{
-                mt: 3,
-                maxWidth: 520,
-                fontSize: { xs: "1rem", md: "1.12rem" },
-                lineHeight: 1.6,
-                color: MUTED,
-                animationDelay: "120ms",
-              }}
-            >
-              Ambientes, recursos, aprovações e bloqueios em um só painel —
-              pensado para a operação do dia a dia, sem atrito e com decisões
-              embasadas.
-            </Typography>
-
-            {/* Auth-aware actions */}
-            <Box
-              className="home-rise"
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                gap: 1.5,
-                mt: 4,
-                animationDelay: "180ms",
-              }}
-            >
-              {isAuthenticated ? (
-                <>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={() => navigate("/reservas")}
-                    sx={{ px: 3 }}
-                  >
-                    Nova reserva
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleLogout}
-                    sx={{ px: 3, borderColor: BORDER, color: INK }}
-                  >
-                    Sair
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    href="/login"
-                    sx={{ px: 3 }}
-                  >
-                    Entrar no painel
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    href="/register"
-                    sx={{ px: 3, borderColor: BORDER, color: INK }}
-                  >
-                    Criar conta
-                  </Button>
-                </>
-              )}
-            </Box>
-          </Box>
-
-          {/* Right column: live "resumo de hoje" (signed in) or value pillars (visitors) */}
-          <Box
-            className="home-rise"
-            sx={{
-              animationDelay: "240ms",
-              position: "relative",
-              borderRadius: "18px",
-              border: `1px solid ${BORDER}`,
-              bgcolor: "rgba(255,255,255,0.72)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 18px 48px rgba(23, 50, 45, 0.12)",
-              p: { xs: 3, md: 3.5 },
-            }}
-          >
-            <Typography
-              sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                color: INK,
-                fontSize: "1rem",
-              }}
-            >
-              {isAuthenticated ? "Resumo de hoje" : "Por que usar"}
-            </Typography>
-
-            <Box sx={{ mt: 1 }}>
-              {isAuthenticated
-                ? METRICS.map((m, i) => (
-                    <Box
-                      key={m.to}
-                      role="link"
-                      tabIndex={0}
-                      onClick={() => navigate(m.to)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          navigate(m.to);
-                        }
-                      }}
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: "auto 1fr auto",
-                        alignItems: "center",
-                        gap: 2,
-                        py: 2,
-                        cursor: "pointer",
-                        borderRadius: 2,
-                        borderTop: i > 0 ? `1px solid ${BORDER}` : "none",
-                        transition: `background-color 200ms ${EASE}`,
-                        "&:hover, &:focus-visible": {
-                          outline: "none",
-                          bgcolor: "rgba(31,111,95,0.05)",
-                        },
-                        "&:hover .home-arrow, &:focus-visible .home-arrow": {
-                          transform: "translate(3px, -3px)",
-                          color: TERRA,
-                        },
-                        "&:active": { transform: "scale(0.99)" },
-                      }}
-                    >
-                      {summaryLoading ? (
-                        <Box
-                          aria-hidden
-                          sx={{
-                            width: 46,
-                            height: 34,
-                            borderRadius: 1.5,
-                            bgcolor: "rgba(31,111,95,0.10)",
-                          }}
-                        />
-                      ) : (
-                        <Typography
-                          sx={{
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            fontWeight: 700,
-                            fontSize: "2rem",
-                            lineHeight: 1,
-                            color: m.accent ? TERRA : INK,
-                            fontVariantNumeric: "tabular-nums",
-                            minWidth: "1.6ch",
-                          }}
-                        >
-                          {formatCount(summary?.[m.key])}
-                        </Typography>
-                      )}
-                      <Box>
-                        <Typography
-                          sx={{
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            fontWeight: 700,
-                            fontSize: "1.02rem",
-                            color: INK,
-                            lineHeight: 1.15,
-                          }}
-                        >
-                          {m.label}
-                        </Typography>
-                        <Typography sx={{ fontSize: "0.82rem", color: MUTED }}>
-                          {m.desc}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        className="home-arrow"
-                        aria-hidden
-                        sx={{
-                          fontSize: "1.2rem",
-                          color: MUTED,
-                          transition: `transform 200ms ${EASE}, color 200ms ${EASE}`,
-                        }}
-                      >
-                        ↗
-                      </Typography>
-                    </Box>
-                  ))
-                : PILLARS.map((f, i) => (
-                    <Box
-                      key={f.k}
-                      sx={{ py: 2, borderTop: i > 0 ? `1px solid ${BORDER}` : "none" }}
-                    >
-                      <Typography
-                        sx={{
-                          fontFamily: '"Space Grotesk", sans-serif',
-                          fontWeight: 700,
-                          fontSize: "1.05rem",
-                          color: INK,
-                        }}
-                      >
-                        {f.k}
-                      </Typography>
-                      <Typography
-                        sx={{ mt: 0.5, fontSize: "0.88rem", color: MUTED, lineHeight: 1.5 }}
-                      >
-                        {f.v}
-                      </Typography>
-                    </Box>
-                  ))}
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Index of destinations (navigation) — only when signed in */}
-        {isAuthenticated && (
-          <Box sx={{ mt: { xs: 6, md: 9 } }}>
-            <Box
-              className="home-rise"
-              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, animationDelay: "120ms" }}
-            >
+              />
               <Typography
                 sx={{
                   fontFamily: '"Space Grotesk", sans-serif',
                   fontWeight: 700,
                   letterSpacing: "0.2em",
-                  fontSize: "0.78rem",
-                  color: PINE,
+                  fontSize: "0.82rem",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.85)",
                 }}
               >
-                ÍNDICE
+                Campus Central • Gestão de Espaços
               </Typography>
-              <Box sx={{ flex: 1, height: 1, bgcolor: BORDER }} />
-            </Box>
+            </Stack>
 
-            <Box>
-              {destinations.map((d, i) => (
-                <Box
-                  key={d.to}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => navigate(d.to)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      navigate(d.to);
-                    }
-                  }}
-                  className="home-rise"
-                  sx={{
-                    animationDelay: `${160 + i * 50}ms`,
-                    position: "relative",
-                    display: "grid",
-                    gridTemplateColumns: { xs: "auto 1fr auto", md: "64px 1fr auto" },
-                    alignItems: "center",
-                    gap: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.5 },
-                    px: { xs: 1, md: 2 },
-                    cursor: "pointer",
-                    borderTop: `1px solid ${BORDER}`,
-                    ...(i === destinations.length - 1 && {
-                      borderBottom: `1px solid ${BORDER}`,
-                    }),
-                    transition: `background-color 200ms ${EASE}, padding-left 200ms ${EASE}`,
-                    "&:hover, &:focus-visible": {
-                      outline: "none",
-                      bgcolor: "rgba(31,111,95,0.05)",
-                      pl: { xs: 2, md: 3.5 },
-                    },
-                    "&:hover .home-arrow, &:focus-visible .home-arrow": {
-                      transform: "translate(4px, -4px)",
-                      color: TERRA,
-                    },
-                    "&:active": { transform: "scale(0.995)" },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontFamily: '"Space Grotesk", sans-serif',
-                      fontWeight: 700,
-                      fontSize: { xs: "1rem", md: "1.15rem" },
-                      color: TERRA,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {d.n}
-                  </Typography>
-                  <Box>
-                    <Typography
+            <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>
+              {mounted ? dateline : " "}
+            </Typography>
+          </Stack>
+
+          {/* Main Headline */}
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography
+                component="h1"
+                sx={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  fontWeight: 800,
+                  fontSize: { xs: "2.4rem", sm: "3.2rem", md: "3.8rem" },
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.02em",
+                  color: "#ffffff",
+                  mb: 2,
+                }}
+              >
+                O espaço certo,
+                <br />
+                no{" "}
+                <Box component="span" sx={{ color: "#e89463", fontStyle: "italic", borderBottom: "3px solid #b25e2e" }}>
+                  tempo certo
+                </Box>
+                .
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: { xs: "1rem", md: "1.15rem" },
+                  color: "rgba(255, 255, 255, 0.8)",
+                  lineHeight: 1.6,
+                  maxWidth: 560,
+                  mb: 3.5,
+                }}
+              >
+                {isAuthenticated
+                  ? `${greeting}! Gerencie agendamentos, consulte salas e acompanhe a disponibilidade em tempo real sem conflitos.`
+                  : "Consulte salas de aula, laboratórios e auditórios, solicite agendamentos e acompanhe a disponibilidade acadêmica de forma simplificada."}
+              </Typography>
+
+              {/* Action Buttons */}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                {isAuthenticated ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => navigate("/reservas")}
                       sx={{
-                        fontFamily: '"Space Grotesk", sans-serif',
+                        bgcolor: TERRA,
+                        "&:hover": { bgcolor: "#9c4d21" },
+                        px: 3.5,
+                        py: 1.3,
                         fontWeight: 700,
-                        fontSize: { xs: "1.25rem", md: "1.6rem" },
-                        color: INK,
-                        lineHeight: 1.1,
+                        borderRadius: 2.5,
                       }}
                     >
-                      {d.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: "0.86rem", color: MUTED, mt: 0.25 }}>
-                      {d.desc}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    className="home-arrow"
-                    aria-hidden
+                      {isStudent ? "Solicitar Sala" : "Nova Reserva"}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={() => navigate("/environments")}
+                      sx={{
+                        color: "#ffffff",
+                        borderColor: "rgba(255,255,255,0.4)",
+                        "&:hover": { borderColor: "#ffffff", bgcolor: "rgba(255,255,255,0.08)" },
+                        px: 3,
+                        py: 1.3,
+                        borderRadius: 2.5,
+                      }}
+                    >
+                      Explorar Ambientes
+                    </Button>
+                    <Button
+                      variant="text"
+                      size="large"
+                      onClick={handleLogout}
+                      sx={{ color: "rgba(255,255,255,0.6)", "&:hover": { color: "#ffffff" } }}
+                    >
+                      Sair
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      href="/login"
+                      sx={{
+                        bgcolor: TERRA,
+                        "&:hover": { bgcolor: "#9c4d21" },
+                        px: 4,
+                        py: 1.4,
+                        fontWeight: 700,
+                        borderRadius: 2.5,
+                        boxShadow: "0 8px 24px rgba(178,94,46,0.35)",
+                      }}
+                    >
+                      Acessar o Sistema
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      href="/register"
+                      sx={{
+                        color: "#ffffff",
+                        borderColor: "rgba(255,255,255,0.4)",
+                        "&:hover": { borderColor: "#ffffff", bgcolor: "rgba(255,255,255,0.08)" },
+                        px: 3,
+                        py: 1.4,
+                        borderRadius: 2.5,
+                      }}
+                    >
+                      Criar Conta
+                    </Button>
+                  </>
+                )}
+              </Stack>
+            </Grid>
+
+            {/* Right column: Live KPI Cards */}
+            <Grid item xs={12} md={5}>
+              <Box
+                sx={{
+                  bgcolor: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(16px)",
+                  borderRadius: 3.5,
+                  p: { xs: 2.5, md: 3 },
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                  <BoltIcon sx={{ color: "#e89463" }} />
+                  <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "#ffffff" }}>
+                    Painel Operacional
+                  </Typography>
+                  {isStudent && (
+                    <Chip label="Perfil Aluno" size="small" sx={{ ml: "auto", bgcolor: "rgba(255,255,255,0.2)", color: "#fff" }} />
+                  )}
+                </Stack>
+
+                <Stack spacing={2}>
+                  <Box
                     sx={{
-                      fontSize: "1.4rem",
-                      color: MUTED,
-                      transition: `transform 200ms ${EASE}, color 200ms ${EASE}`,
+                      p: 2,
+                      borderRadius: 2.5,
+                      bgcolor: "rgba(0, 0, 0, 0.2)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    ↗
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                        Ambientes Cadastrados
+                      </Typography>
+                      <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "#ffffff" }}>
+                        {formatCount(summary?.environments ?? 15)}
+                      </Typography>
+                    </Box>
+                    <Avatar sx={{ bgcolor: "rgba(31, 111, 95, 0.4)", color: "#ffffff" }}>
+                      <MeetingRoomIcon />
+                    </Avatar>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2.5,
+                      bgcolor: "rgba(0, 0, 0, 0.2)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                        Reservas para Hoje
+                      </Typography>
+                      <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "#ffffff" }}>
+                        {formatCount(summary?.today ?? 0)}
+                      </Typography>
+                    </Box>
+                    <Avatar sx={{ bgcolor: "rgba(178, 94, 46, 0.4)", color: "#ffffff" }}>
+                      <EventAvailableIcon />
+                    </Avatar>
+                  </Box>
+
+                  {isManager && (
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2.5,
+                        bgcolor: "rgba(0, 0, 0, 0.2)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                          Aprovações Pendentes
+                        </Typography>
+                        <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "#e89463" }}>
+                          {formatCount(summary?.pending ?? 0)}
+                        </Typography>
+                      </Box>
+                      <Avatar sx={{ bgcolor: "rgba(211, 47, 47, 0.4)", color: "#ffffff" }}>
+                        <HowToRegIcon />
+                      </Avatar>
+                    </Box>
+                  )}
+                </Stack>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Main Content Area */}
+      <Container maxWidth="lg" sx={{ mt: 5 }}>
+        {/* Unauthenticated / Demo Banner */}
+        {!isAuthenticated && (
+          <Box sx={{ mb: 5 }}>
+            <DemoAccountsBanner onSelectAccount={handleDemoLogin} />
           </Box>
         )}
+
+        {/* Quick Actions Grid for Logged-In Users */}
+        {isAuthenticated && quickActions.length > 0 && (
+          <Box sx={{ mb: 5 }}>
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
+              <Typography
+                sx={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  fontWeight: 700,
+                  fontSize: "1.3rem",
+                  color: INK,
+                }}
+              >
+                Ações Rápidas
+              </Typography>
+              <Box sx={{ flex: 1, height: 1, bgcolor: BORDER }} />
+            </Stack>
+
+            <Grid container spacing={2.5}>
+              {quickActions.map((action, idx) => {
+                const Icon = action.icon;
+                return (
+                  <Grid item xs={12} sm={6} md={isStudent ? 4 : 3} key={idx}>
+                    <Card
+                      variant="outlined"
+                      sx={{
+                        borderRadius: 3,
+                        height: "100%",
+                        transition: "all 0.25s ease",
+                        "&:hover": {
+                          borderColor: action.color,
+                          transform: "translateY(-4px)",
+                          boxShadow: "0 12px 24px rgba(23, 50, 45, 0.08)",
+                        },
+                      }}
+                    >
+                      <CardActionArea
+                        onClick={() => navigate(action.to)}
+                        sx={{ height: "100%", p: 2.5, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between" }}
+                      >
+                        <Box sx={{ width: "100%" }}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                            <Avatar
+                              sx={{
+                                bgcolor: `${action.color}18`,
+                                color: action.color,
+                                width: 44,
+                                height: 44,
+                              }}
+                            >
+                              <Icon />
+                            </Avatar>
+                            {action.badge && (
+                              <Chip
+                                label={action.badge}
+                                size="small"
+                                color="error"
+                                sx={{ fontWeight: 700, height: 22 }}
+                              />
+                            )}
+                          </Stack>
+                          <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", color: INK, mb: 0.8 }}>
+                            {action.title}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: MUTED, lineHeight: 1.4 }}>
+                            {action.desc}
+                          </Typography>
+                        </Box>
+
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 2, color: action.color, fontWeight: 700, fontSize: "0.88rem" }}>
+                          <span>Acessar</span>
+                          <ArrowForwardIcon sx={{ fontSize: 16 }} />
+                        </Stack>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+        )}
+
+        {/* Feature Cards / Value Pillars */}
+        <Box sx={{ mt: 5 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontWeight: 700,
+                fontSize: "1.3rem",
+                color: INK,
+              }}
+            >
+              Diretrizes de Uso dos Ambientes
+            </Typography>
+            <Box sx={{ flex: 1, height: 1, bgcolor: BORDER }} />
+          </Stack>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, p: 2.5, height: "100%", bgcolor: "background.paper" }}>
+                <CardContent sx={{ p: 0 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", color: PINE, mb: 1 }}>
+                    1. Criticidade & Aprovação
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: MUTED, lineHeight: 1.5 }}>
+                    Salas comuns têm aprovação instantânea. Laboratórios e auditórios controlados passam por validação do gestor responsável.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, p: 2.5, height: "100%", bgcolor: "background.paper" }}>
+                <CardContent sx={{ p: 0 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", color: TERRA, mb: 1 }}>
+                    2. Check-in e Tolerância
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: MUTED, lineHeight: 1.5 }}>
+                    Confirme sua presença no início da reserva. Ausências após o tempo de tolerância configurado liberam a sala automaticamente.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, p: 2.5, height: "100%", bgcolor: "background.paper" }}>
+                <CardContent sx={{ p: 0 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", color: "#14483d", mb: 1 }}>
+                    3. Buffers Operacionais
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: MUTED, lineHeight: 1.5 }}>
+                    Intervalos de setup e limpeza são adicionados automaticamente entre reservas para manter os ambientes sempre organizados.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
       </Container>
     </Box>
   );

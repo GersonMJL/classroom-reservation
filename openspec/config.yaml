@@ -1,0 +1,60 @@
+schema: spec-driven
+githubCopilot:
+  cloudAgent: true
+
+# Project context
+context: |
+  Projeto: Classroom & Laboratory Reservation System (TCC)
+  Repositório: classroom-reservation (tcc)
+  Linguagem de Documentação e UI: Português (pt-BR)
+  
+  Stack Tecnológica:
+  - Backend: Python 3.14+, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, PostgreSQL 16
+  - Frontend: React 19, React Router 7, TypeScript, Material-UI (MUI v9), TailwindCSS v4, Vite, Dayjs
+  - Gerenciador de pacotes Backend: uv
+  - Gerenciador de pacotes Frontend: npm
+  - Orquestração: Docker Compose
+  
+  Arquitetura Backend (Modular Domain):
+  - Estrutura de módulo sob backend/app/modules/<module>/:
+    - router.py: Endpoints FastAPI com prefixo /api/v1/<slug-pt-br> e tags
+    - service.py: Regras de negócio, orquestração de repositórios, serviços e eventos
+    - repository.py: Queries puras SQLAlchemy recebendo db Session
+    - schemas.py: Modelos Pydantic (Base, Create, Update, Read)
+    - models.py: Entidades SQLAlchemy ORM herdando de Base (id: Mapped[int])
+  - Fluxo estrito: HTTP Request -> Router -> Service -> Repository -> Database
+  - Enums padronizados em backend/app/shared/enums.py herdando de StrEnum
+  - Autenticação via JWT (Access + Refresh) com Argon2 em backend/app/core/
+  - Tarefas em segundo plano (scheduler) para no-show e overtime em backend/app/core/scheduler.py
+
+  Arquitetura Frontend:
+  - Rotas declaradas em frontend/app/routes.ts
+  - Componentes de página em frontend/app/routes/
+  - Theme e design system em frontend/app/root.tsx (paleta terrosa, superfície arredondada, feedback tátil)
+  - Comunicação com backend centralizada em frontend/app/services/
+
+rules:
+  proposal:
+    - "Descreva o problema, contexto e impacto de negócio em pt-BR"
+    - "Inclua explicitamente seções de Escopo, Não-Escopo e Impacto Arquitetural"
+  design:
+    - "Documente decisões arquiteturais (ADRs), contratos de interface e modelos de dados"
+    - "Use diagramas para fluxos e estados"
+  specs:
+    - "Estruture sempre com Purpose e Requirements"
+    - "Use Requirement com SHALL / MUST e cenários GIVEN / WHEN / THEN"
+  tasks:
+    - "Separe tarefas em seções de BACKEND, FRONTEND e VERIFICAÇÃO"
+
+# Orientações operacionais
+operations:
+  apply:
+    guidance:
+      - Seguir estritamente o padrão 4-camadas no backend e o design system no frontend
+      - Manter todos os textos de interface e mensagens em pt-BR
+      - Garantir que enums sejam atualizados em shared/enums.py antes de gerar migrações
+      - Executar testes e checagem de tipos (ruff, tsc, vitest, pytest)
+  archive:
+    guidance:
+      - Sincronizar as especificações centrais em openspec/specs/ antes de arquivar
+      - Resumir o resultado da implementação e impactos no sistema
